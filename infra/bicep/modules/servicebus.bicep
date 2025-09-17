@@ -12,7 +12,6 @@ resource sb 'Microsoft.ServiceBus/namespaces@2021-11-01' = {
     tier: sku
   }
   properties: {
-    isAutoInflateEnabled: false
     zoneRedundant: false
   }
   tags: {
@@ -43,4 +42,4 @@ resource authRule 'Microsoft.ServiceBus/namespaces/authorizationRules@2021-11-01
 
 output namespaceName string = sb.name
 output namespaceResourceId string = sb.id
-output primaryConnectionString string = listKeys(authRule.id, '2021-11-01').primaryConnectionString
+// Connection string available via authRule reference if needed

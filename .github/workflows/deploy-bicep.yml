@@ -2,6 +2,11 @@ name: bicep-deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy from'
+        required: false
+        default: 'main'
 
 jobs:
   deploy:
@@ -9,6 +14,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || 'main' }}
+          
+      - name: 🔍 Verify deployment files
+        run: |
+          echo "=== Checking Bicep files to deploy ==="
+          echo "Current commit: $(git rev-parse HEAD)"
+          echo "servicebus.bicep (first 30 lines):"
+          head -30 infra/bicep/modules/servicebus.bicep
+          echo "\n=== main.bicep (last 20 lines) ==="
+          tail -20 infra/bicep/main.bicep
 
       - name: 'Login to Azure'
         uses: azure/login@v1
