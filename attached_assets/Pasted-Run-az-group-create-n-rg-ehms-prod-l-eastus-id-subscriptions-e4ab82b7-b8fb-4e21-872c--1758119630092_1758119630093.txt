@@ -1,0 +1,22 @@
+Run az group create -n rg-ehms-prod -l eastus
+***
+  "id": "/subscriptions/e4ab82b7-b8fb-4e21-872c-d7281c479338/resourceGroups/rg-ehms-prod",
+  "location": "eastus",
+  "managedBy": null,
+  "name": "rg-ehms-prod",
+  "properties": ***
+    "provisioningState": "Succeeded"
+  ***,
+  "tags": null,
+  "type": "Microsoft.Resources/resourceGroups"
+***
+WARNING: /home/runner/work/eye-hospital-app/eye-hospital-app/infra/bicep/modules/servicebus.bicep(15,5) : Warning BCP037: The property "isAutoInflateEnabled" is not allowed on objects of type "SBNamespaceProperties". Permissible properties include "alternateName", "disableLocalAuth", "encryption", "privateEndpointConnections". If this is a resource type definition inaccuracy, report it using https://aka.ms/bicep-type-issues. [https://aka.ms/bicep/core-diagnostics#BCP037]
+WARNING: /home/runner/work/eye-hospital-app/eye-hospital-app/infra/bicep/modules/servicebus.bicep(23,5) : Warning no-unused-vars: Variable "topicResources" is declared but never used. [https://aka.ms/bicep/linter-diagnostics#no-unused-vars]
+WARNING: /home/runner/work/eye-hospital-app/eye-hospital-app/infra/bicep/modules/servicebus.bicep(53,41) : Warning outputs-should-not-contain-secrets: Outputs should not contain secrets. Found possible secret: function 'listKeys' [https://aka.ms/bicep/linter-diagnostics#outputs-should-not-contain-secrets]
+WARNING: /home/runner/work/eye-hospital-app/eye-hospital-app/infra/bicep/modules/servicebus.bicep(53,41) : Warning use-resource-symbol-reference: Use a resource reference instead of invoking function "listKeys". This simplifies the syntax and allows Bicep to better understand your deployment dependency graph. [https://aka.ms/bicep/linter-diagnostics#use-resource-symbol-reference]
+WARNING: /home/runner/work/eye-hospital-app/eye-hospital-app/infra/bicep/main.bicep(134,5) : Warning no-unnecessary-dependson: Remove unnecessary dependsOn entry 'sbModule'. [https://aka.ms/bicep/linter-diagnostics#no-unnecessary-dependson]
+WARNING: /home/runner/work/eye-hospital-app/eye-hospital-app/infra/bicep/main.bicep(135,5) : Warning no-unnecessary-dependson: Remove unnecessary dependsOn entry 'la'. [https://aka.ms/bicep/linter-diagnostics#no-unnecessary-dependson]
+ERROR: /home/runner/work/eye-hospital-app/eye-hospital-app/infra/bicep/modules/servicebus.bicep(26,5) : Error BCP182: This expression is being used in the for-body of the variable "topicResources", which requires values that can be calculated at the start of the deployment. Properties of sb which can be calculated at the start include "apiVersion", "id", "name", "type". [https://aka.ms/bicep/core-diagnostics#BCP182]
+/home/runner/work/eye-hospital-app/eye-hospital-app/infra/bicep/main.bicep(65,17) : Error BCP104: The referenced module has errors. [https://aka.ms/bicep/core-diagnostics#BCP104]
+/home/runner/work/eye-hospital-app/eye-hospital-app/infra/bicep/main.bicep(111,10) : Error BCP120: This expression is being used in an assignment to the "scope" property of the "Microsoft.Insights/diagnosticSettings" type, which requires a value that can be calculated at the start of the deployment. Properties of sbNamespace which can be calculated at the start include "apiVersion", "id", "type". [https://aka.ms/bicep/core-diagnostics#BCP120]
+Error: Process completed with exit code 1.
