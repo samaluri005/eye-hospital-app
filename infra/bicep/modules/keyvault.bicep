@@ -1,7 +1,7 @@
 // modules/keyvault.bicep
 param name string
 param location string
-param enablePurgeProtection bool = false
+param enablePurgeProtection bool = true
 
 resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
   name: name
@@ -17,7 +17,6 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
     enabledForTemplateDeployment: true
     enabledForDiskEncryption: false
     enableRbacAuthorization: true
-    enableSoftDelete: true
     enablePurgeProtection: enablePurgeProtection
   }
   tags: {
