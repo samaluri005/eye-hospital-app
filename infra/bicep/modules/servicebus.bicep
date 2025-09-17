@@ -20,13 +20,6 @@ resource sb 'Microsoft.ServiceBus/namespaces@2021-11-01' = {
   }
 }
 
-var topicResources = [for t in topics: {
-  name: t
-  dependsOn: [
-    sb
-  ]
-}]
-
 resource topicsRes 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = [for (t, i) in topics: {
   parent: sb
   name: t

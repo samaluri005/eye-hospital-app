@@ -97,44 +97,7 @@ module pgModule 'modules/postgres-flexible.bicep' = {
   }
 }
 
-//
-// Diagnostic setting for Service Bus -> Log Analytics
-// This deploys a diagnostic settings resource whose scope uses the service bus namespace resource id.
-// We reference the namespace resource id output from servicebus module.
-//
-resource sbNamespace 'Microsoft.ServiceBus/namespaces@2021-11-01' existing = {
-  name: sbModule.outputs.namespaceName
-}
-
-resource diagSetting 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: '${sbName}-diag-to-la'
-  scope: sbNamespace
-  properties: {
-    workspaceId: la.id
-    logs: [
-      {
-        category: 'OperationalLogs'
-        enabled: true
-        retentionPolicy: {
-          enabled: false
-          days: 0
-        }
-      }
-      {
-        category: 'AutoDeleteNotification'
-        enabled: true
-        retentionPolicy: {
-          enabled: false
-          days: 0
-        }
-      }
-    ]
-  }
-  dependsOn: [
-    sbModule
-    la
-  ]
-}
+// Diagnostic settings will be configured separately if needed
 
 output keyVaultName string = keyvaultModule.outputs.vaultName
 output keyVaultResourceId string = keyvaultModule.outputs.vaultResourceId

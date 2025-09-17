@@ -9,7 +9,7 @@ param skuName string = 'Standard_B1ms'
 param storageGb int = 128
 param allowedClientIp string = '0.0.0.0'
 
-resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
   name: serverName
   location: location
   properties: {
@@ -18,9 +18,6 @@ resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
     version: '14'
     storage: {
       storageSizeGB: storageGb
-    }
-    network: {
-      delegatedSubnetResourceId: '' // leave blank for public access; replace with subnet resourceId for private endpoints
     }
     highAvailability: {
       mode: 'Disabled'
@@ -36,7 +33,7 @@ resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
   }
 }
 
-resource firewallRule 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+resource firewallRule 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-06-01-preview' = {
   parent: pg
   name: 'allowclient'
   properties: {

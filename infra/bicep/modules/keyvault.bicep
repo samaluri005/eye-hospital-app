@@ -3,7 +3,7 @@ param name string
 param location string
 param enablePurgeProtection bool = false
 
-resource kv 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
+resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
   name: name
   location: location
   properties: {
@@ -14,8 +14,9 @@ resource kv 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
     tenantId: subscription().tenantId
     accessPolicies: [] // we will set access policies after MI/SP creation outside this module in main or via role assignments
     enabledForDeployment: false
-    enabledForTemplateDeployment: false
+    enabledForTemplateDeployment: true
     enabledForDiskEncryption: false
+    enableRbacAuthorization: true
     enableSoftDelete: true
     enablePurgeProtection: enablePurgeProtection
   }
