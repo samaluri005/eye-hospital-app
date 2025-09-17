@@ -33,7 +33,7 @@ param postgresStorageGB int = 128
 // derive safe names (consumer should pass safe prefix)
 var safePrefix = toLower(replace(prefix, '\\s', ''))
 var uniq = uniqueString(resourceGroup().id, safePrefix)
-var kvName = '${safePrefix}kv${take(uniq,6)}' // keep short
+var kvName = '${safePrefix}kv${take(uniq,8)}${take(uniqueString(subscription().subscriptionId),4)}' // globally unique
 var laName = '${safePrefix}-la-${take(uniq,4)}'
 var sbName = '${safePrefix}sb${take(uniq,6)}'
 var pgName = '${safePrefix}pg${take(uniq,6)}'
