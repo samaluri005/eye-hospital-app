@@ -19,7 +19,7 @@ param pgAdminPassword string
 param allowedClientIp string = '0.0.0.0'
 
 @description('Enable Key Vault purge protection (irreversible).')
-param enableKeyVaultPurgeProtection bool = false
+param enableKeyVaultPurgeProtection bool = true
 
 @description('Service Bus SKU: Basic/Standard/Premium')
 param serviceBusSku string = 'Standard'

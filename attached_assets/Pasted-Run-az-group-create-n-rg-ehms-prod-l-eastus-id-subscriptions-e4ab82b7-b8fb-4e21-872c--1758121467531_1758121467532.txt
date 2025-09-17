@@ -1,0 +1,13 @@
+Run az group create -n rg-ehms-prod -l eastus
+***
+  "id": "/subscriptions/e4ab82b7-b8fb-4e21-872c-d7281c479338/resourceGroups/rg-ehms-prod",
+  "location": "eastus",
+  "managedBy": null,
+  "name": "rg-ehms-prod",
+  "properties": ***
+    "provisioningState": "Succeeded"
+  ***,
+  "tags": null,
+  "type": "Microsoft.Resources/resourceGroups"
+***
+ERROR: ***"status":"Failed","error":***"code":"DeploymentFailed","target":"/subscriptions/e4ab82b7-b8fb-4e21-872c-d7281c479338/resourceGroups/rg-ehms-prod/providers/Microsoft.Resources/deployments/main","message":"At least one resource deployment operation failed. Please list deployment operations for details. Please see https://aka.ms/arm-deployment-operations for usage details.","details":[***"code":"ResourceDeploymentFailure","target":"/subscriptions/e4ab82b7-b8fb-4e21-872c-d7281c479338/resourceGroups/rg-ehms-prod/providers/Microsoft.Resources/deployments/kvDeploy","message":"The resource write operation failed to complete successfully, because it reached terminal provisioning state 'Failed'.","details":[***"code":"DeploymentFailed","target":"/subscriptions/e4ab82b7-b8fb-4e21-872c-d7281c479338/resourceGroups/rg-ehms-prod/providers/Microsoft.Resources/deployments/kvDeploy","message":"At least one resource deployment operation failed. Please list deployment operations for details. Please see https://aka.ms/arm-deployment-operations for usage details.","details":[***"code":"BadRequest","message":"The property \"enablePurgeProtection\" cannot be set to false. Enabling the purge protection for a vault is an irreversible action."***]***]***,***"code":"ResourceDeploymentFailure","target":"/subscriptions/e4ab82b7-b8fb-4e21-872c-d7281c479338/resourceGroups/rg-ehms-prod/providers/Microsoft.Resources/deployments/pgDeploy","message":"The resource write operation failed to complete successfully, because it reached terminal provisioning state 'Failed'.","details":[***"code":"DeploymentFailed","target":"/subscriptions/e4ab82b7-b8fb-4e21-872c-d7281c479338/resourceGroups/rg-ehms-prod/providers/Microsoft.Resources/deployments/pgDeploy","message":"At least one resource deployment operation failed. Please list deployment operations for details. Please see https://aka.ms/arm-deployment-operations for usage details.","details":[***"code":"MissingRequiredParameter","message":"Parameter 'AdministratorLoginPassword' must be specified. This parameter cannot be NULL or empty."***]***]***]***
