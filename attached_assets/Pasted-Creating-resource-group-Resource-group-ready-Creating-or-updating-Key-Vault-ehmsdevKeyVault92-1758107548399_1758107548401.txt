@@ -1,0 +1,40 @@
+Creating resource group...
+Resource group ready.
+Creating or updating Key Vault: ehmsdevKeyVault9256b2...
+Key Vault created.
+Creating Service Bus namespace: ehmsdevsb9256b2...
+Service Bus namespace created.
+Creating topic appointments-topic...
+Creating topic notifications-topic...
+Creating topic billing-topic...
+Topics created.
+Creating Azure Database for PostgreSQL (Flexible Server): ehmsdevpg9256b2 ...
+Checking the existence of the resource group 'ehmsdev-rg-9256b2'...
+Resource group 'ehmsdev-rg-9256b2' exists ? : True 
+Creating PostgreSQL Server 'ehmsdevpg9256b2' in group 'ehmsdev-rg-9256b2'...
+Your server 'ehmsdevpg9256b2' is using sku 'Standard_B1ms' (Paid Tier). Please refer to https://aka.ms/postgres-pricing for pricing details
+Configuring server firewall rule, 'azure-access', to accept connections from all Azure resources...
+Make a note of your password. If you forget, you would have to reset your password with "az postgres flexible-server update -n ehmsdevpg9256b2 -g ehmsdev-rg-9256b2 -p <new-password>".
+Try using 'az postgres flexible-server connect' command to test out connection.
+{
+  "connectionString": "postgresql://ehmsdevadmin:ehmsDB!2024$StrongehmsDB!2024$Strong@ehmsdevpg9256b2.postgres.database.azure.com/postgres?sslmode=require",
+  "databaseName": "postgres",
+  "firewallName": "AllowAllAzureServicesAndResourcesWithinAzureIps_2025-9-17_11-9-13",
+  "host": "ehmsdevpg9256b2.postgres.database.azure.com",
+  "id": "/subscriptions/e4ab82b7-b8fb-4e21-872c-d7281c479338/resourceGroups/ehmsdev-rg-9256b2/providers/Microsoft.DBforPostgreSQL/flexibleServers/ehmsdevpg9256b2",
+  "location": "East US",
+  "password": "ehmsDB!2024$StrongehmsDB!2024$Strong",
+  "resourceGroup": "ehmsdev-rg-9256b2",
+  "skuname": "Standard_B1ms",
+  "username": "ehmsdevadmin",
+  "version": "17"
+}
+Postgres server created.
+Adding firewall rule for IP: 74.225.207.63
+Firewall rule added.
+Creating service principal (app) for local dev: ehmsdev-dev-sp-9256b2
+WARNING: The output includes credentials that you must protect. Be sure that you do not include these credentials in your code or check the credentials into your source control. For more information, see https://aka.ms/azadsp-cli
+Service principal created: appId=4cf22fb5-ac52-4ee6-92f8-176c1db47182 tenant=2328c8fc-e1fb-4f12-9af1-0f50b28bb383
+Granting Key Vault secret GET/list permissions to service principal...
+ERROR: Cannot set policies to a vault with '--enable-rbac-authorization' specified
+PS /home/sam> 

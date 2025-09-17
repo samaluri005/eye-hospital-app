@@ -1,0 +1,41 @@
+{
+  "name": "eye-hospital-management-system",
+  "version": "1.0.0",
+  "description": "Eye Hospital Management System - Monorepo",
+  "private": true,
+  "packageManager": "pnpm@10.12.4",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "dev:patient-portal": "pnpm -w --filter patient-portal-web dev",
+    "dev:hr-portal": "pnpm -w --filter hospital-hr-portal-web dev",
+    "dev:mobile": "pnpm -w --filter patient-portal-mobile start",
+    "build:all": "pnpm -w build",
+    "start:patient-portal": "pnpm -w --filter patient-portal-web start"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.16",
+    "eslint": "^8.57.1",
+    "prettier": "^3.1.0",
+    "turbo": "^1.11.0",
+    "typescript": "^5.9.2"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "microservices/*"
+  ],
+  "dependencies": {
+    "@azure/identity": "^4.12.0",
+    "@azure/keyvault-secrets": "^4.10.0",
+    "@azure/service-bus": "^7.9.5"
+  }
+}

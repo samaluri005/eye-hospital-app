@@ -1,0 +1,89 @@
+eye-hospital-management-system/
+├── .github/
+│   └── ...
+├── .vscode/
+│   └── ...
+├── apps/
+│   ├── patient-portal-web/                # Next.js (App Router) - patient-facing
+│   │   ├── public/
+│   │   ├── src/
+│   │   ├── next.config.js
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   ├── patient-portal-mobile/             # Expo / React Native - patient app
+│   │   ├── src/
+│   │   ├── App.tsx
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   └── hospital-hr-portal-web/            # Next.js - admin/hospital/HR portal
+│       ├── public/
+│       ├── src/
+│       ├── next.config.js
+│       ├── package.json
+│       └── tsconfig.json
+├── microservices/
+│   ├── auth-netcore/                      # .NET 8 Web API (see notes — deploy outside Replit recommended)
+│   │   ├── src/
+│   │   ├── tests/
+│   │   ├── Dockerfile
+│   │   ├── auth-netcore.sln
+│   │   └── README.md
+│   ├── patient-functions/                 # Azure Functions (C# or Node.js) 
+│   │   ├── src/
+│   │   ├── local.settings.json
+│   │   └── host.json
+│   ├── hospital-functions/
+│   │   ├── src/
+│   │   ├── local.settings.json
+│   │   └── host.json
+│   ├── whatsapp-integration-functions/
+│   ├── billing-functions/
+│   └── shared-libs/
+│       ├── Shared.Models/
+│       └── Shared.Helpers/
+├── packages/
+│   ├── ui/
+│   │   ├── src/
+│   │   └── package.json
+│   ├── types/
+│   │   ├── src/
+│   │   └── package.json
+│   ├── api-specs/
+│   │   ├── openapi/
+│   │   └── package.json
+│   └── config/
+│       ├── eslint-config/
+│       ├── tsconfig/
+│       └── tailwind-config/
+├── infra/
+│   ├── bicep/
+│   ├── terraform/
+│   └── scripts/
+├── scripts/
+│   ├── dev/
+│   │   └── start-local.sh
+│   ├── build-all.sh
+│   └── deploy-all.sh
+├── tools/
+│   └── codegen/
+├── tests/
+│   └── ...
+├── docker/
+│   └── ...
+├── .editorconfig
+├── .eslintrc.js
+├── .prettierrc
+├── .gitignore
+├── .env.example
+├── CODE_OF_CONDUCT.md
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── README.md
+├── CHANGELOG.md
+├── pnpm-workspace.yaml                   # (ADDED / updated)
+├── package.json                          # root (ADDED/updated scripts & devDeps)
+├── turbo.json                            # (ADDED / updated)
+├── tsconfig.base.json
+├── replit.nix                            # (ADDED) — root Nix environment for Replit
+├── .replit                               # (ADDED) — root example (dev/all-in-one). See per-package examples below.
+└── LICENSE

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "prefix": { "value": "ehmsprod" },
+    "location": { "value": "eastus" },
+    "pgAdminUser": { "value": "ehmsadmin" },
+    "pgAdminPassword": { "value": "REPLACE_WITH_SECURE_PASSWORD_OR_PIPELINE_SECRET" },
+    "allowedClientIp": { "value": "10.0.0.4" },
+    "enableKeyVaultPurgeProtection": { "value": false },
+    "serviceBusSku": { "value": "Standard" },
+    "postgresSkuName": { "value": "Standard_B2ms" },
+    "postgresStorageGB": { "value": 128 }
+  }
+}

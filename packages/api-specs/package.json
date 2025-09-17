@@ -1,0 +1,14 @@
+{
+  "name": "@hospital/api-specs",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "echo 'API specs build'",
+    "lint": "echo 'API specs lint'",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}
