@@ -22,6 +22,10 @@ args = "Monorepo Dev"
 task = "workflow.run"
 args = "Hospital Development"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "ngrok Public Tunnel"
+
 [[workflows.workflow]]
 name = "Monorepo Dev"
 author = "agent"
@@ -45,6 +49,17 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "ngrok Public Tunnel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./ngrok http 5000 --log=stdout"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[ports]]
 localPort = 3001
