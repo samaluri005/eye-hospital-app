@@ -33,6 +33,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+// Add CORS to allow frontend access
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder =>
+    {
+        builder
+            .WithOrigins("https://17791e9b-5553-473f-90c6-ebc465f8543f-00-3l7xmxdpueco.sisko.replit.dev")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
 // Configuration for OTP and external services
@@ -66,6 +79,9 @@ if (!string.IsNullOrEmpty(twilioSid) && !string.IsNullOrEmpty(twilioToken))
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+// Enable CORS
+app.UseCors();
 
 // Add authentication and authorization middleware
 app.UseAuthentication();
