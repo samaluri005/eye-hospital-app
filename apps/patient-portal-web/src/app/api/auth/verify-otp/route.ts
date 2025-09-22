@@ -14,7 +14,17 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
+    // Try to parse as JSON, fallback to text for error responses
+    let data;
+    const contentType = response.headers.get('content-type');
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      // Handle non-JSON responses (error pages, plain text)
+      const text = await response.text();
+      data = { error: 'service_error', message: text.substring(0, 200) };
+    }
     
     if (!response.ok) {
       return NextResponse.json(data, { status: response.status });
