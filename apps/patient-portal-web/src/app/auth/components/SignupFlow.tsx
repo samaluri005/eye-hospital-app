@@ -72,15 +72,12 @@ export default function SignupFlow() {
               </div>
 
               <div>
-                <div className="grid grid-cols-3 gap-3 mb-3">
+                <div className="flex justify-center items-center gap-4">
                   <SocialSignInButton provider="google" />
-                  <SocialSignInButton provider="microsoft" />
-                  <SocialSignInButton provider="apple" />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
                   <SocialSignInButton provider="x" />
                   <SocialSignInButton provider="instagram" />
                   <SocialSignInButton provider="facebook" />
+                  <SocialSignInButton provider="apple" />
                 </div>
                 <p className="mt-4 text-sm text-gray-500 text-center leading-relaxed">
                   <svg className="w-4 h-4 inline mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
