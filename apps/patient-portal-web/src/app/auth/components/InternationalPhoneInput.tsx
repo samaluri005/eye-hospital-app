@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { AsYouType, parsePhoneNumber, isValidPhoneNumber, getCountries, getCountryCallingCode } from "libphonenumber-js";
+import { AsYouType, parsePhoneNumber, parsePhoneNumberFromString, isValidPhoneNumber, getCountries, getCountryCallingCode } from "libphonenumber-js";
 import ReactCountryFlag from "react-country-flag";
 
 interface Country {
@@ -48,6 +48,7 @@ export default function InternationalPhoneInput({
   const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isInternalUpdate = useRef(false);
 
   const filteredCountries = countries.filter(country =>
     country.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -55,29 +56,44 @@ export default function InternationalPhoneInput({
     country.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Update display value when input value changes
+  // Update display value when input value changes externally
   useEffect(() => {
-    if (value) {
-      try {
-        const parsed = parsePhoneNumber(value);
-        if (parsed) {
-          const asYouType = new AsYouType(parsed.country);
-          asYouType.input(parsed.nationalNumber);
-          setDisplayValue(asYouType.getNumber()?.formatNational() || value);
-          
-          // Update selected country based on parsed phone number
-          const countryForPhone = countries.find(c => c.code === parsed.country);
-          if (countryForPhone) {
-            setSelectedCountry(countryForPhone);
+    // Skip if this is our internal update to prevent feedback loop
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false;
+      return;
+    }
+
+    if (value && value.startsWith('+')) {
+      const parsed = parsePhoneNumberFromString(value);
+      if (parsed) {
+        const nationalDigits = parsed.nationalNumber.toString();
+        
+        // Update selected country based on parsed phone number
+        const countryForPhone = countries.find(c => c.code === parsed.country);
+        if (countryForPhone) {
+          setSelectedCountry(countryForPhone);
+        }
+        
+        // Format just the national number for display
+        let formattedDisplay = nationalDigits;
+        if (parsed.country === 'IN' && nationalDigits.length >= 5) {
+          if (nationalDigits.length <= 10) {
+            formattedDisplay = nationalDigits.replace(/(\d{1,5})(\d{0,5})/, (match, p1, p2) => {
+              return p2 ? `${p1} ${p2}` : p1;
+            });
           }
         }
-      } catch {
-        setDisplayValue(value);
+        setDisplayValue(formattedDisplay);
+      } else {
+        // Generic fallback - strip any country calling code (1-3 digits after +)
+        const withoutDialCode = value.replace(/^\+\d{1,3}/, '');
+        setDisplayValue(withoutDialCode);
       }
-    } else {
+    } else if (!value) {
       setDisplayValue("");
     }
-  }, [value]);
+  }, [value, selectedCountry.dialCode]);
 
   // Check validity when display value changes
   useEffect(() => {
@@ -103,6 +119,13 @@ export default function InternationalPhoneInput({
   }, []);
 
   const handlePhoneInput = (inputValue: string) => {
+    // Allow users to clear the field completely
+    if (inputValue === "") {
+      setDisplayValue("");
+      onChange("");
+      return;
+    }
+
     // Remove all non-digit characters for processing
     const digits = inputValue.replace(/\D/g, "");
     
@@ -112,43 +135,39 @@ export default function InternationalPhoneInput({
       return;
     }
 
-    try {
-      // Generate E.164 format for backend first
-      const fullNumber = selectedCountry.dialCode + digits;
-      let formattedDisplay = digits;
-      
-      try {
-        const parsed = parsePhoneNumber(fullNumber);
-        if (parsed) {
-          // Use national format but remove any leading zeros
-          let nationalFormat = parsed.formatNational();
-          // Remove country code and any leading zeros/parentheses/spaces
-          nationalFormat = nationalFormat.replace(/^\+?\d+\s*\(?0?\)?/, '').trim();
-          formattedDisplay = nationalFormat || digits;
-          onChange(parsed.format("E.164"));
-        } else {
-          // Fallback to simple formatting with spaces
-          if (selectedCountry.code === 'IN' && digits.length === 10) {
-            formattedDisplay = digits.replace(/(\d{5})(\d{5})/, '$1 $2');
-          } else {
-            formattedDisplay = digits;
-          }
-          onChange(fullNumber);
-        }
-      } catch {
-        // Simple formatting fallback
-        if (selectedCountry.code === 'IN' && digits.length === 10) {
-          formattedDisplay = digits.replace(/(\d{5})(\d{5})/, '$1 $2');
-        } else {
-          formattedDisplay = digits;
-        }
-        onChange(fullNumber);
+    // Simple formatting for display - only show user's digits nicely formatted
+    let formattedDisplay = digits;
+    if (selectedCountry.code === 'IN' && digits.length >= 5) {
+      // Format Indian numbers as groups: 89196 53433
+      if (digits.length <= 10) {
+        formattedDisplay = digits.replace(/(\d{1,5})(\d{0,5})/, (match, p1, p2) => {
+          return p2 ? `${p1} ${p2}` : p1;
+        });
       }
-      
-      setDisplayValue(formattedDisplay);
-    } catch {
-      setDisplayValue(digits);
-      onChange(selectedCountry.dialCode + digits);
+    } else if (digits.length >= 3) {
+      // Basic formatting for other countries
+      if (digits.length <= 10) {
+        formattedDisplay = digits.replace(/(\d{3})(\d{0,3})(\d{0,4})/, (match, p1, p2, p3) => {
+          if (p3) return `${p1} ${p2} ${p3}`;
+          if (p2) return `${p1} ${p2}`;
+          return p1;
+        });
+      }
+    }
+    
+    setDisplayValue(formattedDisplay);
+
+    // Generate E.164 format for backend (country code + digits)
+    const fullNumber = selectedCountry.dialCode + digits;
+    
+    // Mark as internal update to prevent feedback loop
+    isInternalUpdate.current = true;
+    
+    const parsed = parsePhoneNumberFromString(fullNumber);
+    if (parsed && isValidPhoneNumber(fullNumber)) {
+      onChange(parsed.format("E.164"));
+    } else {
+      onChange(fullNumber);
     }
   };
 
@@ -160,37 +179,39 @@ export default function InternationalPhoneInput({
     // Reformat current number with new country
     if (displayValue) {
       const digits = displayValue.replace(/\D/g, "");
-      const fullNumber = country.dialCode + digits;
-      let formattedDisplay = digits;
       
-      try {
-        const parsed = parsePhoneNumber(fullNumber);
-        if (parsed) {
-          // Use national format but remove any leading zeros
-          let nationalFormat = parsed.formatNational();
-          nationalFormat = nationalFormat.replace(/^\+?\d+\s*\(?0?\)?/, '').trim();
-          formattedDisplay = nationalFormat || digits;
-          onChange(parsed.format("E.164"));
-        } else {
-          // Simple formatting fallback
-          if (country.code === 'IN' && digits.length === 10) {
-            formattedDisplay = digits.replace(/(\d{5})(\d{5})/, '$1 $2');
-          } else {
-            formattedDisplay = digits;
-          }
-          onChange(fullNumber);
+      // Simple formatting for display
+      let formattedDisplay = digits;
+      if (country.code === 'IN' && digits.length >= 5) {
+        if (digits.length <= 10) {
+          formattedDisplay = digits.replace(/(\d{1,5})(\d{0,5})/, (match, p1, p2) => {
+            return p2 ? `${p1} ${p2}` : p1;
+          });
         }
-      } catch {
-        // Simple formatting fallback
-        if (country.code === 'IN' && digits.length === 10) {
-          formattedDisplay = digits.replace(/(\d{5})(\d{5})/, '$1 $2');
-        } else {
-          formattedDisplay = digits;
+      } else if (digits.length >= 3) {
+        if (digits.length <= 10) {
+          formattedDisplay = digits.replace(/(\d{3})(\d{0,3})(\d{0,4})/, (match, p1, p2, p3) => {
+            if (p3) return `${p1} ${p2} ${p3}`;
+            if (p2) return `${p1} ${p2}`;
+            return p1;
+          });
         }
-        onChange(fullNumber);
       }
       
       setDisplayValue(formattedDisplay);
+      
+      // Generate E.164 for backend
+      const fullNumber = country.dialCode + digits;
+      
+      // Mark as internal update to prevent feedback loop
+      isInternalUpdate.current = true;
+      
+      const parsed = parsePhoneNumberFromString(fullNumber);
+      if (parsed && isValidPhoneNumber(fullNumber)) {
+        onChange(parsed.format("E.164"));
+      } else {
+        onChange(fullNumber);
+      }
     }
     
     // Focus back to input
