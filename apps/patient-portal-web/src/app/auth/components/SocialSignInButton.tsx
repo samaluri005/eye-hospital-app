@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useMsal } from "@azure/msal-react";
-import { loginRequest } from "@/lib/msalConfig";
+import { loginRequest } from "../../../lib/msalConfig";
 
 export default function SocialSignInButton({ provider }: { provider: "google" | "microsoft" | "apple" }) {
   const { instance } = useMsal();

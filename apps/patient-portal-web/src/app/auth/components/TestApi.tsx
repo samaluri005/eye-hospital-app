@@ -1,7 +1,7 @@
 "use client";
 import axios from "axios";
 import { useMsal } from "@azure/msal-react";
-import { loginRequest } from "@/lib/msalConfig";
+import { loginRequest } from "../../../lib/msalConfig";
 import React, { useState } from "react";
 
 export default function TestApi() {

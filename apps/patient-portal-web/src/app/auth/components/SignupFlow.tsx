@@ -6,7 +6,7 @@ import ProfileStep from "./ProfileStep";
 import ConsentStep from "./ConsentStep";
 import MfaStep from "./MfaStep";
 import SocialSignInButton from "./SocialSignInButton";
-import TestApi from "../TestApi"; // optional: for protected API testing
+import TestApi from "./TestApi"; // optional: for protected API testing
 
 export type Step = "phone" | "otp" | "profile" | "consent" | "mfa" | "done";
 
