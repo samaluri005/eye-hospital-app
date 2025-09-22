@@ -45,21 +45,25 @@
           "dependencies": {
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
-              "version": "[9.0.9, )"
+              "version": "[8.*, )"
             },
             "Microsoft.EntityFrameworkCore.Design": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "suppressParent": "All",
               "target": "Package",
-              "version": "[8.0.10, )"
+              "version": "[8.*, )"
+            },
+            "Microsoft.Identity.Web": {
+              "target": "Package",
+              "version": "[2.*, )"
             },
             "Npgsql.EntityFrameworkCore.PostgreSQL": {
               "target": "Package",
-              "version": "[8.0.10, )"
+              "version": "[8.*, )"
             },
             "StackExchange.Redis": {
               "target": "Package",
-              "version": "[2.9.17, )"
+              "version": "[2.*, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
@@ -67,7 +71,7 @@
             },
             "Twilio": {
               "target": "Package",
-              "version": "[7.13.1, )"
+              "version": "[5.*, )"
             }
           },
           "imports": [
