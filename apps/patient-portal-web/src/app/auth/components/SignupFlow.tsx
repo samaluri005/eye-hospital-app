@@ -74,6 +74,7 @@ export default function SignupFlow() {
               <div>
                 <div className="flex justify-center items-center gap-4">
                   <SocialSignInButton provider="google" />
+                  <SocialSignInButton provider="microsoft" />
                   <SocialSignInButton provider="x" />
                   <SocialSignInButton provider="instagram" />
                   <SocialSignInButton provider="facebook" />
