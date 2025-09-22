@@ -1,0 +1,7 @@
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.csproj.AssemblyReference.cache
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.AssemblyInfoInputs.cache
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.AssemblyInfo.cs
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.csproj.CoreCompileInputs.cache
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.MvcApplicationPartsAssemblyInfo.cache
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.sourcelink.json
