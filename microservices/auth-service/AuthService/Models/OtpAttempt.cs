@@ -17,6 +17,10 @@ public class OtpAttempt
     [Column("auth_identity_id")]
     public int? AuthIdentityId { get; set; }
 
+    [MaxLength(20)]
+    [Column("phone")]
+    public string? Phone { get; set; }
+
     [Required]
     [MaxLength(10)]
     [Column("otp_code")]

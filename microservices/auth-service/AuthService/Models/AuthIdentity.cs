@@ -21,8 +21,8 @@ public class AuthIdentity
 
     [Required]
     [MaxLength(255)]
-    [Column("provider_id")]
-    public string ProviderId { get; set; } = string.Empty; // phone number, email, or external user ID
+    [Column("provider_subject")]
+    public string ProviderSubject { get; set; } = string.Empty; // phone number, email, or external user ID
 
     [Column("verified_at")]
     public DateTime? VerifiedAt { get; set; }

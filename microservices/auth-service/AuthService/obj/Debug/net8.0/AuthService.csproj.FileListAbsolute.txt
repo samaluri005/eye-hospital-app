@@ -1,10 +1,3 @@
-/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.csproj.AssemblyReference.cache
-/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.GeneratedMSBuildEditorConfig.editorconfig
-/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.AssemblyInfoInputs.cache
-/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.AssemblyInfo.cs
-/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.csproj.CoreCompileInputs.cache
-/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.MvcApplicationPartsAssemblyInfo.cache
-/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.sourcelink.json
 /home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/appsettings.Development.json
 /home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/appsettings.json
 /home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/AuthService
@@ -94,7 +87,14 @@
 /home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/tr/Microsoft.CodeAnalysis.Workspaces.resources.dll
 /home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/zh-Hans/Microsoft.CodeAnalysis.Workspaces.resources.dll
 /home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.resources.dll
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.csproj.AssemblyReference.cache
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.AssemblyInfoInputs.cache
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.AssemblyInfo.cs
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.csproj.CoreCompileInputs.cache
 /home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.MvcApplicationPartsAssemblyInfo.cs
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.MvcApplicationPartsAssemblyInfo.cache
+/home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.sourcelink.json
 /home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/staticwebassets.build.json
 /home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/staticwebassets.development.json
 /home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/staticwebassets/msbuild.AuthService.Microsoft.AspNetCore.StaticWebAssets.props
