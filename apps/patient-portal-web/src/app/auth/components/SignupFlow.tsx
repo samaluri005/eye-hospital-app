@@ -55,10 +55,41 @@ export default function SignupFlow() {
         {/* Main Content */}
         <div className="space-y-6">
           {step === "phone" && (
-            <PhoneStep
-              initialPhone={phone}
-              onSent={(p) => { setPhone(p); setStep("otp"); }}
-            />
+            <>
+              <PhoneStep
+                initialPhone={phone}
+                onSent={(p) => { setPhone(p); setStep("otp"); }}
+              />
+              
+              {/* Social Sign-In Options - Only on Phone Step */}
+              <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500">Or continue with</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  <SocialSignInButton provider="google" />
+                  <SocialSignInButton provider="microsoft" />
+                  <SocialSignInButton provider="apple" />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <SocialSignInButton provider="x" />
+                  <SocialSignInButton provider="instagram" />
+                  <SocialSignInButton provider="facebook" />
+                </div>
+                <p className="mt-4 text-sm text-gray-500 text-center leading-relaxed">
+                  <svg className="w-4 h-4 inline mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Social accounts without phone numbers will require verification before account linking.
+                </p>
+              </div>
+            </>
           )}
 
           {step === "otp" && (
@@ -101,33 +132,6 @@ export default function SignupFlow() {
                 <TestApi/>
               </div>
             </div>
-          )}
-
-          {step !== "done" && (
-            <>
-              <div className="relative my-8">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500">Or continue with</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="grid grid-cols-3 gap-3">
-                  <SocialSignInButton provider="google" />
-                  <SocialSignInButton provider="microsoft" />
-                  <SocialSignInButton provider="apple" />
-                </div>
-                <p className="mt-4 text-sm text-gray-500 text-center leading-relaxed">
-                  <svg className="w-4 h-4 inline mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Social accounts without phone numbers will require verification before account linking.
-                </p>
-              </div>
-            </>
           )}
         </div>
       </div>
