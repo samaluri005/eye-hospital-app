@@ -26,27 +26,27 @@ export default function SignupFlow() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="healthcare-card max-w-2xl w-full">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-2xl w-full">
         {/* Header with Medical Branding */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-16 h-16 bg-emerald-500 rounded-xl mx-auto mb-4 flex items-center justify-center shadow-md">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">EyeCare Patient Portal</h1>
-          <p className="text-gray-600 text-lg">{stepTitles[step]}</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">MedCare</h1>
+          <p className="text-gray-500 text-base">{stepTitles[step]}</p>
         </div>
 
         {/* Progress Indicator */}
         <div className="flex items-center justify-center mb-8">
-          <div className="flex space-x-2">
+          <div className="flex space-x-3">
             {(['phone', 'otp', 'profile', 'consent', 'mfa'] as Step[]).map((s, index) => (
-              <div key={s} className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                step === s ? 'bg-blue-600 scale-125' : 
-                (['phone', 'otp', 'profile', 'consent', 'mfa'] as Step[]).indexOf(step) > index ? 'bg-green-500' : 'bg-gray-300'
+              <div key={s} className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                step === s ? 'bg-emerald-500 scale-125' : 
+                (['phone', 'otp', 'profile', 'consent', 'mfa'] as Step[]).indexOf(step) > index ? 'bg-emerald-400' : 'bg-gray-300'
               }`} />
             ))}
           </div>
@@ -62,12 +62,12 @@ export default function SignupFlow() {
               />
               
               {/* Social Sign-In Options - Only on Phone Step */}
-              <div className="relative my-8">
+              <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-200"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500">Or continue with</span>
+                  <span className="px-4 bg-white text-gray-500 font-medium">Or continue with</span>
                 </div>
               </div>
 

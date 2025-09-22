@@ -30,7 +30,7 @@ export default function SocialSignInButton({ provider }: { provider: "google" | 
         </svg>
       ),
       bgColor: "bg-white hover:bg-gray-50",
-      shadowColor: "shadow-lg hover:shadow-xl"
+      shadowColor: "shadow-md hover:shadow-lg"
     },
     microsoft: {
       label: "Microsoft",
@@ -43,7 +43,7 @@ export default function SocialSignInButton({ provider }: { provider: "google" | 
         </svg>
       ),
       bgColor: "bg-white hover:bg-gray-50",
-      shadowColor: "shadow-lg hover:shadow-xl"
+      shadowColor: "shadow-md hover:shadow-lg"
     },
     x: {
       label: "X",
@@ -53,7 +53,7 @@ export default function SocialSignInButton({ provider }: { provider: "google" | 
         </svg>
       ),
       bgColor: "bg-white hover:bg-gray-50",
-      shadowColor: "shadow-lg hover:shadow-xl"
+      shadowColor: "shadow-md hover:shadow-lg"
     },
     instagram: {
       label: "Instagram",
@@ -63,7 +63,7 @@ export default function SocialSignInButton({ provider }: { provider: "google" | 
         </svg>
       ),
       bgColor: "bg-white hover:bg-gray-50",
-      shadowColor: "shadow-lg hover:shadow-xl"
+      shadowColor: "shadow-md hover:shadow-lg"
     },
     facebook: {
       label: "Facebook",
@@ -73,7 +73,7 @@ export default function SocialSignInButton({ provider }: { provider: "google" | 
         </svg>
       ),
       bgColor: "bg-white hover:bg-gray-50",
-      shadowColor: "shadow-lg hover:shadow-xl"
+      shadowColor: "shadow-md hover:shadow-lg"
     },
     apple: {
       label: "Apple",
@@ -83,7 +83,7 @@ export default function SocialSignInButton({ provider }: { provider: "google" | 
         </svg>
       ),
       bgColor: "bg-white hover:bg-gray-50", 
-      shadowColor: "shadow-lg hover:shadow-xl"
+      shadowColor: "shadow-md hover:shadow-lg"
     }
   };
 
@@ -98,7 +98,7 @@ export default function SocialSignInButton({ provider }: { provider: "google" | 
   return (
     <button 
       onClick={signIn}
-      className={`${config.bgColor} ${config.shadowColor} w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 focus:ring-4 focus:ring-blue-100 focus:outline-none`}
+      className={`${config.bgColor} ${config.shadowColor} w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 focus:ring-4 focus:ring-emerald-100 focus:outline-none border border-gray-200`}
     >
       {config.icon}
     </button>
