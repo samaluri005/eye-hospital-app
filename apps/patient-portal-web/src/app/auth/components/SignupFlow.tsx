@@ -1,0 +1,81 @@
+"use client";
+import React, { useState } from "react";
+import PhoneStep from "./PhoneStep";
+import OtpStep from "./OtpStep";
+import ProfileStep from "./ProfileStep";
+import ConsentStep from "./ConsentStep";
+import MfaStep from "./MfaStep";
+import SocialSignInButton from "./SocialSignInButton";
+import TestApi from "../TestApi"; // optional: for protected API testing
+
+export type Step = "phone" | "otp" | "profile" | "consent" | "mfa" | "done";
+
+export default function SignupFlow() {
+  const [step, setStep] = useState<Step>("phone");
+  const [phone, setPhone] = useState<string>("");
+  const [patientId, setPatientId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<{ fullName?: string; password?: string }>({});
+
+  // callbacks
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <h1 className="text-2xl font-semibold mb-4">Create your EyeCare account</h1>
+
+      <div className="space-y-4">
+        {step === "phone" && (
+          <PhoneStep
+            initialPhone={phone}
+            onSent={(p) => { setPhone(p); setStep("otp"); }}
+          />
+        )}
+
+        {step === "otp" && (
+          <OtpStep
+            phone={phone}
+            onVerified={(pid) => { setPatientId(pid); setStep("profile"); }}
+            onBack={() => setStep("phone")}
+          />
+        )}
+
+        {step === "profile" && (
+          <ProfileStep
+            initialName={profile.fullName}
+            onNext={(data) => { setProfile(data); setStep("consent"); }}
+            onSkip={() => setStep("consent")}
+          />
+        )}
+
+        {step === "consent" && (
+          <ConsentStep
+            onAccepted={() => setStep("mfa")}
+            onDeclined={() => alert("You must accept ToS and privacy to create an account.")}
+          />
+        )}
+
+        {step === "mfa" && (
+          <MfaStep onDone={() => setStep("done")} skip={() => setStep("done")} />
+        )}
+
+        {step === "done" && (
+          <div>
+            <h2 className="text-xl font-medium">You're all set</h2>
+            <p>Account created and linked. You can now access the patient portal.</p>
+            <div className="mt-4"><TestApi/></div>
+          </div>
+        )}
+
+        <hr className="my-4" />
+
+        <div>
+          <p className="mb-2">Or sign in with</p>
+          <div className="flex gap-3">
+            <SocialSignInButton provider="google" />
+            <SocialSignInButton provider="microsoft" />
+            <SocialSignInButton provider="apple" />
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">If social account lacks phone, you will be prompted to verify phone before creating or linking account.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
