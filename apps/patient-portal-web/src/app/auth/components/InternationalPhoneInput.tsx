@@ -1,30 +1,30 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { AsYouType, parsePhoneNumber, isValidPhoneNumber, getCountries, getCountryCallingCode } from "libphonenumber-js";
+import ReactCountryFlag from "react-country-flag";
 
 interface Country {
   code: string;
   name: string;
   dialCode: string;
-  flag: string;
 }
 
 const countries: Country[] = [
-  { code: "IN", name: "India", dialCode: "+91", flag: "🇮🇳" },
-  { code: "US", name: "United States", dialCode: "+1", flag: "🇺🇸" },
-  { code: "GB", name: "United Kingdom", dialCode: "+44", flag: "🇬🇧" },
-  { code: "CA", name: "Canada", dialCode: "+1", flag: "🇨🇦" },
-  { code: "AU", name: "Australia", dialCode: "+61", flag: "🇦🇺" },
-  { code: "DE", name: "Germany", dialCode: "+49", flag: "🇩🇪" },
-  { code: "FR", name: "France", dialCode: "+33", flag: "🇫🇷" },
-  { code: "JP", name: "Japan", dialCode: "+81", flag: "🇯🇵" },
-  { code: "BR", name: "Brazil", dialCode: "+55", flag: "🇧🇷" },
-  { code: "MX", name: "Mexico", dialCode: "+52", flag: "🇲🇽" },
-  { code: "CN", name: "China", dialCode: "+86", flag: "🇨🇳" },
-  { code: "SG", name: "Singapore", dialCode: "+65", flag: "🇸🇬" },
-  { code: "AE", name: "United Arab Emirates", dialCode: "+971", flag: "🇦🇪" },
-  { code: "SA", name: "Saudi Arabia", dialCode: "+966", flag: "🇸🇦" },
-  { code: "ZA", name: "South Africa", dialCode: "+27", flag: "🇿🇦" },
+  { code: "IN", name: "India", dialCode: "+91" },
+  { code: "US", name: "United States", dialCode: "+1" },
+  { code: "GB", name: "United Kingdom", dialCode: "+44" },
+  { code: "CA", name: "Canada", dialCode: "+1" },
+  { code: "AU", name: "Australia", dialCode: "+61" },
+  { code: "DE", name: "Germany", dialCode: "+49" },
+  { code: "FR", name: "France", dialCode: "+33" },
+  { code: "JP", name: "Japan", dialCode: "+81" },
+  { code: "BR", name: "Brazil", dialCode: "+55" },
+  { code: "MX", name: "Mexico", dialCode: "+52" },
+  { code: "CN", name: "China", dialCode: "+86" },
+  { code: "SG", name: "Singapore", dialCode: "+65" },
+  { code: "AE", name: "United Arab Emirates", dialCode: "+971" },
+  { code: "SA", name: "Saudi Arabia", dialCode: "+966" },
+  { code: "ZA", name: "South Africa", dialCode: "+27" },
 ];
 
 interface Props {
@@ -183,21 +183,31 @@ export default function InternationalPhoneInput({
 
   return (
     <div className="relative">
-      <div className="flex">
+      <div className="flex items-stretch">
         {/* Country Selector */}
         <div className="relative" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             onKeyDown={handleDropdownKeyPress}
-            className="relative flex items-center justify-center px-3 py-3 bg-white border-2 border-blue-200 rounded-l-xl hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 transition-all duration-200 min-w-[80px]"
+            className="relative inline-flex items-center gap-2 px-3 h-12 bg-white border-2 border-r-0 border-blue-200 rounded-l-xl hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 transition-all duration-200 w-[112px]"
             aria-label={`Selected country: ${selectedCountry.name} ${selectedCountry.dialCode}`}
             aria-expanded={dropdownOpen}
             aria-haspopup="listbox"
           >
-            <span className="text-lg mr-1" aria-hidden="true">{selectedCountry.flag}</span>
+            <div className="w-5 h-5 flex-shrink-0">
+              <ReactCountryFlag
+                countryCode={selectedCountry.code}
+                svg
+                style={{
+                  width: '20px',
+                  height: '15px',
+                }}
+                aria-label={selectedCountry.name}
+              />
+            </div>
             <span className="text-sm font-medium text-gray-700">{selectedCountry.dialCode}</span>
-            <svg className="w-4 h-4 ml-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -230,7 +240,17 @@ export default function InternationalPhoneInput({
                     role="option"
                     aria-selected={selectedCountry.code === country.code}
                   >
-                    <span className="text-lg" aria-hidden="true">{country.flag}</span>
+                    <div className="w-5 h-5 flex-shrink-0">
+                      <ReactCountryFlag
+                        countryCode={country.code}
+                        svg
+                        style={{
+                          width: '20px',
+                          height: '15px',
+                        }}
+                        aria-label={country.name}
+                      />
+                    </div>
                     <span className="flex-1 text-sm">{country.name}</span>
                     <span className="text-sm text-gray-500">{country.dialCode}</span>
                   </button>
@@ -253,7 +273,7 @@ export default function InternationalPhoneInput({
           onChange={(e) => handlePhoneInput(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Enter phone number"
-          className="flex-1 px-4 py-3 border-2 border-l-0 border-blue-200 rounded-r-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 transition-all duration-200 text-gray-900 placeholder-gray-500"
+          className="flex-1 px-4 h-12 border-2 border-l-0 border-blue-200 rounded-r-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 transition-all duration-200 text-gray-900 placeholder-gray-500"
           autoComplete="tel"
           aria-label="Phone number"
           aria-describedby="phone-help"
