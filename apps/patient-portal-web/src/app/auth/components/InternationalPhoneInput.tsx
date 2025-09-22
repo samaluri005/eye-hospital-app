@@ -113,25 +113,41 @@ export default function InternationalPhoneInput({
     }
 
     try {
-      // Format as user types using the selected country
-      const asYouType = new AsYouType(selectedCountry.code as any);
-      const formatted = asYouType.input(digits);
-      setDisplayValue(formatted);
-
-      // Generate E.164 format for backend
+      // Generate E.164 format for backend first
       const fullNumber = selectedCountry.dialCode + digits;
+      let formattedDisplay = digits;
+      
       try {
         const parsed = parsePhoneNumber(fullNumber);
         if (parsed) {
+          // Use national format but remove any leading zeros
+          let nationalFormat = parsed.formatNational();
+          // Remove country code and any leading zeros/parentheses/spaces
+          nationalFormat = nationalFormat.replace(/^\+?\d+\s*\(?0?\)?/, '').trim();
+          formattedDisplay = nationalFormat || digits;
           onChange(parsed.format("E.164"));
         } else {
+          // Fallback to simple formatting with spaces
+          if (selectedCountry.code === 'IN' && digits.length === 10) {
+            formattedDisplay = digits.replace(/(\d{5})(\d{5})/, '$1 $2');
+          } else {
+            formattedDisplay = digits;
+          }
           onChange(fullNumber);
         }
       } catch {
+        // Simple formatting fallback
+        if (selectedCountry.code === 'IN' && digits.length === 10) {
+          formattedDisplay = digits.replace(/(\d{5})(\d{5})/, '$1 $2');
+        } else {
+          formattedDisplay = digits;
+        }
         onChange(fullNumber);
       }
+      
+      setDisplayValue(formattedDisplay);
     } catch {
-      setDisplayValue(inputValue);
+      setDisplayValue(digits);
       onChange(selectedCountry.dialCode + digits);
     }
   };
@@ -144,21 +160,37 @@ export default function InternationalPhoneInput({
     // Reformat current number with new country
     if (displayValue) {
       const digits = displayValue.replace(/\D/g, "");
-      const asYouType = new AsYouType(country.code as any);
-      const formatted = asYouType.input(digits);
-      setDisplayValue(formatted);
-      
       const fullNumber = country.dialCode + digits;
+      let formattedDisplay = digits;
+      
       try {
         const parsed = parsePhoneNumber(fullNumber);
         if (parsed) {
+          // Use national format but remove any leading zeros
+          let nationalFormat = parsed.formatNational();
+          nationalFormat = nationalFormat.replace(/^\+?\d+\s*\(?0?\)?/, '').trim();
+          formattedDisplay = nationalFormat || digits;
           onChange(parsed.format("E.164"));
         } else {
+          // Simple formatting fallback
+          if (country.code === 'IN' && digits.length === 10) {
+            formattedDisplay = digits.replace(/(\d{5})(\d{5})/, '$1 $2');
+          } else {
+            formattedDisplay = digits;
+          }
           onChange(fullNumber);
         }
       } catch {
+        // Simple formatting fallback
+        if (country.code === 'IN' && digits.length === 10) {
+          formattedDisplay = digits.replace(/(\d{5})(\d{5})/, '$1 $2');
+        } else {
+          formattedDisplay = digits;
+        }
         onChange(fullNumber);
       }
+      
+      setDisplayValue(formattedDisplay);
     }
     
     // Focus back to input
