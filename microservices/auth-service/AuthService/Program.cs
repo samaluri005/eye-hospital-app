@@ -38,7 +38,7 @@ var app = builder.Build();
 // Configuration for OTP and external services
 var twilioSid = builder.Configuration["TWILIO_ACCOUNT_SID"];
 var twilioToken = builder.Configuration["TWILIO_AUTH_TOKEN"];
-var twilioFrom = builder.Configuration["TWILIO_PHONE_NUMBER"];
+var twilioFrom = builder.Configuration["TWILIO_FROM_NUMBER"];
 var otpSecret = builder.Configuration["OTP_HMAC_SECRET"];
 var redisConn = builder.Configuration["REDIS_CONNECTION"];
 
