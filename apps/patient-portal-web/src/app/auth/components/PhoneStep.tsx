@@ -20,8 +20,7 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
     if (!isValidPhone) return setErr("Please enter a valid phone number");
     setLoading(true);
     try {
-      const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
-      const r = await axios.post(`${backend}/signup/start`, { phone });
+      const r = await axios.post(`/api/auth/send-otp`, { phone });
       if (r.data?.status === "otp_sent") {
         onSent(phone);
       } else {

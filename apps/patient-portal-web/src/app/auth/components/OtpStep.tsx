@@ -29,8 +29,7 @@ export default function OtpStep({ phone, onVerified, onBack }: Props) {
     setErr(null);
     setLoading(true);
     try {
-      const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
-      const r = await axios.post(`${backend}/signup/verify`, { phone, otp });
+      const r = await axios.post(`/api/auth/verify-otp`, { phone, otp });
       if (r.data?.status === "verified") {
         onVerified(r.data.patientId);
       } else {
@@ -49,8 +48,7 @@ export default function OtpStep({ phone, onVerified, onBack }: Props) {
     setErr(null);
     setLoading(true);
     try {
-      const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
-      await axios.post(`${backend}/signup/start`, { phone });
+      await axios.post(`/api/auth/send-otp`, { phone });
       // disable resend for 15s quick UI; backend enforces server limits
       setResendDisabledUntil(Date.now() + 15000);
     } catch (e: any) {
