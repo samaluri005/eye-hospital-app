@@ -18,6 +18,14 @@ namespace AuthService.Data
         {
             base.OnModelCreating(builder);
 
+            // Configure table names to match the migration
+            builder.Entity<Patient>().ToTable("patient");
+            builder.Entity<AuthIdentity>().ToTable("auth_identity");
+            builder.Entity<OtpAttempt>().ToTable("otp_attempt");
+            builder.Entity<Consent>().ToTable("consent");
+            builder.Entity<Device>().ToTable("device");
+            builder.Entity<AuditLog>().ToTable("audit_log");
+
             builder.Entity<Patient>()
                 .HasIndex(p => p.Phone)
                 .IsUnique();

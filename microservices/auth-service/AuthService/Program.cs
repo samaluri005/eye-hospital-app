@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using AuthService.Data;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
