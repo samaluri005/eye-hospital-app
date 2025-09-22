@@ -3,44 +3,36 @@ using AuthService.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
-builder.Services.AddControllers();
-
-// Configure Entity Framework with PostgreSQL
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Add CORS for development
-builder.Services.AddCors(options =>
+// Load DB connection from configuration or env var
+// Use appsettings.Development.json for local dev or set env var ConnectionStrings__DefaultConnection
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
+    Console.WriteLine("WARNING: No DefaultConnection found in configuration. Ensure env var ConnectionStrings__DefaultConnection is set.");
+}
+
+// Add DbContext
+builder.Services.AddDbContext<AppDbContext>(opts =>
+    opts.UseNpgsql(connectionString));
+
+// add minimal services
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// Simple health
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+// Quick DB sanity endpoint
+app.MapGet("/db/tables", async (AppDbContext db) =>
 {
-    app.UseCors("AllowAll");
-}
-
-app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
-
-// Health check endpoint
-app.MapGet("/health", () => Results.Ok(new { 
-    Status = "Healthy", 
-    Service = "AuthService",
-    Timestamp = DateTime.UtcNow 
-}));
-
-// Root endpoint
-app.MapGet("/", () => "Eye Hospital Management System - Authentication Service");
+    var patients = await db.Patients.CountAsync();
+    var otps = await db.OtpAttempts.CountAsync();
+    return Results.Ok(new { patients, otps });
+});
 
 app.Run();
