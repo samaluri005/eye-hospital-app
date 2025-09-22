@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     console.error('❌ Billing webhook error:', error);
     
     // Log the error
-    await logWebhook('billing', 'stripe', { error: error.message }, 'failed');
+    await logWebhook('billing', 'stripe', { error: error instanceof Error ? error.message : String(error) }, 'failed');
     
     return NextResponse.json({ 
       error: 'Webhook processing failed',

@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ SMS webhook error:', error);
-    await logWebhook('sms', 'twilio', { error: error.message }, 'failed');
+    await logWebhook('sms', 'twilio', { error: error instanceof Error ? error.message : String(error) }, 'failed');
     
     const errorResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
