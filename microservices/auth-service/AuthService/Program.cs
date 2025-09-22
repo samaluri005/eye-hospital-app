@@ -140,7 +140,7 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
     var entry = await db.OtpAttempts.Where(x=>x.Phone==phone && x.Status=="pending").OrderByDescending(x=>x.CreatedAt).FirstOrDefaultAsync();
     if (entry==null) return Results.BadRequest(new { error="no_otp_found" });
     if (DateTime.UtcNow > entry.ExpiresAt) { entry.Status="expired"; await db.SaveChangesAsync(); return Results.BadRequest(new { error="otp_expired" }); }
-    if (entry.Attempts >= 3) { entry.Status="failed"; await db.SaveChangesAsync(); return Results.StatusCode(429); }
+    if (entry.Attempts >= 3) { entry.Status="failed"; await db.SaveChangesAsync(); return Results.BadRequest(new { error="max_attempts_exceeded", message="Too many incorrect attempts. Please request a new OTP." }); }
 
     var expected = AuthService.Services.OtpHelper.ComputeHmac(otpSecret ?? "", otp, entry.Nonce ?? "");
     if (!string.Equals(expected, entry.OtpHash, StringComparison.OrdinalIgnoreCase)) { entry.Attempts++; await db.SaveChangesAsync(); return Results.BadRequest(new { error="invalid_otp", attemptsLeft = 3-entry.Attempts }); }
@@ -218,6 +218,56 @@ app.MapPost("/auth/link", async (HttpContext http, AppDbContext db) => {
     await db.SaveChangesAsync();
 
     return Results.Ok(new { status = "linked", patientId, provider = "Microsoft", email });
+}).RequireAuthorization();
+
+// GET patient profile with JWT authentication
+app.MapGet("/api/patient", async (HttpContext http, AppDbContext db) => {
+    // Get patient ID from JWT claims or linked identity
+    var userClaims = http.User;
+    var oid = userClaims.FindFirst("oid")?.Value; // Object ID from Azure AD
+    
+    if (string.IsNullOrEmpty(oid)) 
+        return Results.Unauthorized();
+    
+    // Find patient through auth identity link
+    var authIdentity = await db.AuthIdentities
+        .FirstOrDefaultAsync(a => a.Provider == "Microsoft" && a.ProviderSubject == oid && a.IsActive);
+    
+    if (authIdentity == null)
+        return Results.NotFound(new { error = "Identity not found" });
+    
+    // Get patient data
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == authIdentity.PatientId);
+    if (patient == null)
+        return Results.NotFound(new { error = "Patient profile not found" });
+    
+    // Update last used timestamp
+    authIdentity.LastUsedAt = DateTime.UtcNow;
+    await db.SaveChangesAsync();
+    
+    // Add audit log
+    db.AuditLogs.Add(new AuditLog 
+    { 
+        PatientId = patient.Id, 
+        Actor = oid, 
+        Action = "profile_accessed", 
+        Details = "{\"endpoint\":\"/api/patient\"}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow 
+    });
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new { 
+        patientId = patient.Id,
+        phone = patient.Phone,
+        fullName = patient.FullName,
+        email = patient.Email,
+        dateOfBirth = patient.DateOfBirth,
+        status = patient.Status,
+        createdAt = patient.CreatedAt,
+        updatedAt = patient.UpdatedAt
+    });
 }).RequireAuthorization();
 
 app.Run();
