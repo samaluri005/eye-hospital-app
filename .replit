@@ -1,11 +1,11 @@
-modules = ["nodejs-20", "postgresql-16", "dotnet", "dotnet-8.0"]
+modules = ["nodejs-20", "postgresql-16", "dotnet", "dotnet-8.0", "python-3.11"]
 [agent]
 expertMode = true
-integrations = ["javascript_database:1.0.0"]
+integrations = ["javascript_database:1.0.0", "twilio_send_message:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["curl", "git", "bash", "python3", "gnumake", "sqlite", "azure-cli"]
+packages = ["azure-cli", "bash", "curl", "git", "gnumake", "python3", "sqlite"]
 
 [workflows]
 runButton = "Project"
@@ -87,7 +87,7 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 46371
+localPort = 33111
 externalPort = 3000
 
 [deployment]

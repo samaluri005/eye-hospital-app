@@ -109,3 +109,16 @@
 /home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.pdb
 /home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/AuthService.genruntimeconfig.cache
 /home/runner/workspace/microservices/auth-service/AuthService/obj/Debug/net8.0/ref/AuthService.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Microsoft.Bcl.Memory.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Microsoft.Extensions.Caching.Abstractions.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Microsoft.Extensions.Primitives.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Microsoft.IdentityModel.Abstractions.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Microsoft.IdentityModel.Logging.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Microsoft.IdentityModel.Tokens.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Newtonsoft.Json.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Pipelines.Sockets.Unofficial.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/StackExchange.Redis.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/System.Diagnostics.DiagnosticSource.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/System.IdentityModel.Tokens.Jwt.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Twilio.dll
