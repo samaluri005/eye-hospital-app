@@ -74,13 +74,13 @@ outputType = "console"
 name = "Auth Service"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd microservices/auth-service/AuthService && dotnet run --urls=\"http://0.0.0.0:5000\""
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
+args = "cd microservices/auth-service/AuthService && dotnet run --urls=\"http://0.0.0.0:8000\""
+waitForPort = 8000
 
 [[workflows.workflow]]
 name = "Patient Portal Dev"
@@ -103,12 +103,16 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 34247
-externalPort = 3002
+localPort = 8000
+externalPort = 8000
 
 [[ports]]
 localPort = 37961
 externalPort = 3000
+
+[[ports]]
+localPort = 41041
+externalPort = 3002
 
 [deployment]
 deploymentTarget = "autoscale"
