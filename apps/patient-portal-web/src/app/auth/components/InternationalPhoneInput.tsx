@@ -190,24 +190,24 @@ export default function InternationalPhoneInput({
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             onKeyDown={handleDropdownKeyPress}
-            className="relative inline-flex items-center gap-2 px-3 h-12 bg-white border-2 border-r-0 border-blue-200 rounded-l-xl hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 transition-all duration-200 w-[112px]"
+            className="relative inline-flex items-center justify-center gap-2 px-3 h-12 bg-white border-2 border-r-0 border-blue-200 rounded-l-xl hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 transition-all duration-200 w-[112px]"
             aria-label={`Selected country: ${selectedCountry.name} ${selectedCountry.dialCode}`}
             aria-expanded={dropdownOpen}
             aria-haspopup="listbox"
           >
-            <div className="w-5 h-5 flex-shrink-0">
+            <div className="flex items-center justify-center w-5 h-4 flex-shrink-0">
               <ReactCountryFlag
                 countryCode={selectedCountry.code}
                 svg
                 style={{
                   width: '20px',
-                  height: '15px',
+                  height: '14px',
                 }}
                 aria-label={selectedCountry.name}
               />
             </div>
-            <span className="text-sm font-medium text-gray-700">{selectedCountry.dialCode}</span>
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span className="text-sm font-medium text-gray-700 leading-none">{selectedCountry.dialCode}</span>
+            <svg className="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -240,19 +240,19 @@ export default function InternationalPhoneInput({
                     role="option"
                     aria-selected={selectedCountry.code === country.code}
                   >
-                    <div className="w-5 h-5 flex-shrink-0">
+                    <div className="flex items-center justify-center w-5 h-4 flex-shrink-0">
                       <ReactCountryFlag
                         countryCode={country.code}
                         svg
                         style={{
                           width: '20px',
-                          height: '15px',
+                          height: '14px',
                         }}
                         aria-label={country.name}
                       />
                     </div>
-                    <span className="flex-1 text-sm">{country.name}</span>
-                    <span className="text-sm text-gray-500">{country.dialCode}</span>
+                    <span className="flex-1 text-sm leading-none">{country.name}</span>
+                    <span className="text-sm text-gray-500 leading-none">{country.dialCode}</span>
                   </button>
                 ))}
                 {filteredCountries.length === 0 && (
