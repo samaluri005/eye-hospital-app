@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import axios from "axios";
+import InternationalPhoneInput from "./InternationalPhoneInput";
 
 type Props = {
   initialPhone?: string;
@@ -11,11 +12,12 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
   const [phone, setPhone] = useState(initialPhone);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [isValidPhone, setIsValidPhone] = useState(false);
 
   async function sendOtp() {
     setErr(null);
     if (!phone) return setErr("Please enter your phone number");
-    if (!phone.startsWith('+')) return setErr("Phone number must include country code (e.g., +1 for US)");
+    if (!isValidPhone) return setErr("Please enter a valid phone number");
     setLoading(true);
     try {
       const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -64,16 +66,12 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
             </svg>
             Phone Number
           </label>
-          <input 
-            className="medical-input" 
-            value={phone} 
-            onChange={(e) => setPhone(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="+1 (555) 123-4567" 
-            type="tel"
-            autoComplete="tel"
+          <InternationalPhoneInput
+            value={phone}
+            onChange={setPhone}
+            onEnter={sendOtp}
+            onValidityChange={setIsValidPhone}
           />
-          <p className="text-xs text-gray-500 mt-1">Include country code (e.g., +1 for United States)</p>
         </div>
 
         {/* Error Message */}
@@ -93,9 +91,9 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
 
         {/* Send Button */}
         <button 
-          className={`btn-primary w-full flex items-center justify-center space-x-2 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
+          className={`btn-primary w-full flex items-center justify-center space-x-2 ${loading || !isValidPhone ? 'opacity-75 cursor-not-allowed' : ''}`}
           onClick={sendOtp} 
-          disabled={loading}
+          disabled={loading || !isValidPhone}
         >
           {loading ? (
             <>
