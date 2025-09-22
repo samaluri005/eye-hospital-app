@@ -26,6 +26,43 @@ namespace AuthService.Data
             builder.Entity<Device>().ToTable("device");
             builder.Entity<AuditLog>().ToTable("audit_log");
 
+            // Configure column names to match the database schema
+            builder.Entity<OtpAttempt>()
+                .Property(o => o.Id)
+                .HasColumnName("id");
+                
+            builder.Entity<OtpAttempt>()
+                .Property(o => o.Phone)
+                .HasColumnName("phone");
+            
+            builder.Entity<OtpAttempt>()
+                .Property(o => o.Attempts)
+                .HasColumnName("attempts");
+            
+            builder.Entity<OtpAttempt>()
+                .Property(o => o.ResendCount)
+                .HasColumnName("resend_count");
+            
+            builder.Entity<OtpAttempt>()
+                .Property(o => o.Status)
+                .HasColumnName("status");
+            
+            builder.Entity<OtpAttempt>()
+                .Property(o => o.OtpHash)
+                .HasColumnName("otp_hash");
+            
+            builder.Entity<OtpAttempt>()
+                .Property(o => o.Nonce)
+                .HasColumnName("nonce");
+            
+            builder.Entity<OtpAttempt>()
+                .Property(o => o.ExpiresAt)
+                .HasColumnName("expires_at");
+            
+            builder.Entity<OtpAttempt>()
+                .Property(o => o.CreatedAt)
+                .HasColumnName("created_at");
+
             builder.Entity<Patient>()
                 .HasIndex(p => p.Phone)
                 .IsUnique();
