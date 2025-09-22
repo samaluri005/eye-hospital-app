@@ -38,7 +38,7 @@ var app = builder.Build();
 // Configuration for OTP and external services
 var twilioSid = builder.Configuration["TWILIO_ACCOUNT_SID"];
 var twilioToken = builder.Configuration["TWILIO_AUTH_TOKEN"];
-var twilioFrom = builder.Configuration["TWILIO_FROM_NUMBER"];
+var twilioFrom = builder.Configuration["TWILIO_PHONE_NUMBER"];
 var otpSecret = builder.Configuration["OTP_HMAC_SECRET"];
 var redisConn = builder.Configuration["REDIS_CONNECTION"];
 
@@ -143,5 +143,65 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
 
     return Results.Ok(new { status="verified", patientId = patient.Id });
 });
+
+// Protected endpoint to link Microsoft identity to patient account
+app.MapPost("/auth/link", async (HttpContext http, AppDbContext db) => {
+    var payload = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!payload.TryGetValue("patientId", out var patientIdStr)) 
+        return Results.BadRequest(new { error = "patientId required" });
+
+    if (!Guid.TryParse(patientIdStr, out var patientId))
+        return Results.BadRequest(new { error = "invalid patientId format" });
+
+    // Get Microsoft identity claims from the JWT token
+    var userClaims = http.User;
+    var oid = userClaims.FindFirst("oid")?.Value; // Object ID from Azure AD
+    var upn = userClaims.FindFirst("upn")?.Value; // User Principal Name
+    var email = userClaims.FindFirst("email")?.Value ?? userClaims.FindFirst("preferred_username")?.Value;
+
+    if (string.IsNullOrEmpty(oid))
+        return Results.BadRequest(new { error = "Missing user identity in token" });
+
+    // Verify patient exists
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
+    if (patient == null)
+        return Results.BadRequest(new { error = "Patient not found" });
+
+    // Check if identity already linked
+    var existingAuth = await db.AuthIdentities.FirstOrDefaultAsync(a => a.Provider == "Microsoft" && a.ProviderSubject == oid);
+    if (existingAuth != null)
+        return Results.BadRequest(new { error = "Microsoft account already linked to another patient" });
+
+    // Create new auth identity link
+    var authIdentity = new AuthIdentity
+    {
+        PatientId = patientId,
+        Provider = "Microsoft",
+        ProviderSubject = oid,
+        VerifiedAt = DateTime.UtcNow,
+        IsPrimary = true,
+        IsActive = true,
+        LastUsedAt = DateTime.UtcNow,
+        CreatedAt = DateTime.UtcNow
+    };
+
+    db.AuthIdentities.Add(authIdentity);
+    
+    // Add audit log
+    db.AuditLogs.Add(new AuditLog 
+    { 
+        PatientId = patientId, 
+        Actor = oid, 
+        Action = "microsoft_identity_linked", 
+        Details = $"{{\"provider\":\"Microsoft\",\"email\":\"{email}\",\"upn\":\"{upn}\"}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow 
+    });
+    
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { status = "linked", patientId, provider = "Microsoft", email });
+}).RequireAuthorization();
 
 app.Run();
