@@ -6,6 +6,8 @@ using Twilio.Rest.Api.V2010.Account;
 using Twilio.Types;
 using AuthService.Services;
 using AuthService.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +26,12 @@ builder.Services.AddDbContext<AppDbContext>(opts =>
 // add minimal services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Add Microsoft Identity Web authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+  .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -58,6 +66,10 @@ if (!string.IsNullOrEmpty(twilioSid) && !string.IsNullOrEmpty(twilioToken))
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+// Add authentication and authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Simple health
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
