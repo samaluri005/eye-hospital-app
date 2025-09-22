@@ -27,6 +27,10 @@ args = "Hospital Development"
 task = "workflow.run"
 args = "ngrok Public Tunnel"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Auth Service"
+
 [[workflows.workflow]]
 name = "Monorepo Dev"
 author = "agent"
@@ -62,6 +66,18 @@ args = "./ngrok http 5000 --log=stdout"
 [workflows.workflow.metadata]
 outputType = "console"
 
+[[workflows.workflow]]
+name = "Auth Service"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd microservices/auth-service/AuthService && dotnet run --urls=\"http://0.0.0.0:5000\""
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[ports]]
 localPort = 3001
 externalPort = 3001
@@ -69,6 +85,10 @@ externalPort = 3001
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 46371
+externalPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
