@@ -1,6 +1,9 @@
 import { Configuration, LogLevel } from "@azure/msal-browser";
 
-const base = typeof window !== "undefined" ? window.location.origin : process.env.NEXT_PUBLIC_BASE_URL || "";
+const base =
+  typeof window !== "undefined"
+    ? window.location.origin
+    : process.env.NEXT_PUBLIC_BASE_URL || "";
 
 // MSAL configuration
 export const msalConfig: Configuration = {
@@ -20,17 +23,26 @@ export const msalConfig: Configuration = {
         // Always log to console with MSAL level prefix
         const pref = `[MSAL ${LogLevel[level]}]`;
         switch (level) {
-          case LogLevel.Error: console.error(pref, message); break;
-          case LogLevel.Info: console.info(pref, message); break;
-          case LogLevel.Verbose: console.debug(pref, message); break;
-          case LogLevel.Warning: console.warn(pref, message); break;
-          default: console.log(pref, message);
+          case LogLevel.Error:
+            console.error(pref, message);
+            break;
+          case LogLevel.Info:
+            console.info(pref, message);
+            break;
+          case LogLevel.Verbose:
+            console.debug(pref, message);
+            break;
+          case LogLevel.Warning:
+            console.warn(pref, message);
+            break;
+          default:
+            console.log(pref, message);
         }
       },
       logLevel: LogLevel.Verbose,
-      piiLoggingEnabled: false
-    }
-  }
+      piiLoggingEnabled: false,
+    },
+  },
 };
 
 // Add scopes here for ID token to be used at Microsoft Graph API endpoints.
@@ -40,6 +52,6 @@ export const loginRequest = {
     "openid",
     "profile",
     "email",
-    `api://${process.env.NEXT_PUBLIC_AZURE_CLIENT_ID}/patient.read` // API scope for backend access
+    `api://eyecare-patients-api-dev/patient.read`, // API scope for backend access
   ],
 };
