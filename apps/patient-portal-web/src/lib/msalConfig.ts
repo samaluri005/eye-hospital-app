@@ -1,11 +1,14 @@
 import { Configuration, LogLevel } from "@azure/msal-browser";
 
+const base = typeof window !== "undefined" ? window.location.origin : process.env.NEXT_PUBLIC_BASE_URL || "";
+
 // MSAL configuration
 export const msalConfig: Configuration = {
   auth: {
-    clientId: process.env.NEXT_PUBLIC_AZURE_CLIENT_ID || "", // Your Azure AD app client ID
-    authority: process.env.NEXT_PUBLIC_AZURE_AUTHORITY || `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_AZURE_TENANT_ID}`, // Your Azure AD tenant
-    redirectUri: typeof window !== "undefined" ? window.location.origin : "",
+    clientId: process.env.NEXT_PUBLIC_AZURE_CLIENT_ID || "",
+    authority: `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_AZURE_TENANT_ID}`,
+    // IMPORTANT: must exactly match the redirect URI registered in Azure (including path and trailing slash)
+    redirectUri: `${base}/auth/callback`,
   },
   cache: {
     cacheLocation: "localStorage", // This configures where your cache will be stored
