@@ -22,8 +22,6 @@ const nextConfig = {
   async rewrites() {
     return []
   },
-  // Disable host checking for Replit proxy environment
-  allowedHosts: true,
 }
 
 module.exports = nextConfig

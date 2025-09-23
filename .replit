@@ -8,6 +8,28 @@ channel = "stable-25_05"
 packages = ["azure-cli", "bash", "curl", "git", "gnumake", "python3", "sqlite"]
 
 [workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Patient Portal"
+
+[[workflows.workflow]]
+name = "Patient Portal"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/patient-portal-web && pnpm dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [[ports]]
 localPort = 3001
@@ -18,8 +40,8 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 8000
-externalPort = 8000
+localPort = 35425
+externalPort = 3003
 
 [[ports]]
 localPort = 37961
