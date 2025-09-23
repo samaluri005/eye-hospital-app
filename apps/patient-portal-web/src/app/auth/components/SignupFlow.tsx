@@ -14,6 +14,7 @@ export default function SignupFlow() {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState<string>("");
   const [patientId, setPatientId] = useState<string | null>(null);
+  const [linkToken, setLinkToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ fullName?: string; password?: string }>({});
 
   const stepTitles = {
@@ -73,12 +74,12 @@ export default function SignupFlow() {
 
               <div>
                 <div className="flex justify-center items-center gap-4">
-                  <SocialSignInButton provider="google" />
-                  <SocialSignInButton provider="microsoft" />
-                  <SocialSignInButton provider="x" />
-                  <SocialSignInButton provider="instagram" />
-                  <SocialSignInButton provider="facebook" />
-                  <SocialSignInButton provider="apple" />
+                  <SocialSignInButton provider="google" patientId={patientId} linkToken={linkToken} />
+                  <SocialSignInButton provider="microsoft" patientId={patientId} linkToken={linkToken} />
+                  <SocialSignInButton provider="x" patientId={patientId} linkToken={linkToken} />
+                  <SocialSignInButton provider="instagram" patientId={patientId} linkToken={linkToken} />
+                  <SocialSignInButton provider="facebook" patientId={patientId} linkToken={linkToken} />
+                  <SocialSignInButton provider="apple" patientId={patientId} linkToken={linkToken} />
                 </div>
                 <p className="mt-4 text-sm text-gray-500 text-center leading-relaxed">
                   <svg className="w-4 h-4 inline mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +94,7 @@ export default function SignupFlow() {
           {step === "otp" && (
             <OtpStep
               phone={phone}
-              onVerified={(pid) => { setPatientId(pid); setStep("profile"); }}
+              onVerified={(pid, token) => { setPatientId(pid); setLinkToken(token); setStep("profile"); }}
               onBack={() => setStep("phone")}
             />
           )}

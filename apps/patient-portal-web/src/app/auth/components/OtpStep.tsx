@@ -4,7 +4,7 @@ import axios from "axios";
 
 type Props = {
   phone: string;
-  onVerified: (patientId: string) => void;
+  onVerified: (patientId: string, linkToken: string) => void;
   onBack: () => void;
 };
 
@@ -31,7 +31,7 @@ export default function OtpStep({ phone, onVerified, onBack }: Props) {
     try {
       const r = await axios.post(`/api/auth/verify-otp`, { phone, otp });
       if (r.data?.status === "verified") {
-        onVerified(r.data.patientId);
+        onVerified(r.data.patientId, r.data.linkToken);
       } else {
         setErr("Verification failed");
       }
