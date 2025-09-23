@@ -1,0 +1,59 @@
+// apps/patient-portal-web/src/hooks/useMsalRedirectResume.ts
+"use client";
+import { useEffect } from "react";
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "@/lib/msalConfig";
+
+export default function useMsalRedirectResume() {
+  const { instance } = useMsal();
+
+  useEffect(() => {
+    if (!instance) return;
+
+    // Wait for the instance to be initialized before calling any API
+    (async () => {
+      try {
+        // initialize returns a Promise in MSAL Browser v4+
+        if (typeof instance.initialize === "function") {
+          await instance.initialize();
+        }
+
+        // Then handle any redirect response/resume stored state
+        const redirectResponse = await instance.handleRedirectPromise();
+
+        const storedPatientId = sessionStorage.getItem("ehms_patient_id");
+        const storedLinkToken = sessionStorage.getItem("ehms_link_token");
+        if (!storedPatientId || !storedLinkToken) return;
+
+        // Acquire token silently for API scope
+        const accounts = instance.getAllAccounts();
+        const account = accounts && accounts[0];
+        if (!account) throw new Error("No account returned after redirect");
+
+        const tokenResp = await instance.acquireTokenSilent({
+          scopes: loginRequest.scopes,
+          account,
+        });
+
+        // Call link endpoint
+        await fetch("/api/auth/link", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${tokenResp.accessToken}`,
+          },
+          body: JSON.stringify({ patientId: storedPatientId, linkToken: storedLinkToken }),
+        });
+
+        sessionStorage.removeItem("ehms_patient_id");
+        sessionStorage.removeItem("ehms_link_token");
+        console.info("resume: linked successfully");
+      } catch (err) {
+        console.warn("useMsalRedirectResume error", err);
+        // cleanup stored state so we don't retry forever
+        sessionStorage.removeItem("ehms_patient_id");
+        sessionStorage.removeItem("ehms_link_token");
+      }
+    })();
+  }, [instance]);
+}
