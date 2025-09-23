@@ -36,7 +36,7 @@ const connectToDatabase = async () => {
       console.error('❌ Database connection error:', err.message);
       db = null; // Mark as disconnected
       console.log('🔄 Attempting to reconnect...');
-      setTimeout(connectToDatabase, 2000); // Retry after 2 seconds
+      setTimeout(connectToDatabase, 5000); // Retry after 5 seconds (less aggressive)
     });
 
     await db.connect();
@@ -45,8 +45,8 @@ const connectToDatabase = async () => {
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
     db = null; // Mark as disconnected
-    console.log('🔄 Retrying connection in 2 seconds...');
-    setTimeout(connectToDatabase, 2000);
+    console.log('🔄 Retrying connection in 5 seconds...');
+    setTimeout(connectToDatabase, 5000); // Less aggressive retry
     return null;
   }
 };
