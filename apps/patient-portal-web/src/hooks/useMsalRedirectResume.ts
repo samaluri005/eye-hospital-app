@@ -1,25 +1,34 @@
-// resumeAuthAndLink.ts (call once on client startup, e.g. inside a small client component in layout)
+"use client";
+import { useEffect } from "react";
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from "../lib/msalConfig";
-import { useEffect } from "react";
 
-export function useMsalRedirectResume() {
-  const { instance } = useMsal();
-  
+export default function useMsalRedirectResume() {
+  const { instance } = useMsal(); // IMPORTANT: use the instance from MsalProvider
+
   useEffect(() => {
-    // handle redirect promise and resume link if stored
-    instance.handleRedirectPromise().then(async (tokenResponse) => {
-      const storedPatientId = sessionStorage.getItem("ehms_patient_id");
-      const storedLinkToken = sessionStorage.getItem("ehms_link_token");
-      if (storedPatientId && storedLinkToken) {
+    if (!instance) return;
+
+    // handleRedirectPromise on the same instance the Provider uses
+    instance.handleRedirectPromise()
+      .then(async (redirectResponse) => {
+        // if there was no redirect response, still try to resume if sessionStorage has data
+        const storedPatientId = sessionStorage.getItem("ehms_patient_id");
+        const storedLinkToken = sessionStorage.getItem("ehms_link_token");
+
+        if (!storedPatientId || !storedLinkToken) {
+          // nothing to resume
+          return;
+        }
+
         try {
-          // acquire token (silent after redirect)
+          // Acquire token silently for API scope (account must exist after redirect)
           const accounts = instance.getAllAccounts();
           const account = accounts && accounts[0];
-          const resp = await instance.acquireTokenSilent({ scopes: loginRequest.scopes, account });
-          const accessToken = resp.accessToken;
+          const tokenResponse = await instance.acquireTokenSilent({ scopes: loginRequest.scopes, account });
+          const accessToken = tokenResponse.accessToken;
 
-          // call link endpoint
+          // Call your link endpoint
           await fetch("/api/auth/link", {
             method: "POST",
             headers: {
@@ -28,15 +37,20 @@ export function useMsalRedirectResume() {
             },
             body: JSON.stringify({ patientId: storedPatientId, linkToken: storedLinkToken }),
           });
-        } catch (e) {
-          console.error("resume link failed", e);
-        } finally {
+
+          // Success: cleanup
+          sessionStorage.removeItem("ehms_patient_id");
+          sessionStorage.removeItem("ehms_link_token");
+          console.info("resume: account linked successfully");
+        } catch (err) {
+          console.error("resume: failed to complete link", err);
+          // cleanup anyway to avoid infinite attempts
           sessionStorage.removeItem("ehms_patient_id");
           sessionStorage.removeItem("ehms_link_token");
         }
-      }
-    }).catch(err => {
-      console.warn("handleRedirectPromise error", err);
-    });
+      })
+      .catch((err) => {
+        console.warn("handleRedirectPromise error", err);
+      });
   }, [instance]);
 }

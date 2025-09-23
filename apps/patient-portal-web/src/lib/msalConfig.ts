@@ -35,7 +35,11 @@ export const msalConfig: Configuration = {
 
 // Add scopes here for ID token to be used at Microsoft Graph API endpoints.
 export const loginRequest = {
-  scopes: ["openid", "profile", "email"], // Basic scopes for authentication
-  // Add API scope for your auth service if needed:
-  // scopes: [`api://${process.env.NEXT_PUBLIC_AUTH_SERVICE_CLIENT_ID}/patient.read`]
+  // include your API scope so acquireTokenSilent returns an access token for API calls
+  scopes: [
+    "openid",
+    "profile",
+    "email",
+    `api://${process.env.NEXT_PUBLIC_AZURE_CLIENT_ID}/patient.read` // API scope for backend access
+  ],
 };

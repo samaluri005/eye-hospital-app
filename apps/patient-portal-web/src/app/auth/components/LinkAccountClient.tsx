@@ -29,41 +29,43 @@ export default function LinkAccountClient({
     setLoading(true);
 
     try {
-      // 1) Try popup sign-in + token
+      // 1) Try popup sign-in + token for quicker UX
       try {
         await instance.loginPopup(loginRequest);
-      } catch (err: any) {
-        console.error("loginPopup failed:", err);
-        alert("MSAL popup error: " + (err?.errorMessage ?? JSON.stringify(err)));
-        // fallback to redirect
+        const account = instance.getAllAccounts()[0];
+        const tokenResp = await instance.acquireTokenSilent({ scopes: loginRequest.scopes, account });
+        const accessToken = tokenResp.accessToken;
+
+        const r = await fetch("/api/auth/link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ patientId, linkToken }),
+        });
+
+        if (!r.ok) {
+          const txt = await r.text();
+          throw new Error(`Link API error ${r.status}: ${txt}`);
+        }
+
+        setSuccess(true);
+        if (onLinked) onLinked();
+        setLoading(false);
+        return;
+      } catch (popupErr) {
+        console.warn("popup flow failed — falling back to redirect", popupErr);
+
+        // 2) Persist the link data and go redirect path
         sessionStorage.setItem("ehms_patient_id", patientId);
         sessionStorage.setItem("ehms_link_token", linkToken);
+
+        // DO NOT create a new PCA; use the instance from context
         await instance.loginRedirect(loginRequest);
+        // Redirect will happen now; resume hook will finish link after return
         return;
       }
-      
-      // get token
-      const account = instance.getAllAccounts()[0];
-      const tokenResp = await instance.acquireTokenSilent({ scopes: loginRequest.scopes, account });
-      const accessToken = tokenResp.accessToken;
-
-      const r = await fetch("/api/auth/link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ patientId, linkToken }),
-      });
-
-      if (!r.ok) {
-        const txt = await r.text();
-        throw new Error(`Link API error ${r.status}: ${txt}`);
-      }
-
-      setSuccess(true);
-      if (onLinked) onLinked();
-      setLoading(false);
-      return;
     } catch (err: any) {
-      setError(String(err.message || err));
+      console.error("handleLink overall error", err);
+      setError(String(err?.message ?? err));
       setLoading(false);
     }
   }

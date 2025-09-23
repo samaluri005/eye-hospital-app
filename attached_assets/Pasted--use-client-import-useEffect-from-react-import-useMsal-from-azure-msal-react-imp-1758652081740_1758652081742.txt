@@ -1,0 +1,56 @@
+"use client";
+import { useEffect } from "react";
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "@/lib/msalConfig";
+
+export default function useMsalRedirectResume() {
+  const { instance } = useMsal(); // IMPORTANT: use the instance from MsalProvider
+
+  useEffect(() => {
+    if (!instance) return;
+
+    // handleRedirectPromise on the same instance the Provider uses
+    instance.handleRedirectPromise()
+      .then(async (redirectResponse) => {
+        // if there was no redirect response, still try to resume if sessionStorage has data
+        const storedPatientId = sessionStorage.getItem("ehms_patient_id");
+        const storedLinkToken = sessionStorage.getItem("ehms_link_token");
+
+        if (!storedPatientId || !storedLinkToken) {
+          // nothing to resume
+          return;
+        }
+
+        try {
+          // Acquire token silently for API scope (account must exist after redirect)
+          const accounts = instance.getAllAccounts();
+          const account = accounts && accounts[0];
+          const tokenResponse = await instance.acquireTokenSilent({ scopes: loginRequest.scopes, account });
+          const accessToken = tokenResponse.accessToken;
+
+          // Call your link endpoint
+          await fetch("/api/auth/link", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ patientId: storedPatientId, linkToken: storedLinkToken }),
+          });
+
+          // Success: cleanup
+          sessionStorage.removeItem("ehms_patient_id");
+          sessionStorage.removeItem("ehms_link_token");
+          console.info("resume: account linked successfully");
+        } catch (err) {
+          console.error("resume: failed to complete link", err);
+          // cleanup anyway to avoid infinite attempts
+          sessionStorage.removeItem("ehms_patient_id");
+          sessionStorage.removeItem("ehms_link_token");
+        }
+      })
+      .catch((err) => {
+        console.warn("handleRedirectPromise error", err);
+      });
+  }, [instance]);
+}
