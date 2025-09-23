@@ -1,19 +1,21 @@
-import type { Metadata } from 'next'
+"use client";
+
+import React from "react";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { MsalProvider } from "@azure/msal-react";
+import { msalConfig } from "../lib/msalConfig";
 import './globals.css'
 
-export const metadata: Metadata = {
-  title: 'Eye Hospital Patient Portal',
-  description: 'Patient portal for eye hospital management system',
-}
+const msalInstance = new PublicClientApplication(msalConfig);
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <MsalProvider instance={msalInstance}>
+          {children}
+        </MsalProvider>
+      </body>
     </html>
-  )
+  );
 }
