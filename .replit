@@ -1,4 +1,4 @@
-modules = ["nodejs-18", "dotnet-7.0", "bash", "python-3.12", "dotnet-8.0"]
+modules = ["nodejs-18", "dotnet-7.0", "bash", "python-3.12", "dotnet-8.0", "postgresql-16"]
 [agent]
 expertMode = true
 integrations = ["javascript_database:1.0.0", "twilio_send_message:1.0.0"]

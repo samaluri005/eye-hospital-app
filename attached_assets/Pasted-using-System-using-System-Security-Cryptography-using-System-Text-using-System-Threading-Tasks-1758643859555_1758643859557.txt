@@ -1,0 +1,70 @@
+using System;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using AuthService.Data;
+using AuthService.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace AuthService.Services
+{
+    public static class LinkTokenHelper
+    {
+        // Use a dedicated secret for link tokens; store in KeyVault -> LINK_TOKEN_HMAC_SECRET
+        public static string GenerateTokenPlaintext(int byteSize = 32)
+        {
+            var b = RandomNumberGenerator.GetBytes(byteSize);
+            // URL friendly base64 (replace +/ with -_)
+            return Convert.ToBase64String(b).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+        }
+
+        public static string ComputeHmacHex(string secret, string tokenPlain)
+        {
+            var key = Encoding.UTF8.GetBytes(secret);
+            using var hmac = new HMACSHA256(key);
+            var bytes = Encoding.UTF8.GetBytes(tokenPlain);
+            var hash = hmac.ComputeHash(bytes);
+            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        }
+
+        // Store link token hash in DB with TTL
+        public static async Task<string> CreateAndStoreLinkTokenAsync(AppDbContext db, Guid patientId, string secret, TimeSpan ttl)
+        {
+            var plain = GenerateTokenPlaintext();
+            var hash = ComputeHmacHex(secret, plain);
+
+            var entry = new LinkToken
+            {
+                PatientId = patientId,
+                TokenHash = hash,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.Add(ttl),
+                Used = false
+            };
+
+            db.LinkTokens.Add(entry);
+            await db.SaveChangesAsync();
+
+            // return plaintext to send back to client (one-time)
+            return plain;
+        }
+
+        // Validate token for patient and mark used atomically
+        public static async Task<bool> ValidateAndConsumeLinkTokenAsync(AppDbContext db, Guid patientId, string tokenPlain, string secret)
+        {
+            var hash = ComputeHmacHex(secret, tokenPlain);
+
+            // Find matching token for patient and not used and not expired
+            var tokenEntry = await db.LinkTokens
+                .FirstOrDefaultAsync(t => t.PatientId == patientId && t.TokenHash == hash && !t.Used && t.ExpiresAt > DateTime.UtcNow);
+
+            if (tokenEntry == null) return false;
+
+            // Mark used
+            tokenEntry.Used = true;
+            tokenEntry.UsedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            return true;
+        }
+    }
+}

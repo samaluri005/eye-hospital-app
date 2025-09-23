@@ -150,21 +150,91 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
     if (patient == null) {
         patient = new Patient { Phone = phone, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
         db.Patients.Add(patient);
+        await db.SaveChangesAsync();
     }
+    
     entry.Status = "verified";
     await db.SaveChangesAsync();
 
+    // Create short-lived link token (10 minutes)
+    var linkSecret = builder.Configuration["LINK_TOKEN_HMAC_SECRET"] ?? otpSecret;
+    if (string.IsNullOrEmpty(linkSecret))
+    {
+        Console.WriteLine("LINK_TOKEN_HMAC_SECRET not set - cannot create link token");
+        return Results.StatusCode(500);
+    }
+
+    var linkToken = await AuthService.Services.LinkTokenHelper.CreateAndStoreLinkTokenAsync(
+        db, patient.Id, linkSecret, TimeSpan.FromMinutes(10));
+
+    // Audit log
     db.AuditLogs.Add(new AuditLog { PatientId=patient.Id, Actor="system", Action="otp_verified", Details=$"{{\"phone\":\"{phone}\"}}", Ip=http.Connection.RemoteIpAddress?.ToString(), UserAgent=http.Request.Headers["User-Agent"].FirstOrDefault(), CreatedAt=DateTime.UtcNow });
     await db.SaveChangesAsync();
 
-    return Results.Ok(new { status="verified", patientId = patient.Id });
+    return Results.Ok(new { status="verified", patientId = patient.Id, linkToken = linkToken });
 });
 
-// DISABLED: Protected endpoint to link Microsoft identity to patient account
-// This endpoint has been disabled due to security vulnerability.
-// TODO: Implement secure linking mechanism using session-based verification tokens
-app.MapPost("/auth/link", async (HttpContext http, AppDbContext db) => {
-    return Results.StatusCode(501); // Not implemented - security issue
+// 🔗 SECURE ENDPOINT: Link Microsoft identity to patient account using LinkToken
+app.MapPost("/auth/link", async (HttpContext http, AppDbContext db) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!body.TryGetValue("patientId", out var patientIdStr) || !Guid.TryParse(patientIdStr, out var patientGuid))
+        return Results.BadRequest(new { error = "patientId required" });
+
+    if (!body.TryGetValue("linkToken", out var linkTokenPlain) || string.IsNullOrWhiteSpace(linkTokenPlain))
+        return Results.BadRequest(new { error = "linkToken required" });
+
+    // Get signed-in user's object ID (oid) or sub as fallback
+    var oid = http.User.FindFirst("oid")?.Value ?? http.User.FindFirst("sub")?.Value;
+    if (string.IsNullOrEmpty(oid)) 
+        return Results.Unauthorized();
+
+    // Validate link token
+    var linkSecret = builder.Configuration["LINK_TOKEN_HMAC_SECRET"] ?? otpSecret;
+    if (string.IsNullOrEmpty(linkSecret)) 
+        return Results.StatusCode(500);
+
+    var isValidToken = await AuthService.Services.LinkTokenHelper.ValidateAndConsumeLinkTokenAsync(
+        db, patientGuid, linkTokenPlain, linkSecret);
+    
+    if (!isValidToken) 
+        return Results.BadRequest(new { error="invalid_or_expired_link_token" });
+
+    // Prevent linking same provider subject twice
+    var existingIdentity = await db.AuthIdentities
+        .FirstOrDefaultAsync(a => a.Provider == "Microsoft" && a.ProviderSubject == oid);
+    
+    if (existingIdentity != null)
+    {
+        return Results.Conflict(new { error="identity_already_linked", message="This Microsoft account is already linked to a patient account." });
+    }
+
+    // Create new AuthIdentity linking
+    var authIdentity = new AuthIdentity {
+        PatientId = patientGuid,
+        Provider = "Microsoft",
+        ProviderSubject = oid,
+        VerifiedAt = DateTime.UtcNow,
+        IsPrimary = true,
+        IsActive = true,
+        CreatedAt = DateTime.UtcNow
+    };
+    db.AuthIdentities.Add(authIdentity);
+
+    // Audit the linking event
+    db.AuditLogs.Add(new AuditLog {
+        PatientId = patientGuid,
+        Actor = oid,
+        Action = "identity_linked",
+        Details = $"{{\"provider\":\"Microsoft\",\"oid\":\"{oid}\"}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { status="linked", message="Microsoft account successfully linked to patient profile." });
 }).RequireAuthorization();
 
 // GET patient profile with JWT authentication

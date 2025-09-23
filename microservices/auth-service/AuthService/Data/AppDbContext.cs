@@ -13,6 +13,7 @@ namespace AuthService.Data
         public DbSet<Consent> Consents { get; set; } = default!;
         public DbSet<Device> Devices { get; set; } = default!;
         public DbSet<AuditLog> AuditLogs { get; set; } = default!;
+        public DbSet<LinkToken> LinkTokens { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -25,6 +26,7 @@ namespace AuthService.Data
             builder.Entity<Consent>().ToTable("consent");
             builder.Entity<Device>().ToTable("device");
             builder.Entity<AuditLog>().ToTable("audit_log");
+            builder.Entity<LinkToken>().ToTable("link_token");
 
             // Configure column names to match the database schema
             builder.Entity<OtpAttempt>()
@@ -86,6 +88,12 @@ namespace AuthService.Data
 
             builder.Entity<AuditLog>()
                 .HasIndex(a => new { a.PatientId, a.CreatedAt });
+
+            builder.Entity<LinkToken>()
+                .HasIndex(l => l.PatientId);
+
+            builder.Entity<LinkToken>()
+                .HasIndex(l => l.ExpiresAt);
         }
     }
 }
