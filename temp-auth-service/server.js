@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import crypto from 'crypto';
 import { Client } from 'pg';
+import twilio from 'twilio';
 
 const app = express();
 const PORT = 8000;
@@ -47,6 +48,23 @@ const connectToDatabase = async () => {
 
 // Initialize database connection
 await connectToDatabase();
+
+// Initialize Twilio client
+let twilioClient = null;
+const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioFromNumber = process.env.TWILIO_FROM_NUMBER;
+
+if (twilioSid && twilioToken) {
+  try {
+    twilioClient = twilio(twilioSid, twilioToken);
+    console.log('📱 Twilio SMS client initialized');
+  } catch (error) {
+    console.error('❌ Twilio initialization failed:', error.message);
+  }
+} else {
+  console.log('⚠️  Twilio credentials not found - SMS disabled');
+}
 
 // Helper functions
 const generateOtp = () => {
@@ -116,12 +134,29 @@ app.post('/signup/start', async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, now())
     `, [phone, hash, nonce, expiresAt, 0, 1, 'pending']);
 
-    // Log OTP for testing (remove in production)
-    console.log(`🔐 OTP for ${phone}: ${otp} (expires: ${expiresAt})`);
-
-    // In real implementation, send SMS via Twilio here
-    if (process.env.TWILIO_ACCOUNT_SID) {
-      console.log('📱 Would send SMS via Twilio in production mode');
+    // Send SMS via Twilio
+    let smsStatus = 'development_mode';
+    
+    if (twilioClient && twilioFromNumber) {
+      try {
+        const message = await twilioClient.messages.create({
+          body: `Your MedCare verification code is: ${otp}. This code expires in 5 minutes. Do not share this code with anyone.`,
+          from: twilioFromNumber,
+          to: phone
+        });
+        
+        smsStatus = 'sent';
+        console.log(`📱 SMS sent to ${phone}, Message SID: ${message.sid}`);
+      } catch (error) {
+        console.error(`❌ SMS failed for ${phone}:`, error.message);
+        smsStatus = 'failed';
+        
+        // Log OTP for testing if SMS fails
+        console.log(`🔐 SMS FAILED - OTP for ${phone}: ${otp} (expires: ${expiresAt})`);
+      }
+    } else {
+      // Log OTP for testing when SMS is not configured
+      console.log(`🔐 OTP for ${phone}: ${otp} (expires: ${expiresAt}) - SMS not configured`);
     }
 
     res.json({ status: 'otp_sent', expires_in: 300 });
