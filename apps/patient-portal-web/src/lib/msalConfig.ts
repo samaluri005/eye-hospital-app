@@ -1,16 +1,10 @@
 import { Configuration, LogLevel } from "@azure/msal-browser";
 
-const base =
-  typeof window !== "undefined"
-    ? window.location.origin
-    : process.env.NEXT_PUBLIC_BASE_URL || "";
-
-// MSAL configuration
 export const msalConfig: Configuration = {
   auth: {
-    clientId: process.env.NEXT_PUBLIC_AZURE_CLIENT_ID || "",
-    authority: `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_AZURE_TENANT_ID}`,
-    redirectUri: `${base}/auth/callback`,
+    clientId: process.env.NEXT_PUBLIC_AZURE_CLIENT_ID || "", // SPA client id
+    authority: process.env.NEXT_PUBLIC_AZURE_AUTHORITY || `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_AZURE_TENANT_ID}`,
+    redirectUri: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "",
   },
   cache: {
     cacheLocation: "localStorage",
@@ -20,38 +14,23 @@ export const msalConfig: Configuration = {
     loggerOptions: {
       loggerCallback: (level, message, containsPii) => {
         if (containsPii) return;
-        // Always log to console with MSAL level prefix
-        const pref = `[MSAL ${LogLevel[level]}]`;
         switch (level) {
-          case LogLevel.Error:
-            console.error(pref, message);
-            break;
-          case LogLevel.Info:
-            console.info(pref, message);
-            break;
-          case LogLevel.Verbose:
-            console.debug(pref, message);
-            break;
-          case LogLevel.Warning:
-            console.warn(pref, message);
-            break;
-          default:
-            console.log(pref, message);
+          case LogLevel.Error: console.error(message); return;
+          case LogLevel.Info: console.info(message); return;
+          case LogLevel.Verbose: console.debug(message); return;
+          case LogLevel.Warning: console.warn(message); return;
         }
       },
-      logLevel: LogLevel.Verbose,
-      piiLoggingEnabled: false,
     },
   },
 };
 
-// Add scopes here for ID token to be used at Microsoft Graph API endpoints.
 export const loginRequest = {
-  // include your API scope so acquireTokenSilent returns an access token for API calls
   scopes: [
     "openid",
     "profile",
     "email",
-    `api://eyecare-patients-api-dev/patient.read`, // API scope for backend access
+    // <-- EXACT scope from Azure -> Expose an API (replace below if your value differs)
+    "api://eyecare-patients-api-dev/patient.read"
   ],
 };

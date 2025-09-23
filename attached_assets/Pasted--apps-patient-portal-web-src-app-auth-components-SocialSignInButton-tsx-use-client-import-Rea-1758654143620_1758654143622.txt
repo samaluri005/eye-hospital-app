@@ -1,0 +1,68 @@
+// apps/patient-portal-web/src/app/auth/components/SocialSignInButton.tsx
+"use client";
+import React from "react";
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "@/lib/msalConfig";
+
+// Props or context should provide patientId & linkToken (these come after OTP verification)
+type Props = {
+  patientId: string;
+  linkToken: string;
+};
+
+export default function SocialSignInButton({ patientId, linkToken }: Props) {
+  const { instance } = useMsal();
+
+  const handleSignIn = async () => {
+    if (!instance) {
+      console.error("MSAL instance not available");
+      return;
+    }
+
+    try {
+      // Popup-first attempt
+      await instance.loginPopup(loginRequest);
+      // If popup succeeded, acquire token and call link endpoint
+      const accounts = instance.getAllAccounts();
+      const account = accounts && accounts[0];
+      const tokenResp = await instance.acquireTokenSilent({ scopes: loginRequest.scopes, account });
+      const accessToken = tokenResp.accessToken;
+      
+      // Call linking API with access token
+      await fetch("/api/auth/link", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ patientId, linkToken }),
+      });
+
+      console.info("Popup link succeeded");
+    } catch (popupErr) {
+      console.warn("Popup failed or blocked, falling back to redirect", popupErr);
+
+      // Save resume state so redirect flow knows what to link
+      sessionStorage.setItem("ehms_patient_id", patientId);
+      sessionStorage.setItem("ehms_link_token", linkToken);
+
+      try {
+        // Trigger redirect flow
+        await instance.loginRedirect(loginRequest);
+        // The browser will navigate away — our resume hook will pick up after redirect return
+      } catch (redirectErr) {
+        console.error("loginRedirect failed", redirectErr);
+        // Cleanup to avoid stale session
+        sessionStorage.removeItem("ehms_patient_id");
+        sessionStorage.removeItem("ehms_link_token");
+        alert("Sign-in failed. See console for details.");
+      }
+    }
+  };
+
+  return (
+    <button onClick={handleSignIn} className="social-btn social-msft">
+      <span>Sign in with Microsoft</span>
+    </button>
+  );
+}

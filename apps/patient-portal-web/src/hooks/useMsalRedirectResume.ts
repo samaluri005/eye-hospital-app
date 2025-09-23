@@ -10,33 +10,32 @@ export default function useMsalRedirectResume() {
   useEffect(() => {
     if (!instance) return;
 
-    // Wait for the instance to be initialized before calling any API
     (async () => {
       try {
-        // initialize returns a Promise in MSAL Browser v4+
         if (typeof instance.initialize === "function") {
           await instance.initialize();
         }
 
-        // Then handle any redirect response/resume stored state
-        const redirectResponse = await instance.handleRedirectPromise();
+        // handle redirect response (resolves to interaction result or null)
+        await instance.handleRedirectPromise();
 
         const storedPatientId = sessionStorage.getItem("ehms_patient_id");
         const storedLinkToken = sessionStorage.getItem("ehms_link_token");
-        if (!storedPatientId || !storedLinkToken) return;
+        if (!storedPatientId || !storedLinkToken) {
+          return; // nothing to do
+        }
 
-        // Acquire token silently for API scope
         const accounts = instance.getAllAccounts();
         const account = accounts && accounts[0];
-        if (!account) throw new Error("No account returned after redirect");
+        if (!account) throw new Error("No account after redirect");
 
         const tokenResp = await instance.acquireTokenSilent({
           scopes: loginRequest.scopes,
           account,
         });
 
-        // Call link endpoint
-        await fetch("/api/auth/link", {
+        // call API to link
+        const resp = await fetch("/api/auth/link", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -45,12 +44,15 @@ export default function useMsalRedirectResume() {
           body: JSON.stringify({ patientId: storedPatientId, linkToken: storedLinkToken }),
         });
 
-        sessionStorage.removeItem("ehms_patient_id");
-        sessionStorage.removeItem("ehms_link_token");
-        console.info("resume: linked successfully");
+        if (!resp.ok) {
+          const txt = await resp.text();
+          console.error("Link API failed:", resp.status, txt);
+        } else {
+          console.info("resume: linked successfully");
+        }
       } catch (err) {
-        console.warn("useMsalRedirectResume error", err);
-        // cleanup stored state so we don't retry forever
+        console.warn("useMsalRedirectResume error:", err);
+      } finally {
         sessionStorage.removeItem("ehms_patient_id");
         sessionStorage.removeItem("ehms_link_token");
       }
