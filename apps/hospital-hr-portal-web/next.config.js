@@ -10,6 +10,10 @@ const nextConfig = {
             key: 'X-Frame-Options',
             value: 'SAMEORIGIN',
           },
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
         ],
       },
     ]
@@ -17,7 +21,9 @@ const nextConfig = {
   // Allow all hosts for Replit proxy
   async rewrites() {
     return []
-  }
+  },
+  // Disable host checking for Replit proxy environment
+  allowedHosts: true,
 }
 
 module.exports = nextConfig

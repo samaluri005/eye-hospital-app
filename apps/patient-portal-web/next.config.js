@@ -10,6 +10,10 @@ const nextConfig = {
             key: 'X-Frame-Options',
             value: 'SAMEORIGIN',
           },
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
         ],
       },
     ]
@@ -18,12 +22,8 @@ const nextConfig = {
   async rewrites() {
     return []
   },
-  // Fix cross-origin requests for Replit environment
-  allowedDevOrigins: [
-    '127.0.0.1',
-    'localhost',
-    '17791e9b-5553-473f-90c6-ebc465f8543f-00-3l7xmxdpueco.sisko.replit.dev'
-  ]
+  // Disable host checking for Replit proxy environment
+  allowedHosts: true,
 }
 
 module.exports = nextConfig
