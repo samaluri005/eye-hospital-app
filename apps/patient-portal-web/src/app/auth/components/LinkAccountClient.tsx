@@ -24,96 +24,46 @@ export default function LinkAccountClient({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Helper: acquire token (silent -> popup -> redirect fallback)
-  async function acquireApiToken(): Promise<string> {
-    const scopes = loginRequest.scopes || ["openid", "profile"];
-    // ensure API scope is present (loginRequest configured earlier)
-    try {
-      // try silent first (user may already be signed-in)
-      const account = accounts && accounts.length > 0 ? accounts[0] : undefined;
-      const silentReq = { scopes, account };
-      const silentResult = await instance.acquireTokenSilent(silentReq);
-      return silentResult.accessToken;
-    } catch (silentErr) {
-      // silent failed: try interactive popup
-      try {
-        const popupResult = await instance.acquireTokenPopup({ scopes });
-        return popupResult.accessToken;
-      } catch (popupErr) {
-        // popup may be blocked — fall back to redirect
-        // Use loginRedirect to interactive sign-in; after redirect, you'll need to resume flow (app will re-render and can call acquireTokenSilent)
-        // We throw a special string to signal redirect required
-        throw new Error("interactive_required");
-      }
-    }
-  }
-
-  // If user is not signed-in, call loginPopup first (or loginRedirect fallback)
-  async function ensureSignedIn(): Promise<void> {
-    const signedIn = accounts && accounts.length > 0;
-    if (signedIn) return;
-    try {
-      await instance.loginPopup(loginRequest);
-      return;
-    } catch (err) {
-      // popup failed (e.g., blocked) → fallback to redirect
-      await instance.loginRedirect(loginRequest);
-      // note: loginRedirect navigates away — after redirect back, component will remount and you should call the link step again
-      return;
-    }
-  }
-
-  async function linkAccount() {
-    setLoading(true);
+  async function handleLink() {
     setError(null);
-    setSuccess(false);
+    setLoading(true);
 
     try {
-      // Step 1: ensure user is signed in
-      await ensureSignedIn();
+      // 1) Try popup sign-in + token
+      try {
+        await instance.loginPopup(loginRequest);
+        // get token
+        const account = instance.getAllAccounts()[0];
+        const tokenResp = await instance.acquireTokenSilent({ scopes: loginRequest.scopes, account });
+        const accessToken = tokenResp.accessToken;
 
-      // Step 2: get token (for API call to /api/auth/link)
-      const accessToken = await acquireApiToken();
+        const r = await fetch("/api/auth/link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ patientId, linkToken }),
+        });
 
-      // Step 3: call Next.js API route (which proxies to backend)
-      const response = await fetch("/api/auth/link", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          linkToken: linkToken,
-          patientId: patientId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      setSuccess(true);
-
-      // optional callback
-      if (onLinked) onLinked(data);
-    } catch (err: any) {
-      console.error("Link account error:", err);
-      if (err.message === "interactive_required") {
-        // Trigger redirect fallback when popups are blocked
-        try {
-          await instance.loginRedirect(loginRequest);
-          return; // navigation will happen
-        } catch (redirectErr) {
-          setError(
-            "Sign-in required. Please allow popups or refresh to sign in with Microsoft."
-          );
+        if (!r.ok) {
+          const txt = await r.text();
+          throw new Error(`Link API error ${r.status}: ${txt}`);
         }
-      } else {
-        setError(err.message || "Failed to link account");
+
+        setSuccess(true);
+        if (onLinked) onLinked();
+        setLoading(false);
+        return;
+      } catch (popupErr) {
+        console.warn("popup failed - falling back to redirect", popupErr);
+        // store tokens temporarily and redirect
+        sessionStorage.setItem("ehms_patient_id", patientId);
+        sessionStorage.setItem("ehms_link_token", linkToken);
+        // Be sure redirectUri is correct — loginRedirect will navigate away
+        await instance.loginRedirect(loginRequest);
+        // stop here — redirect will occur
+        return;
       }
-    } finally {
+    } catch (err: any) {
+      setError(String(err.message || err));
       setLoading(false);
     }
   }
@@ -145,7 +95,7 @@ export default function LinkAccountClient({
       )}
 
       <button
-        onClick={linkAccount}
+        onClick={handleLink}
         disabled={loading || success}
         className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
           success
