@@ -13,18 +13,40 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Database connection
-const db = new Client({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// Database connection with retry logic
+let db;
 
-try {
-  await db.connect();
-  console.log('✅ Connected to PostgreSQL database');
-} catch (error) {
-  console.error('❌ Database connection failed:', error.message);
-}
+const connectToDatabase = async () => {
+  try {
+    if (db) {
+      await db.end();
+    }
+    
+    db = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    });
+
+    // Handle connection errors
+    db.on('error', (err) => {
+      console.error('❌ Database connection error:', err.message);
+      console.log('🔄 Attempting to reconnect...');
+      setTimeout(connectToDatabase, 5000); // Retry after 5 seconds
+    });
+
+    await db.connect();
+    console.log('✅ Connected to PostgreSQL database');
+    return db;
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    console.log('🔄 Retrying connection in 5 seconds...');
+    setTimeout(connectToDatabase, 5000);
+    return null;
+  }
+};
+
+// Initialize database connection
+await connectToDatabase();
 
 // Helper functions
 const generateOtp = () => {
@@ -83,7 +105,12 @@ app.post('/signup/start', async (req, res) => {
     const hash = computeHmac(otpSecret, otp, nonce);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Store OTP attempt
+    // Store OTP attempt (with database check)
+    if (!db) {
+      console.error('❌ Database not connected');
+      return res.status(500).json({ error: 'Database connection unavailable' });
+    }
+
     await db.query(`
       INSERT INTO otp_attempt (phone, otp_hash, nonce, expires_at, attempts, resend_count, status, created_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, now())
