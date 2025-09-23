@@ -20,19 +20,23 @@ let db;
 const connectToDatabase = async () => {
   try {
     if (db) {
-      await db.end();
+      try { await db.end(); } catch (e) { /* ignore */ }
     }
     
     db = new Client({
       connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 10000,
+      query_timeout: 10000,
+      keepAlive: true
     });
 
     // Handle connection errors
     db.on('error', (err) => {
       console.error('❌ Database connection error:', err.message);
+      db = null; // Mark as disconnected
       console.log('🔄 Attempting to reconnect...');
-      setTimeout(connectToDatabase, 5000); // Retry after 5 seconds
+      setTimeout(connectToDatabase, 2000); // Retry after 2 seconds
     });
 
     await db.connect();
@@ -40,10 +44,26 @@ const connectToDatabase = async () => {
     return db;
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
-    console.log('🔄 Retrying connection in 5 seconds...');
-    setTimeout(connectToDatabase, 5000);
+    db = null; // Mark as disconnected
+    console.log('🔄 Retrying connection in 2 seconds...');
+    setTimeout(connectToDatabase, 2000);
     return null;
   }
+};
+
+// Helper function to ensure database connection
+const ensureDbConnection = async () => {
+  if (!db || db._ending || db._ended) {
+    console.log('🔄 Database disconnected, reconnecting...');
+    await connectToDatabase();
+    // Wait for connection to be established
+    let attempts = 0;
+    while ((!db || db._ending || db._ended) && attempts < 10) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      attempts++;
+    }
+  }
+  return db;
 };
 
 // Initialize database connection
@@ -123,13 +143,14 @@ app.post('/signup/start', async (req, res) => {
     const hash = computeHmac(otpSecret, otp, nonce);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Store OTP attempt (with database check)
-    if (!db) {
-      console.error('❌ Database not connected');
-      return res.status(500).json({ error: 'Database connection unavailable' });
+    // Ensure database connection before querying
+    const dbClient = await ensureDbConnection();
+    if (!dbClient) {
+      console.error('❌ Database connection unavailable');
+      return res.status(500).json({ error: 'Database connection unavailable, please try again' });
     }
 
-    await db.query(`
+    await dbClient.query(`
       INSERT INTO otp_attempt (phone, otp_hash, nonce, expires_at, attempts, resend_count, status, created_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, now())
     `, [phone, hash, nonce, expiresAt, 0, 1, 'pending']);
@@ -175,8 +196,15 @@ app.post('/signup/verify', async (req, res) => {
       return res.status(400).json({ error: 'phone and otp required' });
     }
 
+    // Ensure database connection before querying
+    const dbClient = await ensureDbConnection();
+    if (!dbClient) {
+      console.error('❌ Database connection unavailable');
+      return res.status(500).json({ error: 'Database connection unavailable, please try again' });
+    }
+
     // Get latest pending OTP attempt
-    const otpResult = await db.query(`
+    const otpResult = await dbClient.query(`
       SELECT * FROM otp_attempt 
       WHERE phone = $1 AND status = 'pending' 
       ORDER BY created_at DESC 
