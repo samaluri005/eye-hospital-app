@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "postgresql-16", "dotnet", "dotnet-8.0", "python-3.11"]
+modules = ["nodejs-18", "dotnet-7.0", "bash", "python-3.12", "dotnet-8.0"]
 [agent]
 expertMode = true
 integrations = ["javascript_database:1.0.0", "twilio_send_message:1.0.0"]
@@ -8,91 +8,6 @@ channel = "stable-25_05"
 packages = ["azure-cli", "bash", "curl", "git", "gnumake", "python3", "sqlite"]
 
 [workflows]
-runButton = "Project"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Monorepo Dev"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Hospital Development"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "ngrok Public Tunnel"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Auth Service"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Patient Portal Dev"
-
-[[workflows.workflow]]
-name = "Monorepo Dev"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm -w turbo run dev --output-logs=full"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow]]
-name = "Hospital Development"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm -w turbo run dev --output-logs=full"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow]]
-name = "ngrok Public Tunnel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "./ngrok http 5000 --log=stdout"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "Auth Service"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd microservices/auth-service/AuthService && dotnet run --urls=\"http://0.0.0.0:8000\""
-waitForPort = 8000
-
-[[workflows.workflow]]
-name = "Patient Portal Dev"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd apps/patient-portal-web && pnpm dev"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[ports]]
 localPort = 3001
