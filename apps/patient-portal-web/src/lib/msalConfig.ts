@@ -7,32 +7,28 @@ export const msalConfig: Configuration = {
   auth: {
     clientId: process.env.NEXT_PUBLIC_AZURE_CLIENT_ID || "",
     authority: `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_AZURE_TENANT_ID}`,
-    // IMPORTANT: must exactly match the redirect URI registered in Azure (including path and trailing slash)
     redirectUri: `${base}/auth/callback`,
   },
   cache: {
-    cacheLocation: "localStorage", // This configures where your cache will be stored
-    storeAuthStateInCookie: false, // Set this to "true" if you are having issues on IE11 or Edge
+    cacheLocation: "localStorage",
+    storeAuthStateInCookie: false,
   },
   system: {
     loggerOptions: {
       loggerCallback: (level, message, containsPii) => {
         if (containsPii) return;
+        // Always log to console with MSAL level prefix
+        const pref = `[MSAL ${LogLevel[level]}]`;
         switch (level) {
-          case LogLevel.Error:
-            console.error(message);
-            return;
-          case LogLevel.Info:
-            console.info(message);
-            return;
-          case LogLevel.Verbose:
-            console.debug(message);
-            return;
-          case LogLevel.Warning:
-            console.warn(message);
-            return;
+          case LogLevel.Error: console.error(pref, message); break;
+          case LogLevel.Info: console.info(pref, message); break;
+          case LogLevel.Verbose: console.debug(pref, message); break;
+          case LogLevel.Warning: console.warn(pref, message); break;
+          default: console.log(pref, message);
         }
-      }
+      },
+      logLevel: LogLevel.Verbose,
+      piiLoggingEnabled: false
     }
   }
 };
