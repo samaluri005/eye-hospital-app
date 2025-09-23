@@ -359,6 +359,29 @@ app.post('/auth/link', async (req, res) => {
 });
 
 // Start server
+// Consent endpoint
+app.post('/consent', async (req, res) => {
+  try {
+    const { consentType, version, accepted } = req.body;
+    
+    if (!consentType || !version || typeof accepted !== 'boolean') {
+      return res.status(400).json({ error: 'consentType, version, and accepted are required' });
+    }
+
+    // For now, just log and return success
+    // In the future, this would store consent in the database
+    console.log(`📋 Consent recorded: ${consentType} ${version} = ${accepted}`);
+
+    res.json({ 
+      status: 'consent_recorded',
+      message: 'Your consent preferences have been recorded successfully'
+    });
+  } catch (error) {
+    console.error('Consent error:', error);
+    res.status(500).json({ error: 'Failed to record consent' });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Temp Auth Service running on http://0.0.0.0:${PORT}`);
   console.log('📋 Available endpoints:');
@@ -366,6 +389,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('  GET  /db/tables - Database status');
   console.log('  POST /signup/start - Start OTP flow');
   console.log('  POST /signup/verify - Verify OTP');
+  console.log('  POST /consent - Record consent');
   console.log('  POST /auth/link - Link Microsoft account');
 });
 
