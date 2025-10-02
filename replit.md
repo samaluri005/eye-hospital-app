@@ -24,7 +24,18 @@ This is a comprehensive Eye Hospital Management System built as a monorepo with 
 - Backend services available but not currently active
 - Mobile development available via Expo
 
-## Recent Changes (Sept 23, 2025)
+## Recent Changes
+### October 2, 2025
+- **IMPORTANT ARCHITECTURE UPDATE**: Migrated from Azure AD B2C custom policies to Microsoft Entra External ID with Custom Authentication Extensions
+- **Custom Authentication Extensions API**: Created REST API service (`entra-otp-api`) for Twilio SMS OTP integration with proper event-driven webhook format
+- **Modern Approach**: Replaced XML-based B2C custom policies with REST API webhooks at authentication events (OnAttributeCollectionSubmit, OnTokenIssuanceStart)
+- **Database Integration**: Added `entra_otp_attempts` table for OTP storage with retry logic and rate limiting
+- **API Endpoints Available**:
+  - `/api/extensions/onAttributeCollectionSubmit` - Phone validation and OTP sending
+  - `/api/extensions/onTokenIssuanceStart` - Custom claims injection
+- **Documentation**: Created comprehensive setup guide for Entra External ID configuration at `/entra-custom-extensions/SETUP_GUIDE.md`
+
+### September 23, 2025  
 - Imported from GitHub and configured for Replit environment
 - Fixed Next.js configurations for proxy environment
 - Set up PostgreSQL database with environment variables
