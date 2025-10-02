@@ -147,6 +147,31 @@ const verifyOTP = async (phone, code) => {
   }
 };
 
+// API Key middleware for authentication
+const validateApiKey = (req, res, next) => {
+  const apiKey = req.headers['x-api-key'] || req.headers['apikey'] || req.headers['authorization'];
+  const expectedKey = process.env.ENTRA_API_KEY || '32beeaccbeb4c920420649250b5007da958f560d6f2c1fbe250ddc2b5586a7f1';
+  
+  // Allow health check without API key
+  if (req.path === '/health') {
+    return next();
+  }
+  
+  if (!apiKey || apiKey !== expectedKey) {
+    console.error('❌ Invalid API key attempt');
+    return res.status(401).json({
+      version: '1.0.0',
+      status: 401,
+      userMessage: 'Unauthorized - Invalid API Key'
+    });
+  }
+  
+  next();
+};
+
+// Apply API key validation to all routes except health
+app.use(validateApiKey);
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
