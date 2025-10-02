@@ -12,16 +12,60 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // For form-encoded data from Entra
 
-// Database connection
-const db = new Client({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// Database connection with retry logic
+let db;
 
-// Connect to database
-db.connect()
-  .then(() => console.log('✅ Connected to PostgreSQL for OTP storage'))
-  .catch(err => console.error('❌ Database connection failed:', err));
+const connectToDatabase = async () => {
+  try {
+    if (db) {
+      try { await db.end(); } catch (e) { /* ignore */ }
+    }
+    
+    db = new Client({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 10000,
+      query_timeout: 10000,
+      keepAlive: true
+    });
+
+    // Handle connection errors
+    db.on('error', (err) => {
+      console.error('❌ Database connection error:', err.message);
+      db = null; // Mark as disconnected
+      console.log('🔄 Attempting to reconnect...');
+      setTimeout(connectToDatabase, 5000); // Retry after 5 seconds
+    });
+
+    await db.connect();
+    console.log('✅ Connected to PostgreSQL for OTP storage');
+    return db;
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    db = null; // Mark as disconnected
+    console.log('🔄 Retrying connection in 5 seconds...');
+    setTimeout(connectToDatabase, 5000);
+    return null;
+  }
+};
+
+// Helper function to ensure database connection
+const ensureDbConnection = async () => {
+  if (!db || db._ending || db._ended) {
+    console.log('🔄 Database disconnected, reconnecting...');
+    await connectToDatabase();
+    // Wait for connection to be established
+    let attempts = 0;
+    while ((!db || db._ending || db._ended) && attempts < 10) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      attempts++;
+    }
+  }
+  return db;
+};
+
+// Initialize database connection
+await connectToDatabase();
 
 // Initialize Twilio client
 const twilioClient = twilio(
@@ -39,7 +83,13 @@ const storeOTP = async (phone, otp) => {
     .digest('hex');
   
   try {
-    await db.query(`
+    const conn = await ensureDbConnection();
+    if (!conn) {
+      console.error('❌ Database not available for OTP storage');
+      return false;
+    }
+    
+    await conn.query(`
       INSERT INTO entra_otp_attempts (phone, otp_hash, expires_at, created_at)
       VALUES ($1, $2, $3, NOW())
       ON CONFLICT (phone) DO UPDATE
@@ -61,14 +111,20 @@ const verifyOTP = async (phone, code) => {
     .digest('hex');
   
   try {
-    const result = await db.query(`
+    const conn = await ensureDbConnection();
+    if (!conn) {
+      console.error('❌ Database not available for OTP verification');
+      return false;
+    }
+    
+    const result = await conn.query(`
       SELECT * FROM entra_otp_attempts
       WHERE phone = $1 AND otp_hash = $2 AND expires_at > NOW() AND attempts < 3
     `, [phone, otpHash]);
     
     if (result.rows.length > 0) {
       // Mark as used
-      await db.query(`
+      await conn.query(`
         UPDATE entra_otp_attempts 
         SET attempts = attempts + 1 
         WHERE phone = $1
@@ -78,7 +134,7 @@ const verifyOTP = async (phone, code) => {
     }
     
     // Increment failed attempts
-    await db.query(`
+    await conn.query(`
       UPDATE entra_otp_attempts 
       SET attempts = attempts + 1 
       WHERE phone = $1

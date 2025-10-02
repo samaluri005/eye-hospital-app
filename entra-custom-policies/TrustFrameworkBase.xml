@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<TrustFrameworkPolicy
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns="http://schemas.microsoft.com/online/cpim/schemas/2013/06"
+  PolicySchemaVersion="0.3.0.0"
+  TenantId="eyehospitalpatients.onmicrosoft.com"
+  PolicyId="B2C_1A_TrustFrameworkBase"
+  PublicPolicyUri="http://eyehospitalpatients.onmicrosoft.com/B2C_1A_TrustFrameworkBase">
+
+  <BuildingBlocks>
+    <!-- Define claim types -->
+    <ClaimsSchema>
+      <ClaimType Id="phoneNumber">
+        <DisplayName>Phone Number</DisplayName>
+        <DataType>string</DataType>
+        <UserHelpText>Your phone number</UserHelpText>
+        <UserInputType>PhonePad</UserInputType>
+        <Restriction>
+          <Pattern RegularExpression="^[+]?[0-9]{10,15}$" HelpText="Please enter a valid phone number"/>
+        </Restriction>
+      </ClaimType>
+      
+      <ClaimType Id="otpCode">
+        <DisplayName>Verification Code</DisplayName>
+        <DataType>string</DataType>
+        <UserHelpText>Enter the 6-digit code sent to your phone</UserHelpText>
+        <UserInputType>TextBox</UserInputType>
+      </ClaimType>
+      
+      <ClaimType Id="verificationStatus">
+        <DisplayName>Verification Status</DisplayName>
+        <DataType>string</DataType>
+      </ClaimType>
+      
+      <ClaimType Id="isValidOTP">
+        <DisplayName>Is Valid OTP</DisplayName>
+        <DataType>boolean</DataType>
+      </ClaimType>
+      
+      <ClaimType Id="objectId">
+        <DisplayName>User Object ID</DisplayName>
+        <DataType>string</DataType>
+      </ClaimType>
+      
+      <ClaimType Id="displayName">
+        <DisplayName>Display Name</DisplayName>
+        <DataType>string</DataType>
+        <UserHelpText>Your display name</UserHelpText>
+        <UserInputType>TextBox</UserInputType>
+      </ClaimType>
+      
+      <ClaimType Id="givenName">
+        <DisplayName>First Name</DisplayName>
+        <DataType>string</DataType>
+        <UserHelpText>Your first name</UserHelpText>
+        <UserInputType>TextBox</UserInputType>
+      </ClaimType>
+      
+      <ClaimType Id="surname">
+        <DisplayName>Last Name</DisplayName>
+        <DataType>string</DataType>
+        <UserHelpText>Your last name</UserHelpText>
+        <UserInputType>TextBox</UserInputType>
+      </ClaimType>
+      
+      <ClaimType Id="email">
+        <DisplayName>Email</DisplayName>
+        <DataType>string</DataType>
+        <UserHelpText>Your email address (optional)</UserHelpText>
+        <UserInputType>EmailBox</UserInputType>
+      </ClaimType>
+      
+      <ClaimType Id="newUser">
+        <DisplayName>New User</DisplayName>
+        <DataType>boolean</DataType>
+      </ClaimType>
+      
+      <ClaimType Id="sub">
+        <DisplayName>Subject</DisplayName>
+        <DataType>string</DataType>
+      </ClaimType>
+    </ClaimsSchema>
+
+    <!-- Content Definitions for UI -->
+    <ContentDefinitions>
+      <ContentDefinition Id="api.phoneinput">
+        <LoadUri>https://eyehospitalpatients.b2clogin.com/static/selfAsserted.html</LoadUri>
+        <DataUri>urn:com:microsoft:aad:b2c:elements:contract:selfasserted:2.1.8</DataUri>
+        <Metadata>
+          <Item Key="DisplayName">Phone Number Input</Item>
+        </Metadata>
+      </ContentDefinition>
+      
+      <ContentDefinition Id="api.otpinput">
+        <LoadUri>https://eyehospitalpatients.b2clogin.com/static/selfAsserted.html</LoadUri>
+        <DataUri>urn:com:microsoft:aad:b2c:elements:contract:selfasserted:2.1.8</DataUri>
+        <Metadata>
+          <Item Key="DisplayName">Enter Verification Code</Item>
+        </Metadata>
+      </ContentDefinition>
+      
+      <ContentDefinition Id="api.profileinput">
+        <LoadUri>https://eyehospitalpatients.b2clogin.com/static/selfAsserted.html</LoadUri>
+        <DataUri>urn:com:microsoft:aad:b2c:elements:contract:selfasserted:2.1.8</DataUri>
+        <Metadata>
+          <Item Key="DisplayName">Complete Your Profile</Item>
+        </Metadata>
+      </ContentDefinition>
+    </ContentDefinitions>
+  </BuildingBlocks>
+
+  <ClaimsProviders>
+    <!-- Local Account Provider -->
+    <ClaimsProvider>
+      <DisplayName>Local Account</DisplayName>
+      <TechnicalProfiles>
+        
+        <!-- Read user by phone number -->
+        <TechnicalProfile Id="AAD-UserReadUsingPhoneNumber">
+          <Metadata>
+            <Item Key="Operation">Read</Item>
+            <Item Key="RaiseErrorIfClaimsPrincipalDoesNotExist">false</Item>
+          </Metadata>
+          <Protocol Name="AAD" />
+          <InputClaims>
+            <InputClaim ClaimTypeReferenceId="phoneNumber" PartnerClaimType="strongAuthenticationPhoneNumber" Required="true" />
+          </InputClaims>
+          <OutputClaims>
+            <OutputClaim ClaimTypeReferenceId="objectId" />
+            <OutputClaim ClaimTypeReferenceId="displayName" />
+            <OutputClaim ClaimTypeReferenceId="givenName" />
+            <OutputClaim ClaimTypeReferenceId="surname" />
+            <OutputClaim ClaimTypeReferenceId="email" PartnerClaimType="signInNames.emailAddress" />
+            <OutputClaim ClaimTypeReferenceId="phoneNumber" PartnerClaimType="strongAuthenticationPhoneNumber" />
+          </OutputClaims>
+        </TechnicalProfile>
+
+        <!-- Write new user with phone number -->
+        <TechnicalProfile Id="AAD-UserWriteUsingPhoneNumber">
+          <Metadata>
+            <Item Key="Operation">Write</Item>
+            <Item Key="RaiseErrorIfClaimsPrincipalAlreadyExists">false</Item>
+          </Metadata>
+          <Protocol Name="AAD" />
+          <InputClaims>
+            <InputClaim ClaimTypeReferenceId="phoneNumber" PartnerClaimType="strongAuthenticationPhoneNumber" />
+          </InputClaims>
+          <PersistedClaims>
+            <PersistedClaim ClaimTypeReferenceId="phoneNumber" PartnerClaimType="strongAuthenticationPhoneNumber" />
+            <PersistedClaim ClaimTypeReferenceId="displayName" />
+            <PersistedClaim ClaimTypeReferenceId="givenName" />
+            <PersistedClaim ClaimTypeReferenceId="surname" />
+            <PersistedClaim ClaimTypeReferenceId="email" PartnerClaimType="signInNames.emailAddress" />
+            <PersistedClaim ClaimTypeReferenceId="newUser" AlwaysUseDefaultValue="true" DefaultValue="true" />
+            <PersistedClaim ClaimTypeReferenceId="userPrincipalName" DefaultValue="unknown" />
+            <PersistedClaim ClaimTypeReferenceId="passwordPolicies" DefaultValue="DisablePasswordExpiration,DisableStrongPassword" />
+          </PersistedClaims>
+          <OutputClaims>
+            <OutputClaim ClaimTypeReferenceId="objectId" />
+            <OutputClaim ClaimTypeReferenceId="newUser" />
+          </OutputClaims>
+        </TechnicalProfile>
+
+        <!-- JWT Issuer -->
+        <TechnicalProfile Id="JwtIssuer">
+          <DisplayName>JWT Issuer</DisplayName>
+          <Protocol Name="None" />
+          <OutputTokenFormat>JWT</OutputTokenFormat>
+          <Metadata>
+            <Item Key="client_id">{service:te}</Item>
+            <Item Key="issuer_refresh_token_user_identity_claim_type">objectId</Item>
+            <Item Key="SendTokenResponseBodyWithJsonNumbers">true</Item>
+          </Metadata>
+          <CryptographicKeys>
+            <Key Id="issuer_secret" StorageReferenceId="B2C_1A_TokenSigningKeyContainer" />
+            <Key Id="issuer_refresh_token_key" StorageReferenceId="B2C_1A_TokenEncryptionKeyContainer" />
+          </CryptographicKeys>
+          <InputClaims />
+          <OutputClaims />
+        </TechnicalProfile>
+        
+      </TechnicalProfiles>
+    </ClaimsProvider>
+  </ClaimsProviders>
+
+  <!-- User Journeys will be defined in Extensions file -->
+</TrustFrameworkPolicy>
