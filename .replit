@@ -23,6 +23,10 @@ args = "Patient Portal"
 task = "workflow.run"
 args = "Auth Service"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Entra OTP API"
+
 [[workflows.workflow]]
 name = "Patient Portal"
 author = "agent"
@@ -47,9 +51,25 @@ waitForPort = 8000
 [workflows.workflow.metadata]
 outputType = "console"
 
+[[workflows.workflow]]
+name = "Entra OTP API"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd entra-otp-api && node server.js"
+waitForPort = 3002
+
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[ports]]
 localPort = 3001
 externalPort = 3001
+
+[[ports]]
+localPort = 3002
+externalPort = 3002
 
 [[ports]]
 localPort = 5000
@@ -58,6 +78,10 @@ externalPort = 80
 [[ports]]
 localPort = 8000
 externalPort = 8000
+
+[[ports]]
+localPort = 37017
+externalPort = 3000
 
 [[ports]]
 localPort = 41815
