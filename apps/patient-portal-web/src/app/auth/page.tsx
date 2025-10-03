@@ -3,13 +3,15 @@ import dynamic from "next/dynamic";
 import { AuthResumeWrapper } from "../../components/AuthResumeWrapper";
 import useMsalRedirectResume from "../../hooks/useMsalRedirectResume";
 
-const LoginFlow = dynamic(() => import("./components/LoginFlow"), { ssr: false });
+const SignupFlow = dynamic(() => import("./components/SignupFlow"), { ssr: false });
 
 export default function AuthPage() {
   useMsalRedirectResume();
   return (
     <AuthResumeWrapper>
-      <LoginFlow />
+      <main className="p-6">
+        <SignupFlow />
+      </main>
     </AuthResumeWrapper>
   );
 }
