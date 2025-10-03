@@ -152,11 +152,7 @@ export async function POST(req: NextRequest) {
         "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
         actions: [
           {
-            "@odata.type": "microsoft.graph.attributeCollectionSubmit.modifyAttributeValues",
-            attributes: {
-              "phoneNumber": phone,
-              "phoneNumberVerified": "pending_otp"
-            }
+            "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
           }
         ]
       }
