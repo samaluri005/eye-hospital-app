@@ -2,9 +2,10 @@ import { Configuration, LogLevel } from "@azure/msal-browser";
 
 export const msalConfig: Configuration = {
   auth: {
-    clientId: process.env.NEXT_PUBLIC_AZURE_CLIENT_ID || "", // SPA client id
-    authority: process.env.NEXT_PUBLIC_AZURE_AUTHORITY || `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_AZURE_TENANT_ID}`,
-    redirectUri: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "",
+    clientId: process.env.NEXT_PUBLIC_AZURE_CLIENT_ID || "7dbdd15b-b36e-44d9-bdb8-2d97af3fc29bc",
+    authority: process.env.NEXT_PUBLIC_AZURE_AUTHORITY || `https://eyehospitalextd.ciamlogin.com/${process.env.NEXT_PUBLIC_AZURE_TENANT_ID || 'b9337298-b6a4-4a97-9438-ad3a897b7d62'}`,
+    redirectUri: typeof window !== "undefined" ? `${window.location.origin}/auth` : "",
+    knownAuthorities: ["eyehospitalextd.ciamlogin.com"],
   },
   cache: {
     cacheLocation: "localStorage",
@@ -30,7 +31,6 @@ export const loginRequest = {
     "openid",
     "profile",
     "email",
-    // <-- EXACT scope from Azure -> Expose an API (replace below if your value differs)
-    "api://eyecare-patients-api-dev/patient.read"
+    "offline_access"
   ],
 };
