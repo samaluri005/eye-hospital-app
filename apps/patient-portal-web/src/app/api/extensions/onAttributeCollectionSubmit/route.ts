@@ -9,7 +9,7 @@ const appId = process.env.ENTRA_APP_ID || '9f40b99c-5398-4580-b8cb-cd98d31e2dcf'
 const issuer = `https://${tenantId}.ciamlogin.com/${tenantId}/v2.0`;
 const audience = appId;
 
-const JWKS = createRemoteJWKSet(new URL(`https://${tenantId}.ciamlogin.com/${tenantId}/discovery/v2.0/keys`));
+const JWKS = createRemoteJWKSet(new URL(`https://login.microsoftonline.com/${tenantId}/discovery/v2.0/keys`));
 
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID!,
