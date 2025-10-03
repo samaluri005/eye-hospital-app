@@ -102,6 +102,11 @@ export async function POST(req: NextRequest) {
       });
     }
     
+    if (!phone.startsWith('+')) {
+      phone = '+91' + phone;
+      console.log(`📱 Added country code: ${phone}`);
+    }
+    
     const phoneRegex = /^[+]?[1-9]\d{1,14}$/;
     if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
       return NextResponse.json({
