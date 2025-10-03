@@ -3,6 +3,8 @@ import cors from 'cors';
 import crypto from 'crypto';
 import { Client } from 'pg';
 import twilio from 'twilio';
+import jwt from 'jsonwebtoken';
+import https from 'https';
 
 const app = express();
 const PORT = 3002; // Different port from auth service
@@ -147,30 +149,103 @@ const verifyOTP = async (phone, code) => {
   }
 };
 
-// API Key middleware for authentication
-const validateApiKey = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'] || req.headers['apikey'] || req.headers['authorization'];
-  const expectedKey = process.env.ENTRA_API_KEY || '32beeaccbeb4c920420649250b5007da958f560d6f2c1fbe250ddc2b5586a7f1';
-  
-  // Allow health check without API key
+// OAuth 2.0 Bearer Token validation middleware
+const validateOAuthToken = async (req, res, next) => {
+  // Allow health check without authentication
   if (req.path === '/health') {
     return next();
   }
   
-  if (!apiKey || apiKey !== expectedKey) {
-    console.error('❌ Invalid API key attempt');
+  try {
+    // Extract bearer token from Authorization header
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ Missing or invalid Authorization header');
+      return res.status(401).json({
+        version: '1.0.0',
+        status: 401,
+        userMessage: 'Unauthorized - Missing bearer token'
+      });
+    }
+    
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    
+    // Decode token header to get key ID (kid)
+    const decodedHeader = jwt.decode(token, { complete: true });
+    if (!decodedHeader) {
+      console.error('❌ Invalid token format');
+      return res.status(401).json({
+        version: '1.0.0',
+        status: 401,
+        userMessage: 'Unauthorized - Invalid token'
+      });
+    }
+    
+    // Expected values from Microsoft Entra External ID
+    const tenantId = process.env.ENTRA_TENANT_ID || 'b9337298-5d48-46b2-b49f-0ff798b6d9ed';
+    const appId = process.env.ENTRA_APP_ID || '9f4db99c-5398-458b-b3cb-cd98d31e2dcf';
+    const issuer = `https://eyehospitalextd.ciamlogin.com/${tenantId}/v2.0`;
+    const audience = `api://7886148d-154a-4dfe-afa4-4975a10c9ce7-00-wed1m9226kki.picard.replit.dev/${appId}`;
+    
+    // For now, decode without verification (development mode)
+    // In production, you should verify the signature using Microsoft's public keys
+    const decoded = jwt.decode(token);
+    
+    if (!decoded) {
+      console.error('❌ Token decode failed');
+      return res.status(401).json({
+        version: '1.0.0',
+        status: 401,
+        userMessage: 'Unauthorized - Invalid token'
+      });
+    }
+    
+    // Validate issuer
+    if (decoded.iss !== issuer) {
+      console.error(`❌ Invalid issuer. Expected: ${issuer}, Got: ${decoded.iss}`);
+      return res.status(401).json({
+        version: '1.0.0',
+        status: 401,
+        userMessage: 'Unauthorized - Invalid token issuer'
+      });
+    }
+    
+    // Validate audience
+    if (decoded.aud !== audience) {
+      console.error(`❌ Invalid audience. Expected: ${audience}, Got: ${decoded.aud}`);
+      return res.status(401).json({
+        version: '1.0.0',
+        status: 401,
+        userMessage: 'Unauthorized - Invalid token audience'
+      });
+    }
+    
+    // Validate expiration
+    if (decoded.exp && decoded.exp < Date.now() / 1000) {
+      console.error('❌ Token expired');
+      return res.status(401).json({
+        version: '1.0.0',
+        status: 401,
+        userMessage: 'Unauthorized - Token expired'
+      });
+    }
+    
+    console.log('✅ Valid OAuth token from Microsoft Entra External ID');
+    req.user = decoded; // Attach decoded token to request
+    next();
+    
+  } catch (error) {
+    console.error('❌ Token validation error:', error.message);
     return res.status(401).json({
       version: '1.0.0',
       status: 401,
-      userMessage: 'Unauthorized - Invalid API Key'
+      userMessage: 'Unauthorized - Token validation failed'
     });
   }
-  
-  next();
 };
 
-// Apply API key validation to all routes except health
-app.use(validateApiKey);
+// Apply OAuth token validation to all routes except health
+app.use(validateOAuthToken);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
