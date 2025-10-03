@@ -5,11 +5,11 @@ import twilio from 'twilio';
 import { Client } from 'pg';
 
 const tenantId = process.env.NEXT_PUBLIC_AZURE_TENANT_ID || 'b9337298-b6a4-4a97-9438-ad3a897b7d62';
-const appId = process.env.ENTRA_APP_ID || '9f4db99c-5398-458b-b3cb-cd98d31e2dcf';
-const issuer = `https://eyehospitalextd.ciamlogin.com/${tenantId}/v2.0`;
-const audience = `api://7886148d-154a-4dfe-afa4-4975a10c9ce7-00-wed1m9226kki.picard.replit.dev/${appId}`;
+const appId = process.env.ENTRA_APP_ID || '9f40b99c-5398-4580-b8cb-cd98d31e2dcf';
+const issuer = `https://${tenantId}.ciamlogin.com/${tenantId}/v2.0`;
+const audience = appId;
 
-const JWKS = createRemoteJWKSet(new URL(`https://eyehospitalextd.ciamlogin.com/${tenantId}/discovery/v2.0/keys`));
+const JWKS = createRemoteJWKSet(new URL(`https://${tenantId}.ciamlogin.com/${tenantId}/discovery/v2.0/keys`));
 
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID!,
@@ -43,43 +43,81 @@ async function storeOTP(phone: string, otp: string) {
 }
 
 export async function POST(req: NextRequest) {
+  let body;
+  
+  try {
+    body = await req.json();
+    console.log('📥 OnAttributeCollectionSubmit Event:', JSON.stringify(body, null, 2));
+  } catch (error: any) {
+    console.error('❌ Failed to parse request body:', error.message);
+    return NextResponse.json({
+      data: {
+        "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+        actions: [
+          {
+            "@odata.type": "microsoft.graph.attributeCollectionSubmit.showBlockPage",
+            message: "Invalid request format"
+          }
+        ]
+      }
+    });
+  }
+  
   try {
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.error('❌ Missing or invalid Authorization header');
       return NextResponse.json({
-        version: '1.0.0',
-        status: 401,
-        userMessage: 'Unauthorized - Missing bearer token'
-      }, { status: 401 });
+        data: {
+          "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+          actions: [
+            {
+              "@odata.type": "microsoft.graph.attributeCollectionSubmit.showBlockPage",
+              message: "Unauthorized - Missing bearer token"
+            }
+          ]
+        }
+      });
     }
     
     const token = authHeader.substring(7);
     
-    // TEMPORARY: Decode token without validation to see what we're getting
-    const parts = token.split('.');
-    if (parts.length === 3) {
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-      console.log('🔍 DEBUGGING - Received token payload:', JSON.stringify(payload, null, 2));
-      console.log('   Issuer (iss):', payload.iss);
-      console.log('   Audience (aud):', payload.aud);
-      console.log('   App ID (appid/azp):', payload.appid || payload.azp);
-    }
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: issuer,
+      audience: audience,
+      clockTolerance: 60
+    });
     
-    // Skip validation for now - just log and continue
-    console.log('⚠️ TEMPORARY: Skipping token validation for debugging');
+    console.log('✅ Valid OAuth token from Microsoft Entra External ID (signature verified)');
+    console.log('   Token subject:', payload.sub);
+    console.log('   Token app ID:', payload.appid || payload.azp);
     
   } catch (error: any) {
-    console.error('❌ Token decode error:', error.message);
+    console.error('❌ Token validation error:', error.message);
+    return NextResponse.json({
+      data: {
+        "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+        actions: [
+          {
+            "@odata.type": "microsoft.graph.attributeCollectionSubmit.showBlockPage",
+            message: "Unauthorized - Token validation failed"
+          }
+        ]
+      }
+    });
   }
   
   try {
-    const body = await req.json();
-    console.log('📥 OnAttributeCollectionSubmit Event:', JSON.stringify(body, null, 2));
-    
     const eventData = body.data;
-    const attributes = eventData?.attributes || {};
-    const phone = attributes.phoneNumber || attributes.phone || attributes.mobilePhone;
+    const attributes = eventData?.userSignUpInfo?.attributes || {};
+    
+    let phone = null;
+    for (const [key, attr] of Object.entries(attributes)) {
+      if (key.includes('MobileNumber') || key.includes('phoneNumber')) {
+        phone = (attr as any).value;
+        break;
+      }
+    }
     
     if (!phone) {
       return NextResponse.json({
