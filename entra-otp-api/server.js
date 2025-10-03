@@ -3,8 +3,7 @@ import cors from 'cors';
 import crypto from 'crypto';
 import { Client } from 'pg';
 import twilio from 'twilio';
-import jwt from 'jsonwebtoken';
-import https from 'https';
+import { jwtVerify, createRemoteJWKSet } from 'jose';
 
 const app = express();
 const PORT = 3002; // Different port from auth service
@@ -149,7 +148,15 @@ const verifyOTP = async (phone, code) => {
   }
 };
 
-// OAuth 2.0 Bearer Token validation middleware
+// OAuth 2.0 Bearer Token validation middleware with signature verification
+const tenantId = process.env.ENTRA_TENANT_ID || 'b9337298-b6a4-4a97-9438-ad3a897b7d62';
+const appId = process.env.ENTRA_APP_ID || '9f4db99c-5398-458b-b3cb-cd98d31e2dcf';
+const issuer = `https://eyehospitalextd.ciamlogin.com/${tenantId}/v2.0`;
+const audience = `api://7886148d-154a-4dfe-afa4-4975a10c9ce7-00-wed1m9226kki.picard.replit.dev/${appId}`;
+
+// Create JWKS (JSON Web Key Set) client that fetches public keys from Microsoft Entra
+const JWKS = createRemoteJWKSet(new URL(`https://eyehospitalextd.ciamlogin.com/${tenantId}/discovery/v2.0/keys`));
+
 const validateOAuthToken = async (req, res, next) => {
   // Allow health check without authentication
   if (req.path === '/health') {
@@ -170,76 +177,37 @@ const validateOAuthToken = async (req, res, next) => {
     
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     
-    // Decode token header to get key ID (kid)
-    const decodedHeader = jwt.decode(token, { complete: true });
-    if (!decodedHeader) {
-      console.error('❌ Invalid token format');
-      return res.status(401).json({
-        version: '1.0.0',
-        status: 401,
-        userMessage: 'Unauthorized - Invalid token'
-      });
-    }
+    // Verify JWT signature and validate claims using jose library
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: issuer,
+      audience: audience,
+      clockTolerance: 60 // Allow 60 seconds clock skew
+    });
     
-    // Expected values from Microsoft Entra External ID
-    const tenantId = process.env.ENTRA_TENANT_ID || 'b9337298-5d48-46b2-b49f-0ff798b6d9ed';
-    const appId = process.env.ENTRA_APP_ID || '9f4db99c-5398-458b-b3cb-cd98d31e2dcf';
-    const issuer = `https://eyehospitalextd.ciamlogin.com/${tenantId}/v2.0`;
-    const audience = `api://7886148d-154a-4dfe-afa4-4975a10c9ce7-00-wed1m9226kki.picard.replit.dev/${appId}`;
+    console.log('✅ Valid OAuth token from Microsoft Entra External ID (signature verified)');
+    console.log('   Token subject:', payload.sub);
+    console.log('   Token app ID:', payload.appid || payload.azp);
     
-    // For now, decode without verification (development mode)
-    // In production, you should verify the signature using Microsoft's public keys
-    const decoded = jwt.decode(token);
-    
-    if (!decoded) {
-      console.error('❌ Token decode failed');
-      return res.status(401).json({
-        version: '1.0.0',
-        status: 401,
-        userMessage: 'Unauthorized - Invalid token'
-      });
-    }
-    
-    // Validate issuer
-    if (decoded.iss !== issuer) {
-      console.error(`❌ Invalid issuer. Expected: ${issuer}, Got: ${decoded.iss}`);
-      return res.status(401).json({
-        version: '1.0.0',
-        status: 401,
-        userMessage: 'Unauthorized - Invalid token issuer'
-      });
-    }
-    
-    // Validate audience
-    if (decoded.aud !== audience) {
-      console.error(`❌ Invalid audience. Expected: ${audience}, Got: ${decoded.aud}`);
-      return res.status(401).json({
-        version: '1.0.0',
-        status: 401,
-        userMessage: 'Unauthorized - Invalid token audience'
-      });
-    }
-    
-    // Validate expiration
-    if (decoded.exp && decoded.exp < Date.now() / 1000) {
-      console.error('❌ Token expired');
-      return res.status(401).json({
-        version: '1.0.0',
-        status: 401,
-        userMessage: 'Unauthorized - Token expired'
-      });
-    }
-    
-    console.log('✅ Valid OAuth token from Microsoft Entra External ID');
-    req.user = decoded; // Attach decoded token to request
+    req.user = payload; // Attach verified token payload to request
     next();
     
   } catch (error) {
     console.error('❌ Token validation error:', error.message);
+    
+    // Provide specific error messages
+    let userMessage = 'Unauthorized - Token validation failed';
+    if (error.code === 'ERR_JWT_EXPIRED') {
+      userMessage = 'Unauthorized - Token expired';
+    } else if (error.code === 'ERR_JWT_CLAIM_VALIDATION_FAILED') {
+      userMessage = 'Unauthorized - Invalid token claims';
+    } else if (error.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
+      userMessage = 'Unauthorized - Invalid token signature';
+    }
+    
     return res.status(401).json({
       version: '1.0.0',
       status: 401,
-      userMessage: 'Unauthorized - Token validation failed'
+      userMessage: userMessage
     });
   }
 };
