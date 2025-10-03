@@ -3,10 +3,10 @@ import { jwtVerify, createRemoteJWKSet } from 'jose';
 
 const tenantId = process.env.NEXT_PUBLIC_AZURE_TENANT_ID || 'b9337298-b6a4-4a97-9438-ad3a897b7d62';
 const appId = process.env.ENTRA_APP_ID || '9f4db99c-5398-458b-b3cb-cd98d31e2dcf';
-const issuer = `https://eyehospitalextd.ciamlogin.com/${tenantId}/v2.0`;
+const issuer = `https://login.microsoftonline.com/${tenantId}/v2.0`;
 const audience = `api://7886148d-154a-4dfe-afa4-4975a10c9ce7-00-wed1m9226kki.picard.replit.dev/${appId}`;
 
-const JWKS = createRemoteJWKSet(new URL(`https://eyehospitalextd.ciamlogin.com/${tenantId}/discovery/v2.0/keys`));
+const JWKS = createRemoteJWKSet(new URL(`https://login.microsoftonline.com/${tenantId}/discovery/v2.0/keys`));
 
 export async function POST(req: NextRequest) {
   try {
