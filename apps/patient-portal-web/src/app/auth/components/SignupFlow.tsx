@@ -149,9 +149,29 @@ export default function SignupFlow() {
               onAccountSelected={async (selectedPatientId) => {
                 const selectedAccount = accounts.find(acc => acc.patientId === selectedPatientId);
                 setPatientId(selectedPatientId);
-                setPrimaryPatientId(selectedPatientId);
                 setSelectedAccountName(selectedAccount?.name || "");
                 setIsAddingFamilyMember(false);
+                
+                // If selecting a different patient (family member), create new linkToken
+                if (selectedPatientId !== primaryPatientId && linkToken) {
+                  try {
+                    const response = await axios.post('/api/auth/create-link-token', {
+                      patientId: selectedPatientId,
+                      existingLinkToken: linkToken,
+                    });
+                    
+                    if (response.data.success) {
+                      setLinkToken(response.data.linkToken);
+                    } else {
+                      alert('Failed to create verification token. Please try again.');
+                      return;
+                    }
+                  } catch (error) {
+                    console.error('Create link token error:', error);
+                    alert('Failed to create verification token. Please try again.');
+                    return;
+                  }
+                }
                 
                 // Go to verification step instead of creating session directly
                 setStep("verification");
