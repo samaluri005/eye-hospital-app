@@ -172,24 +172,36 @@ export default function SignupFlow() {
               patientName={selectedAccountName}
               linkToken={linkToken}
               onVerified={async () => {
-                // After successful verification, create session
-                try {
-                  const response = await axios.post('/api/auth/select-account', {
-                    patientId,
-                    linkToken,
-                  });
-                  
-                  if (response.data.success) {
-                    window.location.href = '/dashboard';
-                  } else {
+                // For new users, go to consent after verification
+                // For existing users, create session and redirect to dashboard
+                if (isExistingUser && !isAddingFamilyMember) {
+                  try {
+                    const response = await axios.post('/api/auth/select-account', {
+                      patientId,
+                      linkToken,
+                    });
+                    
+                    if (response.data.success) {
+                      window.location.href = '/dashboard';
+                    } else {
+                      alert('Failed to create session. Please try again.');
+                    }
+                  } catch (error) {
+                    console.error('Select account error:', error);
                     alert('Failed to create session. Please try again.');
                   }
-                } catch (error) {
-                  console.error('Select account error:', error);
-                  alert('Failed to create session. Please try again.');
+                } else {
+                  // New user or family member - continue to consent
+                  setStep("consent");
                 }
               }}
-              onBack={() => setStep("accountSelection")}
+              onBack={() => {
+                if (isExistingUser && !isAddingFamilyMember) {
+                  setStep("accountSelection");
+                } else {
+                  setStep("profile");
+                }
+              }}
             />
           )}
 
@@ -238,7 +250,9 @@ export default function SignupFlow() {
                   
                   if (response.data.status === 'registration_complete' || response.data.status === 'existing_patient') {
                     setPatientId(response.data.patientId);
-                    setStep("consent");
+                    setSelectedAccountName(`${data.firstName} ${data.lastName}`);
+                    // Go to verification step for DOB + PIN
+                    setStep("verification");
                   } else {
                     alert('Registration failed. Please try again.');
                   }
