@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import InternationalPhoneInput from "./InternationalPhoneInput";
+import { useRecaptcha } from "../../../hooks/useRecaptcha";
+import { RecaptchaBadge } from "../../../components/RecaptchaBadge";
 
 type Props = {
   initialPhone?: string;
@@ -13,6 +15,7 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [isValidPhone, setIsValidPhone] = useState(false);
+  const { executeRecaptcha, isReady } = useRecaptcha();
 
   async function sendOtp() {
     setErr(null);
@@ -20,7 +23,18 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
     if (!isValidPhone) return setErr("Please enter a valid phone number");
     setLoading(true);
     try {
-      const r = await axios.post(`/api/auth/send-otp`, { phone });
+      const recaptchaToken = await executeRecaptcha('signup');
+      
+      if (!recaptchaToken) {
+        setErr("Bot protection verification failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      const r = await axios.post(`/api/auth/send-otp`, { 
+        phone,
+        recaptchaToken 
+      });
       if (r.data?.status === "otp_sent") {
         onSent(phone);
       } else {
@@ -122,6 +136,8 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
           Your phone number is encrypted and protected under HIPAA compliance
         </p>
       </div>
+
+      <RecaptchaBadge />
     </div>
   );
 }
