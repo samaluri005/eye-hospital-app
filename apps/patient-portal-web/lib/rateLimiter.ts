@@ -19,8 +19,6 @@ export class RedisRateLimiter {
     config: RateLimitConfig
   ): Promise<RateLimitResult> {
     try {
-      await this.redis.connect();
-      
       const now = Date.now();
       const windowStart = now - config.windowMs;
       const redisKey = `ratelimit:${key}`;
@@ -85,7 +83,6 @@ export class RedisRateLimiter {
 
   async clearRateLimit(key: string): Promise<void> {
     try {
-      await this.redis.connect();
       await this.redis.del(`ratelimit:${key}`);
     } catch (error) {
       console.error('Clear rate limit error:', error);
