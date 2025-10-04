@@ -196,24 +196,11 @@ export default function SignupFlow() {
               isNewUser={!isExistingUser || isAddingFamilyMember}
               profileDob={profile?.dateOfBirth || ""}
               onVerified={async () => {
-                // For new users, go to consent after verification
-                // For existing users, create session and redirect to dashboard
+                // For existing users with consent already, go to MFA
+                // For new users or family members, go to consent first
                 if (isExistingUser && !isAddingFamilyMember) {
-                  try {
-                    const response = await axios.post('/api/auth/select-account', {
-                      patientId,
-                      linkToken,
-                    });
-                    
-                    if (response.data.success) {
-                      window.location.href = '/dashboard';
-                    } else {
-                      alert('Failed to create session. Please try again.');
-                    }
-                  } catch (error) {
-                    console.error('Select account error:', error);
-                    alert('Failed to create session. Please try again.');
-                  }
+                  // Existing user - skip consent (already accepted), go to MFA
+                  setStep("mfa");
                 } else {
                   // New user or family member - continue to consent
                   setStep("consent");
@@ -323,7 +310,12 @@ export default function SignupFlow() {
           )}
 
           {step === "mfa" && (
-            <MfaStep onDone={() => setStep("done")} skip={() => setStep("done")} />
+            <MfaStep 
+              onDone={() => setStep("done")} 
+              skip={() => setStep("done")}
+              patientId={patientId || undefined}
+              linkToken={linkToken || undefined}
+            />
           )}
 
           {step === "done" && (

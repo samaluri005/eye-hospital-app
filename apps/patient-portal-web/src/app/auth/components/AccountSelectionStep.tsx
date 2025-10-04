@@ -31,9 +31,6 @@ export default function AccountSelectionStep({
         <p className="text-sm text-gray-600">
           We found {accounts.length} account{accounts.length > 1 ? "s" : ""} associated with {phone}
         </p>
-        <p className="text-sm text-gray-500 mt-1">
-          Select an account to continue or add a new family member
-        </p>
       </div>
 
       <div className="space-y-3">

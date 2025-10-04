@@ -1,12 +1,49 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
+import LoadingSpinner from "./LoadingSpinner";
 
 type Props = {
   onDone: () => void;
   skip: () => void;
+  patientId?: string;
+  linkToken?: string;
 };
 
-export default function MfaStep({ onDone, skip }: Props) {
+export default function MfaStep({ onDone, skip, patientId, linkToken }: Props) {
+  const [loading, setLoading] = useState(false);
+
+  const handleSkip = async () => {
+    setLoading(true);
+    
+    // Create session and redirect to dashboard
+    if (patientId && linkToken) {
+      try {
+        const response = await axios.post('/api/auth/select-account', {
+          patientId,
+          linkToken,
+        });
+        
+        if (response.data.success) {
+          window.location.href = '/dashboard';
+        } else {
+          alert('Failed to create session. Please try again.');
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Select account error:', error);
+        alert('Failed to create session. Please try again.');
+        setLoading(false);
+      }
+    } else {
+      skip();
+    }
+  };
+
+  if (loading) {
+    return <LoadingSpinner size="lg" message="Setting up your account..." />;
+  }
+
   // placeholder - we will wire MS Authenticator/TOTP and passkeys later
   return (
     <div className="space-y-6">
@@ -50,7 +87,8 @@ export default function MfaStep({ onDone, skip }: Props) {
         
         <button 
           className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 w-full"
-          onClick={skip}
+          onClick={handleSkip}
+          disabled={loading}
         >
           Skip for now
         </button>
