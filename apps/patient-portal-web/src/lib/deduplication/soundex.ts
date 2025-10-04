@@ -1,4 +1,4 @@
-import doubleMetaphoneLib from 'double-metaphone';
+import { doubleMetaphone as doubleMetaphoneLib } from 'double-metaphone';
 
 export function soundex(name: string | null | undefined): string {
   if (!name) return '';
