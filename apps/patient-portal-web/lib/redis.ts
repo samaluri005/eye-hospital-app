@@ -13,7 +13,7 @@ export function getRedisClient(): Redis {
         return delay;
       },
       maxRetriesPerRequest: 3,
-      lazyConnect: true,
+      lazyConnect: false,
     });
 
     redis.on('error', (err) => {

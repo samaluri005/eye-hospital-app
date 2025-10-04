@@ -38,8 +38,6 @@ export class SessionService {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
     try {
-      await this.redis.connect();
-      
       const sessionData = {
         sessionToken,
         phone,
@@ -96,7 +94,6 @@ export class SessionService {
         sessionType: 'authenticated',
       };
 
-      await this.redis.connect();
       await this.redis.setex(
         `session:auth:${sessionToken}`,
         7 * 24 * 60 * 60,
@@ -115,8 +112,6 @@ export class SessionService {
     type: 'otp' | 'authenticated'
   ): Promise<SessionData | null> {
     try {
-      await this.redis.connect();
-      
       const cached = await this.redis.get(`session:${type}:${sessionToken}`);
       
       if (cached) {
@@ -194,7 +189,6 @@ export class SessionService {
         lastActivityAt: new Date(),
       };
 
-      await this.redis.connect();
       await this.redis.setex(
         `session:${type}:${sessionToken}`,
         type === 'otp' ? 30 * 60 : 7 * 24 * 60 * 60,
@@ -217,7 +211,6 @@ export class SessionService {
     type: 'otp' | 'authenticated'
   ): Promise<void> {
     try {
-      await this.redis.connect();
       await this.redis.del(`session:${type}:${sessionToken}`);
 
       if (type === 'authenticated') {
@@ -243,8 +236,6 @@ export class SessionService {
           )
         )
         .returning({ sessionToken: patientSessions.sessionToken });
-
-      await this.redis.connect();
       
       for (const session of invalidatedSessions) {
         try {
