@@ -27,11 +27,11 @@ builder.Services.AddDbContext<AppDbContext>(opts =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add Microsoft Identity Web authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-  .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-
-builder.Services.AddAuthorization();
+// NOTE: Azure AD authentication commented out - OTP endpoints are public/anonymous
+// Uncomment if you need authenticated endpoints in the future
+// builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+//   .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+// builder.Services.AddAuthorization();
 
 // Add CORS to allow frontend access
 builder.Services.AddCors(options =>
@@ -83,9 +83,9 @@ app.UseSwaggerUI();
 // Enable CORS
 app.UseCors();
 
-// Add authentication and authorization middleware
-app.UseAuthentication();
-app.UseAuthorization();
+// Authentication/Authorization middleware commented out (not needed for OTP endpoints)
+// app.UseAuthentication();
+// app.UseAuthorization();
 
 // Simple health
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
