@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      dob: patient.dob ? patient.dob.toISOString().split('T')[0] : null,
+      dob: patient.dob ? (typeof patient.dob === 'string' ? patient.dob.split('T')[0] : new Date(patient.dob).toISOString().split('T')[0]) : null,
       hasPin: parseInt(patient.has_pin) > 0,
     });
   } catch (error) {
