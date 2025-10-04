@@ -15,39 +15,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if patient exists with this phone and has profile data
-    const existingPatient = await db.select({
+    const allPatients = await db.select({
       patientId: patient.patientId,
       firstName: patient.firstName,
       lastName: patient.lastName,
+      fullName: patient.fullName,
       dob: patient.dob,
+      email: patient.email,
       hasProfile: patient.firstName,
     })
       .from(patient)
-      .where(eq(patient.phone, phone))
-      .limit(1);
+      .where(eq(patient.phone, phone));
 
-    if (existingPatient.length > 0 && existingPatient[0].firstName) {
-      // Patient exists with profile data
-      return NextResponse.json({
-        exists: true,
-        hasProfile: true,
-        patientId: existingPatient[0].patientId,
-      });
-    } else if (existingPatient.length > 0) {
-      // Patient exists but no profile data
-      return NextResponse.json({
-        exists: true,
-        hasProfile: false,
-        patientId: existingPatient[0].patientId,
-      });
-    } else {
-      // Patient does not exist
+    if (allPatients.length === 0) {
       return NextResponse.json({
         exists: false,
         hasProfile: false,
+        multipleAccounts: false,
       });
     }
+
+    if (allPatients.length === 1) {
+      const singlePatient = allPatients[0];
+      if (singlePatient.firstName) {
+        return NextResponse.json({
+          exists: true,
+          hasProfile: true,
+          multipleAccounts: false,
+          patientId: singlePatient.patientId,
+        });
+      } else {
+        return NextResponse.json({
+          exists: true,
+          hasProfile: false,
+          multipleAccounts: false,
+          patientId: singlePatient.patientId,
+        });
+      }
+    }
+
+    return NextResponse.json({
+      exists: true,
+      multipleAccounts: true,
+      accounts: allPatients.map(p => ({
+        patientId: p.patientId,
+        name: p.fullName || `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Unnamed Account',
+        hasProfile: !!p.firstName,
+      })),
+    });
   } catch (error) {
     console.error('Check patient error:', error);
     return NextResponse.json(
