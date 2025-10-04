@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import axios from "axios";
 import InternationalPhoneInput from "./InternationalPhoneInput";
 import { useRecaptcha } from "../../../hooks/useRecaptcha";
-import { RecaptchaBadge } from "../../../components/RecaptchaBadge";
 
 type Props = {
   initialPhone?: string;
@@ -127,8 +126,6 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
           </span>
         </p>
       </div>
-
-      <RecaptchaBadge />
     </div>
   );
 }
