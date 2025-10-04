@@ -4,37 +4,29 @@ import { patientConsents, hipaaAuditLog, linkToken as linkTokenTable } from '../
 import { sql, eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
-// Validate link token (same HMAC logic as auth service)
-function validateLinkToken(token: string, patientId: string): boolean {
+// Validate link token against database (matches temp-auth-service format)
+async function validateLinkToken(token: string, patientId: string): Promise<boolean> {
   try {
-    const secret = process.env.LINK_TOKEN_HMAC_SECRET;
+    const secret = process.env.LINK_TOKEN_HMAC_SECRET || process.env.OTP_HMAC_SECRET;
     if (!secret) {
       console.error('LINK_TOKEN_HMAC_SECRET not configured');
       return false;
     }
 
-    // Token format: base64(patientId:timestamp:hmac)
-    const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const [tokenPatientId, timestamp, providedHmac] = decoded.split(':');
+    // Generate hash of provided token (matches temp-auth-service logic)
+    const tokenHash = crypto.createHmac('sha256', secret).update(token).digest('hex');
 
-    // Verify patient ID matches
-    if (tokenPatientId !== patientId) {
-      return false;
-    }
+    // Check link_token table using raw SQL (temp-auth-service uses token_hash column)
+    const linkTokenResult = await db.execute(sql`
+      SELECT * FROM link_token 
+      WHERE patient_id = ${patientId}
+      AND token_hash = ${tokenHash}
+      AND used = false
+      AND expires_at > NOW()
+      LIMIT 1
+    `);
 
-    // Verify not expired (10 minutes)
-    const tokenTime = parseInt(timestamp, 10);
-    const now = Date.now();
-    if (now - tokenTime > 10 * 60 * 1000) {
-      return false;
-    }
-
-    // Verify HMAC signature
-    const hmac = crypto.createHmac('sha256', secret);
-    hmac.update(`${patientId}:${timestamp}`);
-    const calculatedHmac = hmac.digest('hex');
-
-    return calculatedHmac === providedHmac;
+    return linkTokenResult.rows.length > 0;
   } catch (error) {
     console.error('Link token validation error:', error);
     return false;
@@ -55,7 +47,8 @@ export async function POST(request: NextRequest) {
     }
 
     // CRITICAL SECURITY: Validate link token to ensure caller is authorized
-    if (!validateLinkToken(linkToken, patientId)) {
+    const isValidToken = await validateLinkToken(linkToken, patientId);
+    if (!isValidToken) {
       console.error(`[CONSENT] Invalid or expired link token for patient ${patientId}`);
       return NextResponse.json(
         { error: 'Invalid or expired authorization token' },
