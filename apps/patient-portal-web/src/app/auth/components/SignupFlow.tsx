@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import PhoneStep from "./PhoneStep";
 import OtpStep from "./OtpStep";
-import ProfileStep from "./ProfileStep";
+import ProfileStep, { type ProfileData } from "./ProfileStep";
 import ConsentStep from "./ConsentStep";
 import MfaStep from "./MfaStep";
 import SocialSignInButton from "./SocialSignInButton";
@@ -15,7 +15,7 @@ export default function SignupFlow() {
   const [phone, setPhone] = useState<string>("");
   const [patientId, setPatientId] = useState<string | null>(null);
   const [linkToken, setLinkToken] = useState<string | null>(null);
-  const [profile, setProfile] = useState<{ fullName?: string; password?: string }>({});
+  const [profile, setProfile] = useState<ProfileData | null>(null);
 
   const stepTitles = {
     phone: "Verify Your Phone Number",
@@ -101,14 +101,15 @@ export default function SignupFlow() {
 
           {step === "profile" && (
             <ProfileStep
-              initialName={profile.fullName}
               onNext={(data) => { setProfile(data); setStep("consent"); }}
               onSkip={() => setStep("consent")}
             />
           )}
 
-          {step === "consent" && (
+          {step === "consent" && patientId && linkToken && (
             <ConsentStep
+              patientId={patientId}
+              linkToken={linkToken}
               onAccepted={() => setStep("mfa")}
               onDeclined={() => alert("You must accept ToS and privacy to create an account.")}
             />

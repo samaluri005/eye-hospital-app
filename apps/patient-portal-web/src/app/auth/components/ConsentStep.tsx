@@ -3,13 +3,15 @@ import React, { useState } from "react";
 import axios from "axios";
 
 type Props = {
+  patientId: string;
+  linkToken: string;
   onAccepted: () => void;
   onDeclined: () => void;
 };
 
-export default function ConsentStep({ onAccepted, onDeclined }: Props) {
+export default function ConsentStep({ patientId, linkToken, onAccepted, onDeclined }: Props) {
   const [requiredChecked, setRequiredChecked] = useState(false);
-  const [optionalChecked, setOptionalChecked] = useState(false);
+  const [marketingChecked, setMarketingChecked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string|null>(null);
 
@@ -17,16 +19,32 @@ export default function ConsentStep({ onAccepted, onDeclined }: Props) {
     if (!requiredChecked) return setErr("You must accept Terms & Privacy to continue");
     setSaving(true); setErr(null);
     try {
-      // POST consent to backend for audit
-      const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
-      await axios.post(`${backend}/consent`, {
-        consentType: "tos+privacy",
-        version: "v1",
-        accepted: true
+      // POST consent to backend for HIPAA-compliant audit trail
+      await axios.post(`/api/auth/consent`, {
+        patientId,
+        linkToken,
+        consents: [
+          {
+            consentType: "hipaa_privacy_notice",
+            granted: true
+          },
+          {
+            consentType: "terms_of_service",
+            granted: true
+          },
+          {
+            consentType: "privacy_policy",
+            granted: true
+          },
+          {
+            consentType: "marketing_communications",
+            granted: marketingChecked
+          }
+        ]
       });
       onAccepted();
     } catch (e:any) {
-      setErr(e?.response?.data?.error || e.message);
+      setErr(e?.response?.data?.error || e.message || "Failed to record consent");
     } finally { setSaving(false); }
   }
 
@@ -82,15 +100,15 @@ export default function ConsentStep({ onAccepted, onDeclined }: Props) {
           <label className="flex items-start space-x-3 cursor-pointer">
             <input 
               type="checkbox" 
-              checked={optionalChecked} 
-              onChange={()=>setOptionalChecked(x=>!x)}
+              checked={marketingChecked} 
+              onChange={()=>setMarketingChecked(x=>!x)}
               className="mt-1 h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
             />
             <div>
-              <span className="font-semibold text-gray-900">Share anonymized data for medical research</span>
+              <span className="font-semibold text-gray-900">Receive health tips and appointment reminders</span>
               <span className="text-gray-500 ml-1">(Optional)</span>
               <p className="text-sm text-gray-600 mt-1">
-                Help improve healthcare outcomes by contributing to anonymized research studies
+                Get helpful health information, appointment reminders, and clinic updates via email/SMS
               </p>
             </div>
           </label>
