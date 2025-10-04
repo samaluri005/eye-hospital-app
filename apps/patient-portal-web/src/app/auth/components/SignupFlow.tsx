@@ -9,8 +9,9 @@ import MfaStep from "./MfaStep";
 import SocialSignInButton from "./SocialSignInButton";
 import TestApi from "./TestApi"; // optional: for protected API testing
 import AccountSelectionStep, { type AccountOption } from "./AccountSelectionStep";
+import VerificationStep from "./VerificationStep";
 
-export type Step = "phone" | "otp" | "accountSelection" | "profile" | "consent" | "mfa" | "done";
+export type Step = "phone" | "otp" | "accountSelection" | "verification" | "profile" | "consent" | "mfa" | "done";
 
 export default function SignupFlow() {
   const [step, setStep] = useState<Step>("phone");
@@ -22,11 +23,13 @@ export default function SignupFlow() {
   const [isAddingFamilyMember, setIsAddingFamilyMember] = useState(false);
   const [primaryPatientId, setPrimaryPatientId] = useState<string | null>(null);
   const [isExistingUser, setIsExistingUser] = useState(false);
+  const [selectedAccountName, setSelectedAccountName] = useState<string>("");
 
   const stepTitles = {
     phone: "Verify Your Phone Number",
     otp: "Enter Verification Code",
     accountSelection: "Select Account",
+    verification: "Verify Your Identity",
     profile: isAddingFamilyMember ? "Add Family Member" : "Complete Your Profile",
     consent: "Privacy & Terms",
     mfa: "Secure Your Account",
@@ -142,14 +145,37 @@ export default function SignupFlow() {
               accounts={accounts}
               phone={phone}
               onAccountSelected={async (selectedPatientId) => {
+                const selectedAccount = accounts.find(acc => acc.patientId === selectedPatientId);
                 setPatientId(selectedPatientId);
                 setPrimaryPatientId(selectedPatientId);
+                setSelectedAccountName(selectedAccount?.name || "");
                 setIsAddingFamilyMember(false);
                 
-                // Call select-account API to create session
+                // Go to verification step instead of creating session directly
+                setStep("verification");
+              }}
+              onAddFamilyMember={() => {
+                if (accounts.length > 0) {
+                  // Find primary patient ID
+                  const primaryAccount = accounts.find(acc => acc.isPrimary);
+                  setPrimaryPatientId(primaryAccount?.patientId || accounts[0].patientId);
+                }
+                setIsAddingFamilyMember(true);
+                setStep("profile");
+              }}
+            />
+          )}
+
+          {step === "verification" && patientId && linkToken && (
+            <VerificationStep
+              patientId={patientId}
+              patientName={selectedAccountName}
+              linkToken={linkToken}
+              onVerified={async () => {
+                // After successful verification, create session
                 try {
                   const response = await axios.post('/api/auth/select-account', {
-                    patientId: selectedPatientId,
+                    patientId,
                     linkToken,
                   });
                   
@@ -163,15 +189,7 @@ export default function SignupFlow() {
                   alert('Failed to create session. Please try again.');
                 }
               }}
-              onAddFamilyMember={() => {
-                if (accounts.length > 0) {
-                  // Find primary patient ID
-                  const primaryAccount = accounts.find(acc => acc.isPrimary);
-                  setPrimaryPatientId(primaryAccount?.patientId || accounts[0].patientId);
-                }
-                setIsAddingFamilyMember(true);
-                setStep("profile");
-              }}
+              onBack={() => setStep("accountSelection")}
             />
           )}
 
