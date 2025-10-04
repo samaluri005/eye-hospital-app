@@ -1,280 +1,57 @@
 # Eye Hospital Management System
 
 ## Overview
-This is a comprehensive Eye Hospital Management System built as a monorepo with multiple applications including patient portals, HR management, mobile apps, and microservices.
-
-## Project Architecture
-- **Monorepo**: Uses pnpm workspaces and Turbo for dependency management
-- **Frontend Apps**: 
-  - Patient Portal Web (Next.js) - Primary frontend on port 5000
-  - Hospital HR Portal Web (Next.js) - HR management on port 3001  
-  - Patient Mobile App (React Native/Expo)
-- **Backend**: .NET 8 microservices architecture
-- **Database**: PostgreSQL with Drizzle ORM
-- **Infrastructure**: Azure-ready with Bicep templates
-
-## Current Setup
-- Main frontend: Patient Portal Web (configured for Replit environment)
-- Database: PostgreSQL with all environment variables configured
-- Deployment: Configured for autoscale deployment target
-- Dependencies: All installed and configured
-
-## Development
-- Primary workflow: Patient Portal running on port 5000
-- Backend services available but not currently active
-- Mobile development available via Expo
-
-## Recent Changes
-### October 4, 2025 (Latest Session - DOB + PIN Second-Factor Verification)
-- **DOB + PIN SECOND-FACTOR VERIFICATION**: Implemented production-ready two-factor authentication system
-  - **Smart Conditional Flow**:
-    - **New Users**: Profile (enters DOB) → PIN Setup (ONLY creates 4-digit PIN, no DOB re-entry) → Consent → Dashboard
-    - **Existing Users**: Account Selection → Verification (DOB + PIN both required) → Dashboard
-    - **Family Members**: Profile → PIN Setup (ONLY PIN) → Consent → Dashboard
-  - **Database Schema**: patient_pin table with bcrypt hashing (cost 12), failed attempt tracking, 15-min lockout after 5 failed attempts
-  - **Security Features (Architect-Approved)**:
-    - LinkToken validation in verify & set-pin endpoints (prevents brute-force attacks)
-    - Verification status tracking (verified flag in link_token table)
-    - Session creation requires verified=true (no bypass possible)
-    - Rate limiting with lockout and minutesLeft response
-    - HIPAA audit logging for all verification attempts
-  - **APIs**: `/api/auth/account-verification/verify` (DOB+PIN check), `/api/auth/account-verification/set-pin` (PIN creation)
-  - **UX**: Conditional DOB input (shown only for existing users), clear error messages, lockout countdown
-
-- **FAMILY ACCESS WORKFLOW**: Implemented comprehensive multi-account support for shared phone numbers
-  - Account selection UI when multiple patients detected on same phone
-  - ProfileStep component enhanced with relationship dropdown (9 types: Spouse, Parent, Child, Sibling, Grandparent, Grandchild, Guardian, Dependent, Other)
-  - Family member management APIs: add-member, list, revoke-access
-  - Auth flow handles: single account, multiple accounts, new users, family member addition
-  - Relationship tracking in family_access table for HIPAA compliance
-  
-- **SESSION MANAGEMENT & SECURITY**: Production-ready authentication with HTTP-only cookies
-  - **HTTP-only cookie authentication**: Secure session tokens set on OTP verification
-  - **Session revocation on login**: All old sessions invalidated when patient logs in (prevents token replay)
-  - **PostgreSQL cross-check**: Every cached session verified against database (isActive flag)
-  - **Atomic invalidation**: Database updated FIRST with RETURNING, then Redis cleanup (race-free)
-  - **Defense-in-depth**: Multiple layers prevent session replay attacks even with Redis failures
-  - Active sessions viewer at `/dashboard/sessions` with device info, IP, timestamps
-  - Logout single device and logout all devices functionality
-  - Session APIs derive patient ID from secure cookie, not client headers (prevents privilege escalation)
-
-### October 4, 2025 (Earlier)
-- **MICROSOFT GRAPH API INTEGRATION**: Implemented automatic Entra External ID user provisioning
-  - Graph API client utility (`lib/graphClient.ts`) with ClientSecretCredential authentication
-  - Automatic user creation during signup with system-generated emails ({phone}@patients.eyehospital.com)
-  - Proper tenant domain configuration for valid issuer in identity creation
-  - PostgreSQL entraObjectId field to link patients to Entra users
-  - OnTokenIssuanceStart extension queries PostgreSQL to inject patientId as custom JWT claim
-  - Error handling ensures registration succeeds even if Entra creation fails (graceful degradation)
-  - Cleaned up legacy Auth Service and Entra OTP API workflows (functionality now in Patient Portal)
-- **reCAPTCHA v3 INTEGRATION**: Implemented comprehensive bot protection for authentication flows
-  - Client-side React hook (`useRecaptcha`) with automatic script loading
-  - Server-side verification utility with configurable action-based thresholds
-  - Action-based scoring: signup (0.7), signin (0.5), verify (0.6)
-  - RecaptchaBadge component for Google Terms & Privacy Policy disclosure
-  - Integrated into PhoneStep (initial authentication entry point)
-  - Integrated into OtpStep (verification and resend actions)
-  - Integrated into send-otp and verify-otp API endpoints
-  - Score interpretation: High (≥0.9), Medium (≥0.7), Low (≥0.5), Bot (<0.5)
-- **CDC DATA STANDARDIZATION SERVICE**: Implemented comprehensive data normalization algorithms
-  - Name/phone/address standardization with special character removal
-  - E.164 phone formatting using libphonenumber-js
-  - Soundex and Metaphone phonetic algorithms
-  - Vetted Double Metaphone library integration for alternate pronunciations
-  - Levenshtein, Jaro, and Jaro-Winkler string similarity algorithms
-  - Short-string handling (1-2 characters) with matchDistance clamping
-- **CDC MATCHING ALGORITHMS**: Implemented world-class similarity scoring and duplicate detection
-  - Multi-field name matching (first + last names evaluated separately, weighted 40%/60%)
-  - Phonetic similarity on both first and last names (Soundex + Double Metaphone)
-  - Phone similarity (exact=100, last 10 digits=95, last 8=80, fuzzy=0-60)
-  - DOB similarity with date validation (prevents Invalid Date crashes)
-  - Address similarity (Jaro-Winkler + Levenshtein weighted 50%/50%)
-  - Weighted total scoring: name 30%, phone 25%, DOB 25%, address 10%, phonetic 10%
-  - CDC thresholds: Exact ≥95, Likely ≥90, Possible ≥70, Unlikely <50
-  - Multi-strategy blocking keys (standard, phonetic, loose) for efficient candidate selection
-  - All scores properly scaled to 0-100 range
-
-### October 4, 2025 (Earlier)
-- **CDC-COMPLIANT DE-DUPLICATION**: Implemented world-class patient identity management following CDC IIS de-duplication best practices
-- **Database Schema Overhaul**: Added comprehensive tables for:
-  - CDC de-duplication (duplicate_candidates, duplicate_adjudication, patient_merge_audit)
-  - Government ID verification (patient_identity_documents) with DigiLocker integration support
-  - Session management (patient_sessions) with device fingerprinting
-  - HIPAA audit logging (hipaa_audit_log) with 6-year retention indices
-  - Consent management (patient_consents) for HIPAA compliance
-  - Family/emergency access (family_access) for shared phone scenarios
-  - Healthcare operations (doctors, appointments, medical_records, billing_records)
-- **Patient Table Enhanced**: Added 20+ CDC-compliant fields including:
-  - Standardized name/phone/address fields for blocking and matching
-  - Soundex indexing for phonetic matching
-  - Blocking keys for efficient duplicate detection
-  - Trust levels (low/medium/high) based on ID verification
-  - Entra External ID integration fields
-- **Performance Optimizations**: Created 17 strategic indexes for fast de-duplication queries, HIPAA audit searches, and appointment lookups
-- **HIPAA Compliance**: All PHI stored in PostgreSQL; authentication-only data in Entra External ID
-
-### October 2, 2025
-- **IMPORTANT ARCHITECTURE UPDATE**: Migrated from Azure AD B2C custom policies to Microsoft Entra External ID with Custom Authentication Extensions
-- **Custom Authentication Extensions API**: Created REST API service (`entra-otp-api`) for Twilio SMS OTP integration with proper event-driven webhook format
-- **Modern Approach**: Replaced XML-based B2C custom policies with REST API webhooks at authentication events (OnAttributeCollectionSubmit, OnTokenIssuanceStart)
-- **Database Integration**: Added `entra_otp_attempts` table for OTP storage with retry logic and rate limiting
-- **API Endpoints Available**:
-  - `/api/extensions/onAttributeCollectionSubmit` - Phone validation and OTP sending
-  - `/api/extensions/onTokenIssuanceStart` - Custom claims injection
-- **Documentation**: Created comprehensive setup guide for Entra External ID configuration at `/entra-custom-extensions/SETUP_GUIDE.md`
-
-### September 23, 2025  
-- Imported from GitHub and configured for Replit environment
-- Fixed Next.js configurations for proxy environment
-- Set up PostgreSQL database with environment variables
-- Configured main frontend workflow
-- Added deployment configuration for production
-- **Auth Architecture Cleanup**: Consolidated duplicate auth component folders from `app/(components)/auth/` and `app/auth/components/` into single organized directory structure
-- **Code Organization**: Improved component structure following Next.js best practices with all auth components now in `app/auth/components/`
+This is a comprehensive Eye Hospital Management System designed as a monorepo. It integrates multiple applications, including a patient portal, an HR management system, mobile applications, and a microservices backend. The system aims to provide a robust, scalable, and secure platform for managing eye hospital operations, patient interactions, and HR functions, with a strong focus on compliance, particularly HIPAA.
 
 ## User Preferences
 - Prefers working with the Patient Portal as the primary application
 - Uses modern tech stack (Next.js, TypeScript, Tailwind CSS)
 - Azure cloud integration ready but not required for basic functionality
 
-## Local Development Setup (Outside Replit)
+## System Architecture
+The project is structured as a monorepo utilizing pnpm workspaces and Turbo for efficient dependency management.
 
-### Required Environment Variables (Secrets)
-To run this application locally outside of Replit, you must set up these environment variables:
+**Frontend:**
+- **Patient Portal Web (Next.js)**: The primary patient-facing web application.
+- **Hospital HR Portal Web (Next.js)**: For human resources management.
+- **Patient Mobile App (React Native/Expo)**: A mobile application for patients.
 
-#### Database Configuration
-```bash
-DATABASE_URL=postgresql://username:password@localhost:5432/eye_hospital_db
-PGHOST=localhost
-PGPORT=5432
-PGUSER=your_db_user
-PGPASSWORD=your_db_password
-PGDATABASE=eye_hospital_db
-```
+**Backend:**
+- A microservices architecture built with .NET 8.
 
-#### Authentication Secrets
-```bash
-# OTP verification - generate a secure random string
-OTP_HMAC_SECRET=your_secure_otp_secret_key
+**Database:**
+- PostgreSQL, managed with Drizzle ORM. The database schema includes comprehensive tables for CDC de-duplication, government ID verification, session management, HIPAA audit logging, consent management, family/emergency access, and healthcare operations (doctors, appointments, medical records, billing). Patient table is enhanced with 20+ CDC-compliant fields, including standardized name/phone/address, Soundex indexing, blocking keys, trust levels, and Entra External ID integration fields.
 
-# Account linking - generate a secure random string  
-LINK_TOKEN_HMAC_SECRET=your_secure_link_token_secret
+**UI/UX Decisions:**
+- Modern OTP input design with individual digit boxes, auto-advance, keyboard navigation, and paste support.
+- Visual states for input fields (empty, filled, focus, hover) using Tailwind CSS.
+- Gradient header icons and verify buttons for a modern aesthetic.
+- Custom Tailwind animation for error messages (shake animation).
+- Professional LoadingSpinner component with a healthcare theme.
+- Improved spacing and card-like layouts for better readability.
 
-# Microsoft Azure AD configuration (public values, safe to expose)
-NEXT_PUBLIC_AZURE_CLIENT_ID=your_azure_app_client_id
-NEXT_PUBLIC_AZURE_TENANT_ID=your_azure_tenant_id
-```
+**Technical Implementations:**
+- **Two-Factor Authentication (2FA)**: Implemented using Date of Birth (DOB) and a 4-digit PIN with conditional flows for new/existing users and family members. This includes bcrypt hashing for PINs, failed attempt tracking, 15-minute lockout after 5 failed attempts, and LinkToken validation to prevent brute-force attacks.
+- **Session Management**: Secure HTTP-only cookie authentication with session revocation on new logins, PostgreSQL cross-checks for active sessions, and atomic invalidation.
+- **CDC Data Standardization and Matching**: Algorithms for name/phone/address standardization (E.164, Soundex, Metaphone), string similarity (Levenshtein, Jaro, Jaro-Winkler), and multi-field matching with weighted scoring for duplicate detection and patient identity management.
+- **Authentication Flow**: Consolidated and improved authentication components following Next.js best practices.
+- **De-duplication**: CDC-compliant patient identity management with strategic indexes for performance.
+- **Performance Optimizations**: 17 strategic indexes for fast de-duplication, HIPAA audit searches, and appointment lookups.
+- **HIPAA Compliance**: All PHI stored in PostgreSQL; authentication-only data in Entra External ID.
 
-#### Twilio SMS Configuration
-```bash
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_FROM_NUMBER=+1234567890
-```
+**System Design Choices:**
+- **Monorepo**: Facilitates shared code, consistent tooling, and simplified dependency management across multiple applications.
+- **Microservices**: Enables independent development, deployment, and scaling of different functionalities.
+- **Azure Integration**: Designed to be Azure-ready with Bicep templates for infrastructure deployment.
+- **Security by Design**: Incorporates HIPAA audit logging, robust session management, and rate limiting.
+- **Extensible Authentication**: Migration from Azure AD B2C custom policies to Microsoft Entra External ID with Custom Authentication Extensions for modern, API-driven authentication workflows.
 
-#### reCAPTCHA v3 Configuration
-```bash
-# Google reCAPTCHA v3 site key (public, safe to expose in client)
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_site_key
-
-# Google reCAPTCHA v3 secret key (keep secure, server-side only)
-RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key
-```
-
-### Local Development Prerequisites
-
-#### 1. Node.js & Package Manager
-```bash
-# Install Node.js 20+ and pnpm
-npm install -g pnpm
-
-# Install dependencies
-pnpm install
-```
-
-#### 2. PostgreSQL Database Setup
-```bash
-# Install PostgreSQL locally or use Docker
-# Create database
-createdb eye_hospital_db
-
-# Push schema to database
-pnpm db:push
-```
-
-#### 3. Azure AD App Registration
-1. Create Azure AD app registration
-2. Set redirect URI to `http://localhost:5000/auth`
-3. Configure API permissions for Microsoft Graph
-4. Copy Client ID and Tenant ID to environment variables
-
-#### 4. Twilio SMS Service Setup
-1. Create Twilio account
-2. Get Account SID and Auth Token
-3. Purchase phone number for SMS sending
-4. Configure environment variables
-
-### Running Locally
-
-#### Start Patient Portal (Primary Frontend)
-```bash
-cd apps/patient-portal-web
-pnpm dev
-# Runs on http://localhost:3000 (configure to port 5000 if needed)
-```
-
-#### Start Authentication Service (Backend)
-```bash
-cd temp-auth-service
-node server.js
-# Runs on http://localhost:3001
-```
-
-#### Start HR Portal (Optional)
-```bash
-cd apps/hospital-hr-portal-web
-pnpm dev
-# Runs on http://localhost:3001
-```
-
-### Configuration Differences for Local Development
-
-#### Next.js Configuration
-For local development, modify `next.config.js` to remove Replit-specific configurations:
-```javascript
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Remove Replit proxy headers for local development
-  // async headers() { ... } // Comment out
-  
-  // Standard Next.js configuration
-}
-```
-
-#### Host Binding
-- **Replit**: Must bind to `0.0.0.0:5000`
-- **Local**: Can bind to `localhost:3000` or any available port
-
-### Security Notes
-1. **Never commit secrets** to version control
-2. Use `.env.local` files for local environment variables
-3. **OTP and Link Token secrets** should be cryptographically secure random strings (32+ characters)
-4. **Database** should use proper authentication and SSL in production
-5. **Twilio credentials** should be kept secure and rotated regularly
-
-### Azure Infrastructure (Optional)
-For full Azure integration, use the provided setup script:
-```bash
-# Run Azure setup script (requires Azure CLI)
-./infra/setup-dev-azure.sh --prefix ehmsdev --location eastus
-```
-
-This creates:
-- Resource Group
-- Key Vault for secret management
-- Service Bus for messaging
-- PostgreSQL Flexible Server
-- Service Principal for authentication
-
-### Database Schema
-Reference `DATABASE_SCHEMA.md` for complete database structure and HIPAA-compliant table definitions.
+## External Dependencies
+- **Microsoft Entra External ID**: For identity and access management, replacing Azure AD B2C. Utilizes Custom Authentication Extensions for integrating with external services.
+- **Microsoft Graph API**: For automatic Entra External ID user provisioning and management during signup, linking patients to Entra users via `entraObjectId`.
+- **Twilio**: For SMS OTP (One-Time Password) delivery within the authentication flow.
+- **Google reCAPTCHA v3**: Integrated for bot protection across authentication flows (signup, sign-in, OTP verification) with client-side hooks and server-side verification.
+- **PostgreSQL**: The primary relational database.
+- **Drizzle ORM**: Used for interacting with the PostgreSQL database.
+- **libphonenumber-js**: For E.164 phone number formatting and validation.
+- **Expo**: For React Native mobile application development.
