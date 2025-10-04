@@ -52,12 +52,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const primaryPhone = primaryPatient[0].phone;
-
     const fullName = `${firstName} ${middleName || ''} ${lastName}`.replace(/\s+/g, ' ').trim();
-    const phoneStandardized = phone || primaryPhone;
 
     const newPatientId = uuidv4();
+    
+    // Family members get their own unique synthetic phone to avoid constraint violations
+    // They authenticate through the guardian's phone via family_access table
+    const syntheticPhone = phone || `+family-${newPatientId}`;
     
     await db.insert(patient).values({
       patientId: newPatientId,
@@ -66,8 +67,8 @@ export async function POST(request: NextRequest) {
       middleName,
       fullName,
       fullNameStandardized: fullName.toLowerCase().replace(/[^a-z0-9\s]/g, ''),
-      phone: phoneStandardized,
-      phoneStandardized,
+      phone: syntheticPhone,
+      phoneStandardized: syntheticPhone,
       email,
       dob: dob ? new Date(dob) : undefined,
       gender,
