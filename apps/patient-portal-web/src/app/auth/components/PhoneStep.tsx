@@ -55,86 +55,107 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Information Card */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-        <div className="flex items-start space-x-3">
-          <svg className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          <div>
-            <h3 className="text-emerald-800 font-semibold mb-1">Secure Phone Verification</h3>
-            <p className="text-emerald-700 text-sm leading-relaxed">
-              We'll send a verification code to your phone to ensure the security of your medical information.
+      {/* Welcome Message with Security Badge */}
+      <div className="text-center space-y-3">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+          <span className="text-sm font-medium text-emerald-700">Secure Verification</span>
+        </div>
+        <p className="text-gray-600 text-sm max-w-md mx-auto leading-relaxed">
+          We'll send a verification code to protect your medical information
+        </p>
+      </div>
+
+      {/* Phone Input */}
+      <div className="space-y-3">
+        <label className="block text-sm font-semibold text-gray-700">
+          Phone Number
+        </label>
+        <InternationalPhoneInput
+          value={phone}
+          onChange={setPhone}
+          onEnter={sendOtp}
+          onValidityChange={setIsValidPhone}
+        />
+      </div>
+
+      {/* Error Message */}
+      {err && (
+        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 animate-shake">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <p className="text-red-800 font-medium text-sm">{err}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Send Button */}
+      <button 
+        className={`
+          w-full py-4 px-6 rounded-xl font-semibold text-white
+          transition-all duration-300 transform
+          ${isValidPhone && isReady && !loading
+            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]' 
+            : 'bg-gray-300 cursor-not-allowed'
+          }
+          flex items-center justify-center gap-2
+        `}
+        onClick={sendOtp} 
+        disabled={loading || !isValidPhone || !isReady}
+      >
+        {loading ? (
+          <>
+            <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Sending Code...</span>
+          </>
+        ) : (
+          <>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span>Send Verification Code</span>
+          </>
+        )}
+      </button>
+
+      {/* Security & Compliance Info - Beautifully Organized */}
+      <div className="space-y-3 pt-2">
+        {/* HIPAA Compliance */}
+        <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-semibold text-blue-900">HIPAA Protected</h4>
+            <p className="text-xs text-blue-700 mt-0.5">Your phone number is encrypted and secured under HIPAA compliance</p>
+          </div>
+        </div>
+
+        {/* reCAPTCHA Info */}
+        <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-semibold text-gray-900">Bot Protection</h4>
+            <p className="text-xs text-gray-600 mt-0.5">
+              Protected by reCAPTCHA. Google{' '}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Privacy Policy</a>
+              {' '}and{' '}
+              <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Terms</a>
+              {' '}apply
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Phone Input Section */}
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            <svg className="w-4 h-4 inline mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-            Phone Number
-          </label>
-          <InternationalPhoneInput
-            value={phone}
-            onChange={setPhone}
-            onEnter={sendOtp}
-            onValidityChange={setIsValidPhone}
-          />
-        </div>
-
-        {/* Error Message */}
-        {err && (
-          <div className="status-error border rounded-xl p-4">
-            <div className="flex items-start space-x-3">
-              <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <h4 className="font-medium">Verification Failed</h4>
-                <p className="text-sm mt-1">{err}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Send Button */}
-        <button 
-          className={`bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 w-full flex items-center justify-center space-x-2 ${loading || !isValidPhone || !isReady ? 'opacity-75 cursor-not-allowed' : ''}`}
-          onClick={sendOtp} 
-          disabled={loading || !isValidPhone || !isReady}
-        >
-          {loading ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Sending verification code...</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <span>Send Verification Code</span>
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Security Notice */}
-      <div className="text-center">
-        <p className="text-xs text-gray-500 leading-relaxed">
-          <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          Your phone number is encrypted and protected under HIPAA compliance
-        </p>
       </div>
 
       <RecaptchaBadge />
