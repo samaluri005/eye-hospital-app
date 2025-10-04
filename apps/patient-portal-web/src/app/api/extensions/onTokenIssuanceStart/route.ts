@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify, createRemoteJWKSet } from 'jose';
+import { db } from '../../../../../lib/db';
+import { patient } from '../../../../../lib/schema';
+import { eq } from 'drizzle-orm';
 
 const tenantId = process.env.NEXT_PUBLIC_AZURE_TENANT_ID || 'b9337298-b6a4-4a97-9438-ad3a897b7d62';
 const appId = process.env.ENTRA_APP_ID || '9f40b99c-5398-4580-b8cb-cd98d31e2dcf';
@@ -45,16 +48,44 @@ export async function POST(req: NextRequest) {
     
     const eventData = body.data;
     const user = eventData?.authenticationContext?.user || {};
+    const entraUserId = user.id; // Entra object ID
     
+    // Look up patient record by Entra user ID to get PostgreSQL patientId
+    let patientId: string | null = null;
+    let phoneVerified = 'false';
+    
+    if (entraUserId) {
+      try {
+        const patientRecord = await db.select()
+          .from(patient)
+          .where(eq(patient.entraObjectId, entraUserId))
+          .limit(1);
+        
+        if (patientRecord.length > 0) {
+          patientId = patientRecord[0].patientId;
+          phoneVerified = patientRecord[0].phone ? 'true' : 'false';
+          console.log(`✅ Found patient ${patientId} for Entra user ${entraUserId}`);
+        } else {
+          console.warn(`⚠️  No patient record found for Entra user ${entraUserId}`);
+        }
+      } catch (dbError) {
+        console.error('❌ Database lookup failed:', dbError);
+      }
+    }
+    
+    // Build custom claims to inject into JWT token
     const customClaims: Record<string, string> = {
-      patientId: user.id,
-      phoneVerified: "true",
-      registrationSource: "phone_otp"
+      patientId: patientId || 'unknown',
+      phoneVerified: phoneVerified,
+      registrationSource: 'phone_otp',
+      entraUserId: entraUserId || 'unknown',
     };
     
     if (user.userPrincipalName) {
-      customClaims.hasMedicalHistory = "true";
+      customClaims.email = user.userPrincipalName;
     }
+    
+    console.log('📤 Injecting custom claims:', customClaims);
     
     return NextResponse.json({
       data: {

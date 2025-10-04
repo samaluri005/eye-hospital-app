@@ -14,6 +14,7 @@ import {
   calculateTotalMatchScore,
   type PatientData 
 } from '../../../../../src/lib/deduplication/matching';
+import { createEntraUser } from '../../../../../lib/graphClient';
 
 // Validate link token against database (matches temp-auth-service format)
 async function validateLinkToken(token: string, phone: string): Promise<boolean> {
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
     }
     
     // If patient exists but has incomplete profile, update it
-    let patientId: string;
+    let patientId: string = '';
     let isUpdate = false;
     
     if (existingPatient.length > 0 && !existingPatient[0].firstName) {
@@ -284,6 +285,51 @@ export async function POST(request: NextRequest) {
       console.error('[CDC] Duplicate detection failed:', cdcError);
     }
 
+    // Create user in Entra External ID with Microsoft Graph API
+    let entraUserId: string | null = null;
+    try {
+      console.log(`[REGISTER] Creating Entra user for ${systemEmail}`);
+      
+      const entraUser = await createEntraUser({
+        email: systemEmail,
+        displayName: patientId, // Use patientId as display name (NOT PHI!)
+        patientId,
+        phoneNumber: phoneStandardized,
+      });
+
+      entraUserId = entraUser.id;
+      
+      // Update patient record with Entra user ID
+      await db.update(patient)
+        .set({
+          entraObjectId: entraUserId,
+          systemEmail: systemEmail,
+          updatedAt: sql`NOW()`,
+        })
+        .where(eq(patient.patientId, patientId));
+
+      console.log(`[REGISTER] Linked patient ${patientId} to Entra user ${entraUserId}`);
+    } catch (entraError) {
+      // Don't fail registration if Entra user creation fails
+      // Patient can still use the system, but won't have Entra SSO
+      console.error('[REGISTER] Entra user creation failed (non-blocking):', entraError);
+      
+      // Log the error in audit trail
+      await db.insert(hipaaAuditLog).values({
+        patientId,
+        action: 'entra_user_creation_failed',
+        actorId: patientId,
+        actorType: 'system',
+        ipAddress,
+        userAgent,
+        accessedData: {
+          error: entraError instanceof Error ? entraError.message : 'Unknown error',
+          email: systemEmail,
+        },
+        hipaaComplianceNote: 'Entra External ID user creation failed, patient can still access portal',
+      });
+    }
+
     // Create HIPAA audit log for patient creation
     await db.insert(hipaaAuditLog).values({
       patientId,
@@ -297,6 +343,7 @@ export async function POST(request: NextRequest) {
         email: systemEmail,
         registrationMethod: 'sms_otp',
         profileComplete: true,
+        entraUserId: entraUserId || null,
       },
       hipaaComplianceNote: 'New patient registered via SMS OTP authentication',
     });
@@ -307,6 +354,7 @@ export async function POST(request: NextRequest) {
       status: 'registration_complete',
       patientId,
       email: systemEmail,
+      entraUserId,
       message: 'Patient registration successful',
     });
   } catch (error) {
