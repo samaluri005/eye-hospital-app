@@ -1,15 +1,17 @@
 "use client";
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import axios from "axios";
 import PhoneStep from "./PhoneStep";
 import OtpStep from "./OtpStep";
 import ProfileStep, { type ProfileData } from "./ProfileStep";
-import ConsentStep from "./ConsentStep";
-import MfaStep from "./MfaStep";
-import SocialSignInButton from "./SocialSignInButton";
-import TestApi from "./TestApi"; // optional: for protected API testing
 import AccountSelectionStep, { type AccountOption } from "./AccountSelectionStep";
 import VerificationStep from "./VerificationStep";
+
+const SocialSignInButton = dynamic(() => import("./SocialSignInButton"), { ssr: false });
+const ConsentStep = dynamic(() => import("./ConsentStep"), { ssr: false });
+const MfaStep = dynamic(() => import("./MfaStep"), { ssr: false });
+const TestApi = dynamic(() => import("./TestApi"), { ssr: false });
 
 export type Step = "phone" | "otp" | "accountSelection" | "verification" | "profile" | "consent" | "mfa" | "done";
 
