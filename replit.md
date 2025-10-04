@@ -25,7 +25,32 @@ This is a comprehensive Eye Hospital Management System built as a monorepo with 
 - Mobile development available via Expo
 
 ## Recent Changes
-### October 4, 2025 (Latest Session)
+### October 4, 2025 (Latest Session - Family Access & Session Management)
+- **FAMILY ACCESS WORKFLOW**: Implemented comprehensive multi-account support for shared phone numbers
+  - Account selection UI when multiple patients detected on same phone
+  - ProfileStep component enhanced with relationship dropdown (9 types: Spouse, Parent, Child, Sibling, Grandparent, Grandchild, Guardian, Dependent, Other)
+  - Family member management APIs: add-member, list, revoke-access
+  - Auth flow handles: single account, multiple accounts, new users, family member addition
+  - Relationship tracking in family_access table for HIPAA compliance
+  
+- **SESSION MANAGEMENT & SECURITY**: Production-ready authentication with HTTP-only cookies
+  - **HTTP-only cookie authentication**: Secure session tokens set on OTP verification
+  - **Session revocation on login**: All old sessions invalidated when patient logs in (prevents token replay)
+  - **PostgreSQL cross-check**: Every cached session verified against database (isActive flag)
+  - **Atomic invalidation**: Database updated FIRST with RETURNING, then Redis cleanup (race-free)
+  - **Defense-in-depth**: Multiple layers prevent session replay attacks even with Redis failures
+  - Active sessions viewer at `/dashboard/sessions` with device info, IP, timestamps
+  - Logout single device and logout all devices functionality
+  - Session APIs derive patient ID from secure cookie, not client headers (prevents privilege escalation)
+  
+- **SECURITY FIXES (Architect-Approved)**:
+  - Fixed horizontal privilege escalation vulnerability (was trusting client headers)
+  - Fixed session replay attack (old cookies cannot be reused after new login)
+  - Fixed race condition in session invalidation (PostgreSQL-first approach)
+  - Fixed stale cache vulnerability (cross-check Redis hits against PostgreSQL)
+  - All session management approved by security review with no remaining gaps
+
+### October 4, 2025 (Earlier)
 - **MICROSOFT GRAPH API INTEGRATION**: Implemented automatic Entra External ID user provisioning
   - Graph API client utility (`lib/graphClient.ts`) with ClientSecretCredential authentication
   - Automatic user creation during signup with system-generated emails ({phone}@patients.eyehospital.com)
