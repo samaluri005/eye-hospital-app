@@ -1,20 +1,8 @@
 "use client";
 import React, { useState } from "react";
-import dynamic from "next/dynamic";
 import axios from "axios";
+import InternationalPhoneInput from "./InternationalPhoneInput";
 import { useRecaptcha } from "../../../hooks/useRecaptcha";
-
-const InternationalPhoneInput = dynamic(() => import("./InternationalPhoneInput"), { 
-  ssr: false,
-  loading: () => (
-    <input 
-      type="tel" 
-      placeholder="Loading phone input..." 
-      disabled
-      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-    />
-  )
-});
 
 type Props = {
   initialPhone?: string;
