@@ -1,11 +1,5 @@
-"use client";
-import dynamic from "next/dynamic";
-import AuthMsalProvider from "./components/AuthMsalProvider";
-import useMsalRedirectResume from "../../hooks/useMsalRedirectResume";
-
-const SignupFlow = dynamic(() => import("./components/SignupFlow"), { 
-  ssr: false,
-  loading: () => (
+export default function Loading() {
+  return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         {/* Trendy Spinner */}
@@ -14,21 +8,10 @@ const SignupFlow = dynamic(() => import("./components/SignupFlow"), {
           <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-emerald-600 animate-spin"></div>
           <div className="absolute inset-2 rounded-full border-4 border-transparent border-t-emerald-400 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1s' }}></div>
         </div>
+        
+        {/* Loading Text */}
         <p className="text-gray-600 font-medium animate-pulse">Loading...</p>
       </div>
     </div>
-  )
-});
-
-function AuthContent() {
-  useMsalRedirectResume();
-  return <SignupFlow />;
-}
-
-export default function AuthPage() {
-  return (
-    <AuthMsalProvider>
-      <AuthContent />
-    </AuthMsalProvider>
   );
 }
