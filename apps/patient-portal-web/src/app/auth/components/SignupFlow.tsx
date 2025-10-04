@@ -53,17 +53,6 @@ export default function SignupFlow() {
           </div>
         )}
 
-        {/* Progress Indicator */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex space-x-3">
-            {(['phone', 'otp', 'profile', 'consent', 'mfa'] as const).map((s, index) => (
-              <div key={s} className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                (step === s || (step === 'accountSelection' && s === 'otp')) ? 'bg-emerald-500 scale-125' : 
-                (['phone', 'otp', 'profile', 'consent', 'mfa'] as const).indexOf(step as any) > index ? 'bg-emerald-400' : 'bg-gray-300'
-              }`} />
-            ))}
-          </div>
-        </div>
 
         {/* Main Content */}
         <div className="space-y-6">
