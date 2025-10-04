@@ -56,9 +56,10 @@ export async function POST(request: NextRequest) {
 
     const newPatientId = uuidv4();
     
-    // Family members get their own unique synthetic phone to avoid constraint violations
+    // CRITICAL: Family members MUST have unique phone numbers to avoid constraint violations
     // They authenticate through the guardian's phone via family_access table
-    const syntheticPhone = phone || `+family-${newPatientId}`;
+    // Generate synthetic phone - do NOT use the guardian's phone
+    const syntheticPhone = `+family-${newPatientId}`;
     
     await db.insert(patient).values({
       patientId: newPatientId,
