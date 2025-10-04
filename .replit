@@ -82,10 +82,6 @@ externalPort = 8000
 localPort = 36847
 externalPort = 3003
 
-[[ports]]
-localPort = 43165
-externalPort = 3000
-
 [deployment]
 deploymentTarget = "autoscale"
 run = ["pnpm", "dev:patient-portal"]
