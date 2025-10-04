@@ -21,6 +21,7 @@ export default function SignupFlow() {
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [isAddingFamilyMember, setIsAddingFamilyMember] = useState(false);
   const [primaryPatientId, setPrimaryPatientId] = useState<string | null>(null);
+  const [isExistingUser, setIsExistingUser] = useState(false);
 
   const stepTitles = {
     phone: "Verify Your Phone Number",
@@ -113,20 +114,24 @@ export default function SignupFlow() {
                   // Multiple accounts found - show selection
                   if (response.data.multipleAccounts) {
                     setAccounts(response.data.accounts);
+                    setIsExistingUser(true);
                     setStep("accountSelection");
                   }
-                  // Single account exists with profile - go to dashboard
+                  // Single account exists with profile - redirect to dashboard
                   else if (response.data.exists && response.data.hasProfile) {
                     setPatientId(response.data.patientId);
-                    setStep("done");
+                    setIsExistingUser(true);
+                    window.location.href = '/dashboard';
                   } 
                   // Single account exists but no profile - complete profile
                   else if (response.data.exists && !response.data.hasProfile) {
                     setPatientId(response.data.patientId);
+                    setIsExistingUser(true);
                     setStep("profile");
                   }
                   // New patient - create profile
                   else {
+                    setIsExistingUser(false);
                     setStep("profile");
                   }
                 } catch (error) {
@@ -147,7 +152,7 @@ export default function SignupFlow() {
                 setPatientId(selectedPatientId);
                 setPrimaryPatientId(selectedPatientId);
                 setIsAddingFamilyMember(false);
-                setStep("done");
+                window.location.href = '/dashboard';
               }}
               onAddFamilyMember={() => {
                 if (accounts.length > 0) {
@@ -257,8 +262,14 @@ export default function SignupFlow() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Account Created Successfully!</h2>
-              <p className="text-gray-600 mb-6">Welcome to EyeCare. You can now access all patient portal features.</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                {isExistingUser ? "Welcome Back!" : "Account Created Successfully!"}
+              </h2>
+              <p className="text-gray-600 mb-6">
+                {isExistingUser 
+                  ? "You're now signed in. Redirecting to your dashboard..." 
+                  : "Welcome to EyeCare. You can now access all patient portal features."}
+              </p>
               <div className="bg-blue-50 p-4 rounded-xl">
                 <TestApi/>
               </div>
