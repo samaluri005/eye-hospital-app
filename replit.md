@@ -25,7 +25,22 @@ This is a comprehensive Eye Hospital Management System built as a monorepo with 
 - Mobile development available via Expo
 
 ## Recent Changes
-### October 4, 2025 (Latest Session - Family Access & Session Management)
+### October 4, 2025 (Latest Session - DOB + PIN Second-Factor Verification)
+- **DOB + PIN SECOND-FACTOR VERIFICATION**: Implemented production-ready two-factor authentication system
+  - **Smart Conditional Flow**:
+    - **New Users**: Profile (enters DOB) → PIN Setup (ONLY creates 4-digit PIN, no DOB re-entry) → Consent → Dashboard
+    - **Existing Users**: Account Selection → Verification (DOB + PIN both required) → Dashboard
+    - **Family Members**: Profile → PIN Setup (ONLY PIN) → Consent → Dashboard
+  - **Database Schema**: patient_pin table with bcrypt hashing (cost 12), failed attempt tracking, 15-min lockout after 5 failed attempts
+  - **Security Features (Architect-Approved)**:
+    - LinkToken validation in verify & set-pin endpoints (prevents brute-force attacks)
+    - Verification status tracking (verified flag in link_token table)
+    - Session creation requires verified=true (no bypass possible)
+    - Rate limiting with lockout and minutesLeft response
+    - HIPAA audit logging for all verification attempts
+  - **APIs**: `/api/auth/account-verification/verify` (DOB+PIN check), `/api/auth/account-verification/set-pin` (PIN creation)
+  - **UX**: Conditional DOB input (shown only for existing users), clear error messages, lockout countdown
+
 - **FAMILY ACCESS WORKFLOW**: Implemented comprehensive multi-account support for shared phone numbers
   - Account selection UI when multiple patients detected on same phone
   - ProfileStep component enhanced with relationship dropdown (9 types: Spouse, Parent, Child, Sibling, Grandparent, Grandchild, Guardian, Dependent, Other)
@@ -42,13 +57,6 @@ This is a comprehensive Eye Hospital Management System built as a monorepo with 
   - Active sessions viewer at `/dashboard/sessions` with device info, IP, timestamps
   - Logout single device and logout all devices functionality
   - Session APIs derive patient ID from secure cookie, not client headers (prevents privilege escalation)
-  
-- **SECURITY FIXES (Architect-Approved)**:
-  - Fixed horizontal privilege escalation vulnerability (was trusting client headers)
-  - Fixed session replay attack (old cookies cannot be reused after new login)
-  - Fixed race condition in session invalidation (PostgreSQL-first approach)
-  - Fixed stale cache vulnerability (cross-check Redis hits against PostgreSQL)
-  - All session management approved by security review with no remaining gaps
 
 ### October 4, 2025 (Earlier)
 - **MICROSOFT GRAPH API INTEGRATION**: Implemented automatic Entra External ID user provisioning

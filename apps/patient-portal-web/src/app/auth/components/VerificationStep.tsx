@@ -166,7 +166,7 @@ export default function VerificationStep({
               onChange={(e) => setDob(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               required
-              disabled={loading || isLocked}
+              disabled={loading || !!isLocked}
             />
           </div>
         )}
@@ -192,7 +192,7 @@ export default function VerificationStep({
               placeholder="••••"
               maxLength={4}
               required
-              disabled={loading || isLocked}
+              disabled={loading || !!isLocked}
             />
             <p className="text-sm text-gray-500 mt-1">
               Enter your 4-digit security PIN
@@ -288,7 +288,7 @@ export default function VerificationStep({
           <button
             type="submit"
             className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-            disabled={loading || isLocked}
+            disabled={loading || !!isLocked}
           >
             {loading ? "Verifying..." : needsPin ? "Create PIN & Verify" : "Verify"}
           </button>

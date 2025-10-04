@@ -231,7 +231,9 @@ export default function SignupFlow() {
                     if (response.data.success) {
                       setPatientId(response.data.patientId);
                       setLinkToken(response.data.linkToken);
-                      setStep("consent");
+                      setSelectedAccountName(`${data.firstName} ${data.lastName}`);
+                      // Family members must go through verification to create PIN
+                      setStep("verification");
                     } else {
                       alert('Failed to add family member. Please try again.');
                     }
