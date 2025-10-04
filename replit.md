@@ -25,7 +25,26 @@ This is a comprehensive Eye Hospital Management System built as a monorepo with 
 - Mobile development available via Expo
 
 ## Recent Changes
-### October 4, 2025
+### October 4, 2025 (Latest Session)
+- **CDC DATA STANDARDIZATION SERVICE**: Implemented comprehensive data normalization algorithms
+  - Name/phone/address standardization with special character removal
+  - E.164 phone formatting using libphonenumber-js
+  - Soundex and Metaphone phonetic algorithms
+  - Vetted Double Metaphone library integration for alternate pronunciations
+  - Levenshtein, Jaro, and Jaro-Winkler string similarity algorithms
+  - Short-string handling (1-2 characters) with matchDistance clamping
+- **CDC MATCHING ALGORITHMS**: Implemented world-class similarity scoring and duplicate detection
+  - Multi-field name matching (first + last names evaluated separately, weighted 40%/60%)
+  - Phonetic similarity on both first and last names (Soundex + Double Metaphone)
+  - Phone similarity (exact=100, last 10 digits=95, last 8=80, fuzzy=0-60)
+  - DOB similarity with date validation (prevents Invalid Date crashes)
+  - Address similarity (Jaro-Winkler + Levenshtein weighted 50%/50%)
+  - Weighted total scoring: name 30%, phone 25%, DOB 25%, address 10%, phonetic 10%
+  - CDC thresholds: Exact ≥95, Likely ≥90, Possible ≥70, Unlikely <50
+  - Multi-strategy blocking keys (standard, phonetic, loose) for efficient candidate selection
+  - All scores properly scaled to 0-100 range
+
+### October 4, 2025 (Earlier)
 - **CDC-COMPLIANT DE-DUPLICATION**: Implemented world-class patient identity management following CDC IIS de-duplication best practices
 - **Database Schema Overhaul**: Added comprehensive tables for:
   - CDC de-duplication (duplicate_candidates, duplicate_adjudication, patient_merge_audit)
