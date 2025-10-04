@@ -27,8 +27,39 @@ export default function VerificationStep({
   const [pinConfirm, setPinConfirm] = useState("");
   const [needsPin, setNeedsPin] = useState(isNewUser); // New users always need PIN
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(!isNewUser); // Check PIN for existing users
   const [error, setError] = useState("");
   const [lockedUntil, setLockedUntil] = useState<string | null>(null);
+
+  // Fetch DOB and PIN status for existing users on mount
+  useEffect(() => {
+    const fetchPatientInfo = async () => {
+      if (!isNewUser && patientId && linkToken) {
+        try {
+          setInitializing(true);
+          const response = await axios.post('/api/auth/patient-info', {
+            patientId,
+            linkToken,
+          });
+
+          if (response.data.success) {
+            // Set DOB if available
+            if (response.data.dob) {
+              setDob(response.data.dob);
+            }
+            // Check if PIN exists
+            setNeedsPin(!response.data.hasPin);
+          }
+        } catch (err) {
+          console.error('Failed to fetch patient info:', err);
+        } finally {
+          setInitializing(false);
+        }
+      }
+    };
+
+    fetchPatientInfo();
+  }, [patientId, linkToken, isNewUser]);
 
   // Sync local dob state with profileDob prop changes (for family member flow)
   useEffect(() => {
@@ -97,9 +128,6 @@ export default function VerificationStep({
 
         if (verifyResponse.data.status === "verified") {
           onVerified();
-        } else if (verifyResponse.data.status === "pin_required") {
-          setNeedsPin(true);
-          setError("");
         }
       }
     } catch (err: any) {
@@ -131,6 +159,21 @@ export default function VerificationStep({
   };
 
   const isLocked = lockedUntil && new Date(lockedUntil) > new Date();
+
+  // Show loading state while fetching patient info
+  if (initializing) {
+    return (
+      <div className="max-w-md mx-auto p-6 text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
+          <svg className="animate-spin w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <p className="text-gray-600">Loading verification...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto p-6">
@@ -297,7 +340,7 @@ export default function VerificationStep({
             className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
             disabled={loading || !!isLocked}
           >
-            {loading ? "Verifying..." : needsPin ? "Create PIN & Verify" : "Verify"}
+            {loading ? (needsPin ? "Creating PIN..." : "Verifying...") : needsPin ? "Create PIN" : "Verify"}
           </button>
         </div>
       </form>
