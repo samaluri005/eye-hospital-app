@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
       await sessionService.invalidateAllPatientSessions(data.patientId);
 
       const userAgent = request.headers.get('user-agent') || 'Unknown';
-      const ipAddress = request.headers.get('x-forwarded-for') || 
-                       request.headers.get('x-real-ip') || 
-                       'Unknown';
+      const forwardedFor = request.headers.get('x-forwarded-for');
+      const realIp = request.headers.get('x-real-ip');
+      const ipAddress = forwardedFor ? forwardedFor.split(',')[0].trim() : (realIp || 'Unknown');
 
       const deviceInfo = {
         userAgent,
