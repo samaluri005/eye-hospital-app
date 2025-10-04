@@ -25,6 +25,25 @@ This is a comprehensive Eye Hospital Management System built as a monorepo with 
 - Mobile development available via Expo
 
 ## Recent Changes
+### October 4, 2025
+- **CDC-COMPLIANT DE-DUPLICATION**: Implemented world-class patient identity management following CDC IIS de-duplication best practices
+- **Database Schema Overhaul**: Added comprehensive tables for:
+  - CDC de-duplication (duplicate_candidates, duplicate_adjudication, patient_merge_audit)
+  - Government ID verification (patient_identity_documents) with DigiLocker integration support
+  - Session management (patient_sessions) with device fingerprinting
+  - HIPAA audit logging (hipaa_audit_log) with 6-year retention indices
+  - Consent management (patient_consents) for HIPAA compliance
+  - Family/emergency access (family_access) for shared phone scenarios
+  - Healthcare operations (doctors, appointments, medical_records, billing_records)
+- **Patient Table Enhanced**: Added 20+ CDC-compliant fields including:
+  - Standardized name/phone/address fields for blocking and matching
+  - Soundex indexing for phonetic matching
+  - Blocking keys for efficient duplicate detection
+  - Trust levels (low/medium/high) based on ID verification
+  - Entra External ID integration fields
+- **Performance Optimizations**: Created 17 strategic indexes for fast de-duplication queries, HIPAA audit searches, and appointment lookups
+- **HIPAA Compliance**: All PHI stored in PostgreSQL; authentication-only data in Entra External ID
+
 ### October 2, 2025
 - **IMPORTANT ARCHITECTURE UPDATE**: Migrated from Azure AD B2C custom policies to Microsoft Entra External ID with Custom Authentication Extensions
 - **Custom Authentication Extensions API**: Created REST API service (`entra-otp-api`) for Twilio SMS OTP integration with proper event-driven webhook format
