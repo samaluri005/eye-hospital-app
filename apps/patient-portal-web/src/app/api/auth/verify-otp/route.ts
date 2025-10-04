@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimiter, rateLimitConfigs } from '../../../../../lib/rateLimiter';
+import { sessionService } from '../../../../../lib/sessionService';
+import { cookies } from 'next/headers';
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:8000';
 
@@ -51,6 +53,34 @@ export async function POST(request: NextRequest) {
     
     if (!response.ok) {
       return NextResponse.json(data, { status: response.status });
+    }
+
+    if (data.status === 'verified' && data.patientId) {
+      await sessionService.invalidateAllPatientSessions(data.patientId);
+
+      const userAgent = request.headers.get('user-agent') || 'Unknown';
+      const ipAddress = request.headers.get('x-forwarded-for') || 
+                       request.headers.get('x-real-ip') || 
+                       'Unknown';
+
+      const deviceInfo = {
+        userAgent,
+      };
+
+      const session = await sessionService.createAuthenticatedSession(
+        data.patientId,
+        ipAddress,
+        deviceInfo
+      );
+
+      const cookieStore = await cookies();
+      cookieStore.set('session_token', session.sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
     }
 
     return NextResponse.json(data);

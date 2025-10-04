@@ -8,6 +8,7 @@ export type ProfileData = {
   nameSuffix?: string;
   dateOfBirth: string; // YYYY-MM-DD format
   gender?: string;
+  email?: string;
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
@@ -16,20 +17,36 @@ export type ProfileData = {
   country?: string;
   emergencyContact?: string;
   emergencyPhone?: string;
+  relationship?: string; // For family members
 };
 
 type Props = {
   onNext: (data: ProfileData) => void;
   onSkip: () => void;
+  isAddingFamilyMember?: boolean;
 };
 
-export default function ProfileStep({ onNext, onSkip }: Props) {
+const FAMILY_RELATIONSHIPS = [
+  { value: 'spouse', label: 'Spouse' },
+  { value: 'parent', label: 'Parent' },
+  { value: 'child', label: 'Child' },
+  { value: 'sibling', label: 'Sibling' },
+  { value: 'grandparent', label: 'Grandparent' },
+  { value: 'grandchild', label: 'Grandchild' },
+  { value: 'guardian', label: 'Legal Guardian' },
+  { value: 'dependent', label: 'Dependent' },
+  { value: 'other', label: 'Other Family Member' },
+];
+
+export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = false }: Props) {
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
   const [nameSuffix, setNameSuffix] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
+  const [email, setEmail] = useState("");
+  const [relationship, setRelationship] = useState("");
   
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
@@ -61,6 +78,12 @@ export default function ProfileStep({ onNext, onSkip }: Props) {
       return;
     }
     
+    // Validate relationship if adding family member
+    if (isAddingFamilyMember && !relationship) {
+      setError("Relationship is required when adding a family member");
+      return;
+    }
+    
     // Validate age (must be reasonable for healthcare)
     const dob = new Date(dateOfBirth);
     const today = new Date();
@@ -77,6 +100,7 @@ export default function ProfileStep({ onNext, onSkip }: Props) {
       nameSuffix: nameSuffix.trim() || undefined,
       dateOfBirth,
       gender: gender || undefined,
+      email: email.trim() || undefined,
       addressLine1: addressLine1.trim() || undefined,
       addressLine2: addressLine2.trim() || undefined,
       city: city.trim() || undefined,
@@ -85,6 +109,7 @@ export default function ProfileStep({ onNext, onSkip }: Props) {
       country: country || undefined,
       emergencyContact: emergencyContact.trim() || undefined,
       emergencyPhone: emergencyPhone.trim() || undefined,
+      relationship: isAddingFamilyMember ? relationship : undefined,
     };
 
     onNext(profileData);
@@ -99,8 +124,15 @@ export default function ProfileStep({ onNext, onSkip }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
         </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-2">Complete Your Profile</h3>
-        <p className="text-gray-600">Please provide your demographic information for accurate medical records</p>
+        <h3 className="text-xl font-bold text-gray-900 mb-2">
+          {isAddingFamilyMember ? "Add Family Member" : "Complete Your Profile"}
+        </h3>
+        <p className="text-gray-600">
+          {isAddingFamilyMember 
+            ? "Please provide information for the family member you're adding"
+            : "Please provide your demographic information for accurate medical records"
+          }
+        </p>
       </div>
 
       {/* HIPAA Notice */}
@@ -235,6 +267,45 @@ export default function ProfileStep({ onNext, onSkip }: Props) {
                 <option value="Other">Other</option>
               </select>
             </div>
+          </div>
+
+          {/* Family Relationship Field */}
+          {isAddingFamilyMember && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Relationship to Primary Account Holder <span className="text-red-500">*</span>
+              </label>
+              <select 
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                value={relationship} 
+                onChange={(e)=>setRelationship(e.target.value)}
+                required
+              >
+                <option value="">Select Relationship</option>
+                {FAMILY_RELATIONSHIPS.map((rel) => (
+                  <option key={rel.value} value={rel.value}>
+                    {rel.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-sm text-gray-500 mt-1">
+                This helps us manage linked family accounts sharing the same phone number
+              </p>
+            </div>
+          )}
+
+          {/* Email Field (optional for regular users, shown for family members) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email {isAddingFamilyMember && "(Optional for notifications)"}
+            </label>
+            <input 
+              type="email"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+              value={email} 
+              onChange={(e)=>setEmail(e.target.value)}
+              placeholder="email@example.com"
+            />
           </div>
         </div>
 

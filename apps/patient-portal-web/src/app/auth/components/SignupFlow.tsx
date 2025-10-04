@@ -8,8 +8,9 @@ import ConsentStep from "./ConsentStep";
 import MfaStep from "./MfaStep";
 import SocialSignInButton from "./SocialSignInButton";
 import TestApi from "./TestApi"; // optional: for protected API testing
+import AccountSelectionStep, { type AccountOption } from "./AccountSelectionStep";
 
-export type Step = "phone" | "otp" | "profile" | "consent" | "mfa" | "done";
+export type Step = "phone" | "otp" | "accountSelection" | "profile" | "consent" | "mfa" | "done";
 
 export default function SignupFlow() {
   const [step, setStep] = useState<Step>("phone");
@@ -17,11 +18,15 @@ export default function SignupFlow() {
   const [patientId, setPatientId] = useState<string | null>(null);
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [isAddingFamilyMember, setIsAddingFamilyMember] = useState(false);
+  const [primaryPatientId, setPrimaryPatientId] = useState<string | null>(null);
 
   const stepTitles = {
     phone: "Verify Your Phone Number",
-    otp: "Enter Verification Code", 
-    profile: "Complete Your Profile",
+    otp: "Enter Verification Code",
+    accountSelection: "Select Account",
+    profile: isAddingFamilyMember ? "Add Family Member" : "Complete Your Profile",
     consent: "Privacy & Terms",
     mfa: "Secure Your Account",
     done: "Welcome to EyeCare"
@@ -45,10 +50,10 @@ export default function SignupFlow() {
         {/* Progress Indicator */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex space-x-3">
-            {(['phone', 'otp', 'profile', 'consent', 'mfa'] as Step[]).map((s, index) => (
+            {(['phone', 'otp', 'profile', 'consent', 'mfa'] as const).map((s, index) => (
               <div key={s} className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                step === s ? 'bg-emerald-500 scale-125' : 
-                (['phone', 'otp', 'profile', 'consent', 'mfa'] as Step[]).indexOf(step) > index ? 'bg-emerald-400' : 'bg-gray-300'
+                (step === s || (step === 'accountSelection' && s === 'otp')) ? 'bg-emerald-500 scale-125' : 
+                (['phone', 'otp', 'profile', 'consent', 'mfa'] as const).indexOf(step as any) > index ? 'bg-emerald-400' : 'bg-gray-300'
               }`} />
             ))}
           </div>
@@ -105,12 +110,23 @@ export default function SignupFlow() {
                     phone,
                   });
                   
-                  // If patient exists with profile, skip to success
-                  if (response.data.exists && response.data.hasProfile) {
+                  // Multiple accounts found - show selection
+                  if (response.data.multipleAccounts) {
+                    setAccounts(response.data.accounts);
+                    setStep("accountSelection");
+                  }
+                  // Single account exists with profile - go to dashboard
+                  else if (response.data.exists && response.data.hasProfile) {
                     setPatientId(response.data.patientId);
                     setStep("done");
-                  } else {
-                    // New patient or no profile data, show profile step
+                  } 
+                  // Single account exists but no profile - complete profile
+                  else if (response.data.exists && !response.data.hasProfile) {
+                    setPatientId(response.data.patientId);
+                    setStep("profile");
+                  }
+                  // New patient - create profile
+                  else {
                     setStep("profile");
                   }
                 } catch (error) {
@@ -123,12 +139,61 @@ export default function SignupFlow() {
             />
           )}
 
+          {step === "accountSelection" && (
+            <AccountSelectionStep
+              accounts={accounts}
+              phone={phone}
+              onAccountSelected={(selectedPatientId) => {
+                setPatientId(selectedPatientId);
+                setPrimaryPatientId(selectedPatientId);
+                setIsAddingFamilyMember(false);
+                setStep("done");
+              }}
+              onAddFamilyMember={() => {
+                if (accounts.length > 0) {
+                  setPrimaryPatientId(accounts[0].patientId);
+                }
+                setIsAddingFamilyMember(true);
+                setStep("profile");
+              }}
+            />
+          )}
+
           {step === "profile" && (
             <ProfileStep
+              isAddingFamilyMember={isAddingFamilyMember}
               onNext={async (data) => {
                 setProfile(data);
                 
-                // Call registration API to create patient record in PostgreSQL
+                // If adding family member, call family API
+                if (isAddingFamilyMember && primaryPatientId) {
+                  try {
+                    const response = await axios.post('/api/family/add-member', {
+                      primaryPatientId,
+                      firstName: data.firstName,
+                      lastName: data.lastName,
+                      middleName: data.middleName,
+                      dob: data.dateOfBirth,
+                      gender: data.gender,
+                      relationship: data.relationship,
+                      phone,
+                      email: data.email,
+                    });
+                    
+                    if (response.data.success) {
+                      setPatientId(response.data.patientId);
+                      setStep("consent");
+                    } else {
+                      alert('Failed to add family member. Please try again.');
+                    }
+                  } catch (error: any) {
+                    console.error('Add family member error:', error);
+                    alert(error.response?.data?.error || 'Failed to add family member. Please try again.');
+                  }
+                  return;
+                }
+                
+                // Normal registration flow
                 try {
                   const response = await axios.post('/api/auth/register', {
                     phone,

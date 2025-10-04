@@ -127,6 +127,19 @@ export class SessionService {
           return null;
         }
         
+        if (type === 'authenticated') {
+          const [dbSession] = await db
+            .select({ isActive: patientSessions.isActive })
+            .from(patientSessions)
+            .where(eq(patientSessions.sessionToken, sessionToken))
+            .limit(1);
+          
+          if (!dbSession || !dbSession.isActive) {
+            await this.redis.del(`session:auth:${sessionToken}`);
+            return null;
+          }
+        }
+        
         return session;
       }
 
@@ -220,28 +233,29 @@ export class SessionService {
 
   async invalidateAllPatientSessions(patientId: string): Promise<void> {
     try {
-      const sessions = await db
-        .select()
-        .from(patientSessions)
+      const invalidatedSessions = await db
+        .update(patientSessions)
+        .set({ isActive: false })
         .where(
           and(
             eq(patientSessions.patientId, patientId),
             eq(patientSessions.isActive, true)
           )
-        );
+        )
+        .returning({ sessionToken: patientSessions.sessionToken });
 
       await this.redis.connect();
       
-      for (const session of sessions) {
-        await this.redis.del(`session:auth:${session.sessionToken}`);
+      for (const session of invalidatedSessions) {
+        try {
+          await this.redis.del(`session:auth:${session.sessionToken}`);
+        } catch (redisError) {
+          console.error(`Failed to delete Redis session ${session.sessionToken}:`, redisError);
+        }
       }
-
-      await db
-        .update(patientSessions)
-        .set({ isActive: false })
-        .where(eq(patientSessions.patientId, patientId));
     } catch (error) {
       console.error('Invalidate all patient sessions error:', error);
+      throw error;
     }
   }
 
