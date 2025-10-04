@@ -19,14 +19,6 @@ author = "agent"
 task = "workflow.run"
 args = "Patient Portal"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Auth Service"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Entra OTP API"
-
 [[workflows.workflow]]
 name = "Patient Portal"
 author = "agent"
@@ -38,30 +30,6 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
-
-[[workflows.workflow]]
-name = "Auth Service"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd temp-auth-service && node server.js"
-waitForPort = 8000
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "Entra OTP API"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd entra-otp-api && node server.js"
-waitForPort = 3002
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [[ports]]
 localPort = 3001
