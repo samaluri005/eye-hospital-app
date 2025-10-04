@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimiter, rateLimitConfigs } from '../../../../../lib/rateLimiter';
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:8000';
 
@@ -11,6 +12,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Phone number and OTP are required' },
         { status: 400 }
+      );
+    }
+
+    const rateLimit = await rateLimiter.checkRateLimit(
+      `otp:verify:${phone}`,
+      rateLimitConfigs.otpVerify
+    );
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded',
+          message: 'Too many verification attempts. Please try again later.',
+          resetTime: rateLimit.resetTime
+        },
+        { status: 429 }
       );
     }
     

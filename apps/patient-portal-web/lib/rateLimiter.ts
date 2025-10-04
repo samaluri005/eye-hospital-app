@@ -25,22 +25,48 @@ export class RedisRateLimiter {
       const windowStart = now - config.windowMs;
       const redisKey = `ratelimit:${key}`;
 
-      const pipeline = this.redis.pipeline();
-      pipeline.zremrangebyscore(redisKey, 0, windowStart);
-      pipeline.zcard(redisKey);
-      pipeline.zadd(redisKey, now, `${now}-${Math.random()}`);
-      pipeline.expire(redisKey, Math.ceil(config.windowMs / 1000));
+      const luaScript = `
+        local key = KEYS[1]
+        local now = tonumber(ARGV[1])
+        local window_start = tonumber(ARGV[2])
+        local max_requests = tonumber(ARGV[3])
+        local ttl = tonumber(ARGV[4])
+        
+        redis.call('ZREMRANGEBYSCORE', key, 0, window_start)
+        
+        local count = redis.call('ZCARD', key)
+        
+        local allowed = 0
+        local oldest_timestamp = now
+        if count < max_requests then
+          redis.call('ZADD', key, now, now .. '-' .. math.random())
+          redis.call('EXPIRE', key, ttl)
+          allowed = 1
+          count = count + 1
+        end
+        
+        local range = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+        if #range > 0 then
+          oldest_timestamp = tonumber(range[2])
+        end
+        
+        return {allowed, count, oldest_timestamp}
+      `;
 
-      const results = await pipeline.exec();
-      
-      if (!results) {
-        throw new Error('Redis pipeline execution failed');
-      }
+      const result = await this.redis.eval(
+        luaScript,
+        1,
+        redisKey,
+        now.toString(),
+        windowStart.toString(),
+        config.maxRequests.toString(),
+        Math.ceil(config.windowMs / 1000).toString()
+      ) as [number, number, number];
 
-      const count = (results[1][1] as number) || 0;
-      const allowed = count < config.maxRequests;
-      const remaining = Math.max(0, config.maxRequests - count - 1);
-      const resetTime = now + config.windowMs;
+      const [allowedFlag, count, oldestTimestamp] = result;
+      const allowed = allowedFlag === 1;
+      const remaining = Math.max(0, config.maxRequests - count);
+      const resetTime = oldestTimestamp + config.windowMs;
 
       return {
         allowed,

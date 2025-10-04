@@ -90,17 +90,20 @@ export class SessionService {
         })
         .returning();
 
+      const normalizedSession: SessionData = {
+        ...session,
+        deviceInfo: session.deviceInfo as DeviceInfo,
+        sessionType: 'authenticated',
+      };
+
       await this.redis.connect();
       await this.redis.setex(
         `session:auth:${sessionToken}`,
         7 * 24 * 60 * 60,
-        JSON.stringify(session)
+        JSON.stringify(normalizedSession)
       );
 
-      return {
-        ...session,
-        sessionType: 'authenticated',
-      } as SessionData;
+      return normalizedSession;
     } catch (error) {
       console.error('Create authenticated session error:', error);
       throw new Error('Failed to create authenticated session');
@@ -141,16 +144,19 @@ export class SessionService {
           .limit(1);
 
         if (session) {
+          const normalizedSession: SessionData = {
+            ...session,
+            deviceInfo: session.deviceInfo as DeviceInfo,
+            sessionType: 'authenticated',
+          };
+
           await this.redis.setex(
             `session:auth:${sessionToken}`,
             7 * 24 * 60 * 60,
-            JSON.stringify(session)
+            JSON.stringify(normalizedSession)
           );
           
-          return {
-            ...session,
-            sessionType: 'authenticated',
-          } as SessionData;
+          return normalizedSession;
         }
       }
 

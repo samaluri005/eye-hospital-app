@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimiter, rateLimitConfigs } from '../../../../../lib/rateLimiter';
+import { sessionService } from '../../../../../lib/sessionService';
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:8000';
 
@@ -13,7 +15,23 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
+    const rateLimit = await rateLimiter.checkRateLimit(
+      `otp:send:${phone}`,
+      rateLimitConfigs.otpSend
+    );
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded',
+          message: 'Too many OTP requests. Please try again later.',
+          resetTime: rateLimit.resetTime
+        },
+        { status: 429 }
+      );
+    }
+
     const response = await fetch(`${AUTH_SERVICE_URL}/signup/start`, {
       method: 'POST',
       headers: {
@@ -36,7 +54,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data, { status: response.status });
     }
 
-    return NextResponse.json(data);
+    const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    const sessionToken = await sessionService.createOtpSession(
+      phone,
+      ipAddress,
+      { userAgent }
+    );
+
+    return NextResponse.json({
+      ...data,
+      sessionToken,
+      rateLimit: {
+        remaining: rateLimit.remaining,
+        resetTime: rateLimit.resetTime
+      }
+    });
   } catch (error) {
     console.error('Auth service connection error:', error);
     return NextResponse.json(
