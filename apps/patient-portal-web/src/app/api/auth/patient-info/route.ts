@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     // Fetch patient DOB
     const patientRecords = await db.execute(sql`
       SELECT 
-        date_of_birth,
+        dob,
         (SELECT COUNT(*) FROM patient_pin WHERE patient_id = ${patientId}::uuid AND deleted_at IS NULL) as has_pin
       FROM patient
       WHERE id = ${patientId}::uuid
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      dob: patient.date_of_birth ? patient.date_of_birth.toISOString().split('T')[0] : null,
+      dob: patient.dob ? patient.dob.toISOString().split('T')[0] : null,
       hasPin: parseInt(patient.has_pin) > 0,
     });
   } catch (error) {

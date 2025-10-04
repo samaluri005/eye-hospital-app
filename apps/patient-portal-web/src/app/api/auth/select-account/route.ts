@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSession } from '../../../../../lib/sessionService';
+import { sessionService } from '../../../../../lib/sessionService';
 import { db } from '../../../../../lib/db';
 import { linkToken as linkTokenTable } from '../../../../../lib/schema';
 import { eq, and, sql } from 'drizzle-orm';
@@ -74,11 +74,11 @@ export async function POST(request: Request) {
       'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
-    const sessionToken = await createSession(
+    const session = await sessionService.createAuthenticatedSession(
       patientId,
       clientIp,
-      userAgent,
-      false // existing user
+      { userAgent },
+      undefined // no device fingerprint
     );
 
     // Create response with HTTP-only cookie
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     });
 
     // Set HTTP-only cookie with the session token
-    response.cookies.set('session_token', sessionToken, {
+    response.cookies.set('session_token', session.sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
