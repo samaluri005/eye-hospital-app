@@ -125,6 +125,9 @@ importers:
       axios:
         specifier: ^1.12.2
         version: 1.12.2
+      double-metaphone:
+        specifier: ^2.0.1
+        version: 2.0.1
       drizzle-kit:
         specifier: ^0.31.5
         version: 0.31.5
@@ -2643,6 +2646,10 @@ packages:
   dotenv@16.0.3:
     resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
     engines: {node: '>=12'}
+
+  double-metaphone@2.0.1:
+    resolution: {integrity: sha512-oHqGfNo2bG/VTZSGFz98TWpyv3WD+d9TDOxwAY8L+zqwm4sGawNvEynegjPU+4HowE4HnIXSYAq0lst2YJgfzA==}
+    hasBin: true
 
   drizzle-kit@0.31.5:
     resolution: {integrity: sha512-+CHgPFzuoTQTt7cOYCV6MOw2w8vqEn/ap1yv4bpZOWL03u7rlVRQhUY0WYT3rHsgVTXwYQDZaSUJSQrMBUKuWg==}
@@ -8766,6 +8773,8 @@ snapshots:
   dotenv-expand@10.0.0: {}
 
   dotenv@16.0.3: {}
+
+  double-metaphone@2.0.1: {}
 
   drizzle-kit@0.31.5:
     dependencies:
