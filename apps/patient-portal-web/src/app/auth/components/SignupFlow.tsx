@@ -171,6 +171,8 @@ export default function SignupFlow() {
               patientId={patientId}
               patientName={selectedAccountName}
               linkToken={linkToken}
+              isNewUser={!isExistingUser || isAddingFamilyMember}
+              profileDob={profile?.dateOfBirth || ""}
               onVerified={async () => {
                 // For new users, go to consent after verification
                 // For existing users, create session and redirect to dashboard

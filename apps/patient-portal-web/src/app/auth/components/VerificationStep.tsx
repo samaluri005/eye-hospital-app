@@ -9,6 +9,8 @@ interface VerificationStepProps {
   linkToken: string;
   onVerified: () => void;
   onBack: () => void;
+  isNewUser?: boolean; // New user (just completed profile)
+  profileDob?: string; // DOB from profile step (for new users)
 }
 
 export default function VerificationStep({
@@ -17,11 +19,13 @@ export default function VerificationStep({
   linkToken,
   onVerified,
   onBack,
+  isNewUser = false,
+  profileDob = "",
 }: VerificationStepProps) {
-  const [dob, setDob] = useState("");
+  const [dob, setDob] = useState(profileDob); // Pre-fill with profile DOB for new users
   const [pin, setPin] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
-  const [needsPin, setNeedsPin] = useState(false);
+  const [needsPin, setNeedsPin] = useState(isNewUser); // New users always need PIN
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [lockedUntil, setLockedUntil] = useState<string | null>(null);
@@ -146,24 +150,26 @@ export default function VerificationStep({
       </div>
 
       <form onSubmit={handleVerify} className="space-y-6">
-        {/* DOB Input */}
-        <div>
-          <label
-            htmlFor="dob"
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
-            Date of Birth <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            id="dob"
-            value={dob}
-            onChange={(e) => setDob(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            required
-            disabled={loading || isLocked}
-          />
-        </div>
+        {/* DOB Input - Only for existing users */}
+        {!isNewUser && (
+          <div>
+            <label
+              htmlFor="dob"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Date of Birth <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              id="dob"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              required
+              disabled={loading || isLocked}
+            />
+          </div>
+        )}
 
         {/* PIN Input or Create PIN */}
         {!needsPin ? (
