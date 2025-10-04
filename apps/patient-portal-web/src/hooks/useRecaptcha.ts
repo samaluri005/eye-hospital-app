@@ -19,6 +19,9 @@ export function useRecaptcha() {
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   useEffect(() => {
+    console.log('[reCAPTCHA] Site key exists:', !!siteKey);
+    console.log('[reCAPTCHA] Site key (first 10 chars):', siteKey?.substring(0, 10) + '...');
+    
     if (!siteKey) {
       console.error('reCAPTCHA site key is not configured');
       setIsLoading(false);
