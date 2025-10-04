@@ -19,9 +19,37 @@ if (string.IsNullOrEmpty(connectionString))
     Console.WriteLine("WARNING: No DefaultConnection found in configuration. Ensure env var ConnectionStrings__DefaultConnection is set.");
 }
 
-// Add DbContext
+// Add connection pooling and resilience parameters
+if (!string.IsNullOrEmpty(connectionString))
+{
+    var connBuilder = new Npgsql.NpgsqlConnectionStringBuilder(connectionString)
+    {
+        Pooling = true,
+        MinPoolSize = 1,
+        MaxPoolSize = 20,
+        ConnectionIdleLifetime = 300,
+        ConnectionPruningInterval = 10,
+        Timeout = 30,
+        CommandTimeout = 30,
+        KeepAlive = 30
+    };
+    connectionString = connBuilder.ToString();
+}
+
+// Add DbContext with connection resilience
 builder.Services.AddDbContext<AppDbContext>(opts =>
-    opts.UseNpgsql(connectionString));
+{
+    opts.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorCodesToAdd: null);
+        npgsqlOptions.CommandTimeout(30);
+    });
+    opts.EnableSensitiveDataLogging(false);
+    opts.EnableDetailedErrors(false);
+});
 
 // add minimal services
 builder.Services.AddEndpointsApiExplorer();
