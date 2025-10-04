@@ -232,6 +232,7 @@ export default function SignupFlow() {
                       setPatientId(response.data.patientId);
                       setLinkToken(response.data.linkToken);
                       setSelectedAccountName(`${data.firstName} ${data.lastName}`);
+                      setProfile(data); // IMPORTANT: Update profile with family member's data for DOB
                       // Family members must go through verification to create PIN
                       setStep("verification");
                     } else {

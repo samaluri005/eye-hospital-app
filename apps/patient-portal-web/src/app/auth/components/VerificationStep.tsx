@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 
 interface VerificationStepProps {
@@ -29,6 +29,13 @@ export default function VerificationStep({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [lockedUntil, setLockedUntil] = useState<string | null>(null);
+
+  // Sync local dob state with profileDob prop changes (for family member flow)
+  useEffect(() => {
+    if (profileDob && profileDob !== dob) {
+      setDob(profileDob);
+    }
+  }, [profileDob]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
