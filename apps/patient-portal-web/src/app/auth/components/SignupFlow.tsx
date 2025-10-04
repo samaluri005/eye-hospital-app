@@ -3,15 +3,18 @@ import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import axios from "axios";
 import PhoneStep from "./PhoneStep";
-import OtpStep from "./OtpStep";
-import ProfileStep, { type ProfileData } from "./ProfileStep";
-import AccountSelectionStep, { type AccountOption } from "./AccountSelectionStep";
-import VerificationStep from "./VerificationStep";
+import type { ProfileData } from "./ProfileStep";
+import type { AccountOption } from "./AccountSelectionStep";
 
-const SocialSignInButton = dynamic(() => import("./SocialSignInButton"), { ssr: false });
+// Lazy load all steps except the initial phone step
+const OtpStep = dynamic(() => import("./OtpStep"), { ssr: false });
+const AccountSelectionStep = dynamic(() => import("./AccountSelectionStep"), { ssr: false });
+const VerificationStep = dynamic(() => import("./VerificationStep"), { ssr: false });
+const ProfileStep = dynamic(() => import("./ProfileStep"), { ssr: false });
 const ConsentStep = dynamic(() => import("./ConsentStep"), { ssr: false });
 const MfaStep = dynamic(() => import("./MfaStep"), { ssr: false });
 const TestApi = dynamic(() => import("./TestApi"), { ssr: false });
+const SocialSignInButton = dynamic(() => import("./SocialSignInButton"), { ssr: false });
 
 export type Step = "phone" | "otp" | "accountSelection" | "verification" | "profile" | "consent" | "mfa" | "done";
 
