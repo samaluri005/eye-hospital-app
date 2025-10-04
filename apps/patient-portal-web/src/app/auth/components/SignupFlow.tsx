@@ -101,42 +101,36 @@ export default function SignupFlow() {
           {step === "otp" && (
             <OtpStep
               phone={phone}
-              onVerified={async (pid, token) => { 
-                setPatientId(pid); 
-                setLinkToken(token); 
+              onVerified={async (data) => { 
+                const { accountCount, accounts: accountList, primaryPatientId: primaryPid, linkToken: token, sessionCreated } = data;
                 
-                // Check if patient already exists with profile data
-                try {
-                  const response = await axios.post('/api/auth/check-patient', {
-                    phone,
-                  });
-                  
-                  // Multiple accounts found - show selection
-                  if (response.data.multipleAccounts) {
-                    setAccounts(response.data.accounts);
-                    setIsExistingUser(true);
-                    setStep("accountSelection");
-                  }
-                  // Single account exists with profile - redirect to dashboard
-                  else if (response.data.exists && response.data.hasProfile) {
-                    setPatientId(response.data.patientId);
-                    setIsExistingUser(true);
-                    window.location.href = '/dashboard';
-                  } 
-                  // Single account exists but no profile - complete profile
-                  else if (response.data.exists && !response.data.hasProfile) {
-                    setPatientId(response.data.patientId);
-                    setIsExistingUser(true);
-                    setStep("profile");
-                  }
-                  // New patient - create profile
-                  else {
-                    setIsExistingUser(false);
-                    setStep("profile");
-                  }
-                } catch (error) {
-                  // On error, default to showing profile step
-                  console.error('Error checking patient status:', error);
+                setLinkToken(token);
+                setPrimaryPatientId(primaryPid);
+                
+                // If session was already created (single complete account), redirect to dashboard
+                if (sessionCreated) {
+                  setPatientId(accountList[0].patientId);
+                  setIsExistingUser(true);
+                  window.location.href = '/dashboard';
+                  return;
+                }
+                
+                // Multiple accounts - show selection screen
+                if (accountCount > 1) {
+                  setAccounts(accountList);
+                  setIsExistingUser(true);
+                  setStep("accountSelection");
+                }
+                // Single account with incomplete profile - complete profile
+                else if (accountCount === 1 && !accountList[0].hasProfile) {
+                  setPatientId(accountList[0].patientId);
+                  setIsExistingUser(true);
+                  setStep("profile");
+                }
+                // New user (accountCount === 1 but account was just created) - create profile
+                else {
+                  setPatientId(accountList[0].patientId);
+                  setIsExistingUser(false);
                   setStep("profile");
                 }
               }}
@@ -148,15 +142,33 @@ export default function SignupFlow() {
             <AccountSelectionStep
               accounts={accounts}
               phone={phone}
-              onAccountSelected={(selectedPatientId) => {
+              onAccountSelected={async (selectedPatientId) => {
                 setPatientId(selectedPatientId);
                 setPrimaryPatientId(selectedPatientId);
                 setIsAddingFamilyMember(false);
-                window.location.href = '/dashboard';
+                
+                // Call select-account API to create session
+                try {
+                  const response = await axios.post('/api/auth/select-account', {
+                    patientId: selectedPatientId,
+                    linkToken,
+                  });
+                  
+                  if (response.data.success) {
+                    window.location.href = '/dashboard';
+                  } else {
+                    alert('Failed to create session. Please try again.');
+                  }
+                } catch (error) {
+                  console.error('Select account error:', error);
+                  alert('Failed to create session. Please try again.');
+                }
               }}
               onAddFamilyMember={() => {
                 if (accounts.length > 0) {
-                  setPrimaryPatientId(accounts[0].patientId);
+                  // Find primary patient ID
+                  const primaryAccount = accounts.find(acc => acc.isPrimary);
+                  setPrimaryPatientId(primaryAccount?.patientId || accounts[0].patientId);
                 }
                 setIsAddingFamilyMember(true);
                 setStep("profile");

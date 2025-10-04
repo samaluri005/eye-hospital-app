@@ -5,6 +5,8 @@ export interface AccountOption {
   patientId: string;
   name: string;
   hasProfile: boolean;
+  relationship?: string;
+  isPrimary?: boolean;
 }
 
 interface AccountSelectionStepProps {
@@ -46,9 +48,15 @@ export default function AccountSelectionStep({
                 <p className="font-semibold text-gray-900 group-hover:text-emerald-700">
                   {account.name}
                 </p>
-                <p className="text-sm text-gray-500">
-                  {account.hasProfile ? "Profile Complete" : "Profile Incomplete"}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm text-gray-600">
+                    {account.relationship || "Primary"}
+                  </span>
+                  <span className="text-gray-300">•</span>
+                  <span className="text-sm text-gray-500">
+                    {account.hasProfile ? "Profile Complete" : "Profile Incomplete"}
+                  </span>
+                </div>
               </div>
               <svg
                 className="w-6 h-6 text-gray-400 group-hover:text-emerald-600"

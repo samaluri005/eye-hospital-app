@@ -55,32 +55,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data, { status: response.status });
     }
 
-    if (data.status === 'verified' && data.patientId) {
-      await sessionService.invalidateAllPatientSessions(data.patientId);
+    if (data.status === 'verified') {
+      // Check account count to determine next action
+      const { accountCount, accounts } = data;
+      
+      // Only create session automatically for single complete account
+      if (accountCount === 1 && accounts[0].hasProfile) {
+        const patientId = accounts[0].patientId;
+        await sessionService.invalidateAllPatientSessions(patientId);
 
-      const userAgent = request.headers.get('user-agent') || 'Unknown';
-      const forwardedFor = request.headers.get('x-forwarded-for');
-      const realIp = request.headers.get('x-real-ip');
-      const ipAddress = forwardedFor ? forwardedFor.split(',')[0].trim() : (realIp || 'Unknown');
+        const userAgent = request.headers.get('user-agent') || 'Unknown';
+        const forwardedFor = request.headers.get('x-forwarded-for');
+        const realIp = request.headers.get('x-real-ip');
+        const ipAddress = forwardedFor ? forwardedFor.split(',')[0].trim() : (realIp || 'Unknown');
 
-      const deviceInfo = {
-        userAgent,
-      };
+        const deviceInfo = {
+          userAgent,
+        };
 
-      const session = await sessionService.createAuthenticatedSession(
-        data.patientId,
-        ipAddress,
-        deviceInfo
-      );
+        const session = await sessionService.createAuthenticatedSession(
+          patientId,
+          ipAddress,
+          deviceInfo
+        );
 
-      const cookieStore = await cookies();
-      cookieStore.set('session_token', session.sessionToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7,
-        path: '/',
-      });
+        const cookieStore = await cookies();
+        cookieStore.set('session_token', session.sessionToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/',
+        });
+        
+        // Add session flag to response
+        data.sessionCreated = true;
+      } else {
+        // Multiple accounts or incomplete profile - defer session creation
+        data.sessionCreated = false;
+      }
     }
 
     return NextResponse.json(data);

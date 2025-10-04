@@ -14,6 +14,7 @@ namespace AuthService.Data
         public DbSet<Device> Devices { get; set; } = default!;
         public DbSet<AuditLog> AuditLogs { get; set; } = default!;
         public DbSet<LinkToken> LinkTokens { get; set; } = default!;
+        public DbSet<FamilyAccess> FamilyAccesses { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -27,6 +28,7 @@ namespace AuthService.Data
             builder.Entity<Device>().ToTable("device");
             builder.Entity<AuditLog>().ToTable("audit_log");
             builder.Entity<LinkToken>().ToTable("link_token");
+            builder.Entity<FamilyAccess>().ToTable("family_access");
 
             // Configure column names to match the database schema
             builder.Entity<OtpAttempt>()

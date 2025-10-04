@@ -5,7 +5,7 @@ import { useRecaptcha } from "../../../hooks/useRecaptcha";
 
 type Props = {
   phone: string;
-  onVerified: (patientId: string, linkToken: string) => void;
+  onVerified: (data: any) => void;
   onBack: () => void;
 };
 
@@ -45,7 +45,7 @@ export default function OtpStep({ phone, onVerified, onBack }: Props) {
         recaptchaToken 
       });
       if (r.data?.status === "verified") {
-        onVerified(r.data.patientId, r.data.linkToken);
+        onVerified(r.data);
       } else {
         setErr("Verification failed");
       }

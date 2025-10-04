@@ -173,18 +173,83 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
     var expected = AuthService.Services.OtpHelper.ComputeHmac(otpSecret ?? "", otp, entry.Nonce ?? "");
     if (!string.Equals(expected, entry.OtpHash, StringComparison.OrdinalIgnoreCase)) { entry.Attempts++; await db.SaveChangesAsync(); return Results.BadRequest(new { error="invalid_otp", attemptsLeft = 3-entry.Attempts }); }
 
-    // verified -> create or fetch patient
-    var patient = await db.Patients.FirstOrDefaultAsync(x => x.Phone == phone);
-    if (patient == null) {
-        patient = new Patient { Phone = phone, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        db.Patients.Add(patient);
-        await db.SaveChangesAsync();
-    }
-    
     entry.Status = "verified";
     await db.SaveChangesAsync();
 
-    // Create short-lived link token (10 minutes)
+    // Find all patients associated with this phone number
+    // 1. Primary accounts (phone matches)
+    var primaryPatients = await db.Patients.Where(x => x.Phone == phone).ToListAsync();
+    
+    // 2. Family member accounts (guardianPatientId matches any primary patient)
+    var primaryIds = primaryPatients.Select(p => p.Id).ToList();
+    var familyAccesses = await db.FamilyAccesses
+        .Where(fa => primaryIds.Contains(fa.GuardianPatientId) && fa.IsActive)
+        .ToListAsync();
+    
+    var familyPatientIds = familyAccesses.Select(fa => fa.PatientId).ToList();
+    var familyPatients = await db.Patients.Where(p => familyPatientIds.Contains(p.Id)).ToListAsync();
+    
+    // Build account list
+    var accounts = new List<object>();
+    
+    // Add primary accounts
+    foreach (var pt in primaryPatients)
+    {
+        var hasProfile = !string.IsNullOrEmpty(pt.FullName) && pt.DateOfBirth != null;
+        accounts.Add(new
+        {
+            patientId = pt.Id,
+            name = pt.FullName ?? "Incomplete Profile",
+            relationship = "Primary",
+            isPrimary = true,
+            hasProfile = hasProfile
+        });
+    }
+    
+    // Add family member accounts
+    foreach (var fa in familyAccesses)
+    {
+        var pt = familyPatients.FirstOrDefault(p => p.Id == fa.PatientId);
+        if (pt != null)
+        {
+            var hasProfile = !string.IsNullOrEmpty(pt.FullName) && pt.DateOfBirth != null;
+            accounts.Add(new
+            {
+                patientId = pt.Id,
+                name = pt.FullName ?? "Incomplete Profile",
+                relationship = fa.Relationship,
+                isPrimary = false,
+                hasProfile = hasProfile,
+                guardianPatientId = fa.GuardianPatientId
+            });
+        }
+    }
+    
+    // If no accounts exist, create a new primary patient
+    Guid primaryPatientId;
+    if (accounts.Count == 0)
+    {
+        var newPatient = new Patient { Phone = phone, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        db.Patients.Add(newPatient);
+        await db.SaveChangesAsync();
+        primaryPatientId = newPatient.Id;
+        
+        accounts.Add(new
+        {
+            patientId = newPatient.Id,
+            name = "Incomplete Profile",
+            relationship = "Primary",
+            isPrimary = true,
+            hasProfile = false
+        });
+    }
+    else
+    {
+        // Use first primary patient as the default
+        primaryPatientId = primaryPatients.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    // Create short-lived link token for account selection (10 minutes)
     var linkSecret = builder.Configuration["LINK_TOKEN_HMAC_SECRET"] ?? otpSecret;
     if (string.IsNullOrEmpty(linkSecret))
     {
@@ -193,13 +258,19 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
     }
 
     var linkToken = await AuthService.Services.LinkTokenHelper.CreateAndStoreLinkTokenAsync(
-        db, patient.Id, linkSecret, TimeSpan.FromMinutes(10));
+        db, primaryPatientId, linkSecret, TimeSpan.FromMinutes(10));
 
     // Audit log
-    db.AuditLogs.Add(new AuditLog { PatientId=patient.Id, Actor="system", Action="otp_verified", Details=$"{{\"phone\":\"{phone}\"}}", Ip=http.Connection.RemoteIpAddress?.ToString(), UserAgent=http.Request.Headers["User-Agent"].FirstOrDefault(), CreatedAt=DateTime.UtcNow });
+    db.AuditLogs.Add(new AuditLog { PatientId=primaryPatientId, Actor="system", Action="otp_verified", Details=$"{{\"phone\":\"{phone}\",\"accountCount\":{accounts.Count}}}", Ip=http.Connection.RemoteIpAddress?.ToString(), UserAgent=http.Request.Headers["User-Agent"].FirstOrDefault(), CreatedAt=DateTime.UtcNow });
     await db.SaveChangesAsync();
 
-    return Results.Ok(new { status="verified", patientId = patient.Id, linkToken = linkToken });
+    return Results.Ok(new { 
+        status="verified", 
+        accountCount = accounts.Count,
+        accounts = accounts,
+        primaryPatientId = primaryPatientId,
+        linkToken = linkToken 
+    });
 });
 
 // 🔗 SECURE ENDPOINT: Link Microsoft identity to patient account using LinkToken
