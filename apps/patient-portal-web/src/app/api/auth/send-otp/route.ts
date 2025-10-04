@@ -1,12 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyRecaptchaToken, getActionThreshold } from '../../../../lib/recaptcha';
+import { verifyRecaptchaToken, getActionThreshold } from '../../../../../lib/recaptcha';
+import { db } from '../../../../../lib/db';
+import { otpAttempt } from '../../../../../lib/schema';
+import { eq, and, gt } from 'drizzle-orm';
+import crypto from 'crypto';
+import twilio from 'twilio';
 
-const AUTH_SERVICE_URL = 'http://localhost:8000';
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID!,
+  process.env.TWILIO_AUTH_TOKEN!
+);
+
+const OTP_HMAC_SECRET = process.env.OTP_HMAC_SECRET || 'default-secret-key-change-in-production';
+
+function generateOtp(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function computeHmac(otp: string): string {
+  const hmac = crypto.createHmac('sha256', OTP_HMAC_SECRET);
+  hmac.update(otp);
+  return hmac.digest('hex');
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { phone, recaptchaToken } = body;
+
+    if (!phone) {
+      return NextResponse.json(
+        { error: 'Phone number is required' },
+        { status: 400 }
+      );
+    }
 
     if (!recaptchaToken) {
       console.error('reCAPTCHA token missing for send-otp request');
@@ -39,36 +66,79 @@ export async function POST(request: NextRequest) {
     }
 
     console.info('reCAPTCHA verification passed. Score:', verification.score);
-    
-    const response = await fetch(`${AUTH_SERVICE_URL}/signup/start`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ phone }),
+
+    const existingAttempts = await db.select()
+      .from(otpAttempt)
+      .where(
+        and(
+          eq(otpAttempt.phone, phone),
+          gt(otpAttempt.expiresAt, new Date())
+        )
+      )
+      .orderBy(otpAttempt.createdAt)
+      .limit(1);
+
+    if (existingAttempts.length > 0) {
+      const lastAttempt = existingAttempts[0];
+      const timeSinceLastAttempt = Date.now() - lastAttempt.createdAt!.getTime();
+      const cooldownMs = 60000;
+
+      if (timeSinceLastAttempt < cooldownMs) {
+        const waitSeconds = Math.ceil((cooldownMs - timeSinceLastAttempt) / 1000);
+        return NextResponse.json(
+          {
+            error: 'rate_limit',
+            message: `Please wait ${waitSeconds} seconds before requesting a new code`,
+            waitSeconds,
+          },
+          { status: 429 }
+        );
+      }
+    }
+
+    const otp = generateOtp();
+    const otpHash = computeHmac(otp);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await db.insert(otpAttempt).values({
+      phone,
+      otpHash,
+      expiresAt,
+      attemptCount: 0,
+      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
     });
 
-    // Try to parse as JSON, fallback to text for error responses
-    let data;
-    const contentType = response.headers.get('content-type');
-    
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
-    } else {
-      // Handle non-JSON responses (error pages, plain text)
-      const text = await response.text();
-      data = { error: 'service_error', message: text.substring(0, 200) };
-    }
-    
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
+    try {
+      if (process.env.TWILIO_FROM_NUMBER && process.env.TWILIO_ACCOUNT_SID) {
+        const message = await twilioClient.messages.create({
+          body: `Your Eye Hospital verification code is: ${otp}. Valid for 10 minutes.`,
+          from: process.env.TWILIO_FROM_NUMBER,
+          to: phone,
+        });
+        console.log(`✅ OTP sent to ${phone}, SID: ${message.sid}`);
+      } else {
+        console.warn('⚠️  Twilio not configured, OTP not sent. Code:', otp);
+      }
+    } catch (twilioError) {
+      console.error('❌ Failed to send SMS:', twilioError);
+      return NextResponse.json(
+        {
+          error: 'sms_failed',
+          message: 'Failed to send verification code. Please try again.',
+        },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      success: true,
+      message: 'Verification code sent successfully',
+      expiresIn: 600,
+    });
   } catch (error) {
-    console.error('Proxy error:', error);
+    console.error('Send OTP error:', error);
     return NextResponse.json(
-      { error: 'Failed to connect to auth service' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
