@@ -102,21 +102,20 @@ export default function SignupFlow() {
             <OtpStep
               phone={phone}
               onVerified={async (data) => { 
-                const { accountCount, accounts: accountList, primaryPatientId: primaryPid, linkToken: token, sessionCreated } = data;
+                const { accountCount, accounts: accountList, primaryPatientId: primaryPid, linkToken: token } = data;
                 
                 setLinkToken(token);
                 setPrimaryPatientId(primaryPid);
                 
-                // If session was already created (single complete account), redirect to dashboard
-                if (sessionCreated) {
+                // Existing user with complete profile - show account selection so they can add family or continue
+                if (accountCount === 1 && accountList[0].hasProfile) {
+                  setAccounts(accountList);
                   setPatientId(accountList[0].patientId);
                   setIsExistingUser(true);
-                  window.location.href = '/dashboard';
-                  return;
+                  setStep("accountSelection");
                 }
-                
                 // Multiple accounts - show selection screen
-                if (accountCount > 1) {
+                else if (accountCount > 1) {
                   setAccounts(accountList);
                   setIsExistingUser(true);
                   setStep("accountSelection");
@@ -127,9 +126,9 @@ export default function SignupFlow() {
                   setIsExistingUser(true);
                   setStep("profile");
                 }
-                // New user (accountCount === 1 but account was just created) - create profile
+                // New user (should not happen as backend creates account) - create profile
                 else {
-                  setPatientId(accountList[0].patientId);
+                  setPatientId(accountList[0]?.patientId);
                   setIsExistingUser(false);
                   setStep("profile");
                 }
