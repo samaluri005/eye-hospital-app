@@ -188,7 +188,7 @@ export default function ProfileStep({ onNext, onSkip }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Suffix
+                Title
               </label>
               <select 
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
@@ -196,11 +196,11 @@ export default function ProfileStep({ onNext, onSkip }: Props) {
                 onChange={(e)=>setNameSuffix(e.target.value)}
               >
                 <option value="">None</option>
-                <option value="Jr">Jr</option>
-                <option value="Sr">Sr</option>
-                <option value="II">II</option>
-                <option value="III">III</option>
-                <option value="IV">IV</option>
+                <option value="Mr">Mr</option>
+                <option value="Mrs">Mrs</option>
+                <option value="Miss">Miss</option>
+                <option value="Ms">Ms</option>
+                <option value="Dr">Dr</option>
               </select>
             </div>
           </div>

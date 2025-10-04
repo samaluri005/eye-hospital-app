@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, boolean, integer, decimal, uuid, jsonb, inet, bytea } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, timestamp, boolean, integer, decimal, uuid, jsonb, inet } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
@@ -14,7 +14,7 @@ export const patient = pgTable('patient', {
   phone: varchar('phone', { length: 20 }).notNull(),
   fullName: varchar('full_name', { length: 255 }),
   dob: timestamp('dob'),
-  mrnEncrypted: bytea('mrn_encrypted'),
+  mrnEncrypted: text('mrn_encrypted'),
   status: varchar('status', { length: 50 }).notNull().default('active'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -23,7 +23,7 @@ export const patient = pgTable('patient', {
   firstName: varchar('first_name', { length: 100 }),
   lastName: varchar('last_name', { length: 100 }),
   middleName: varchar('middle_name', { length: 100 }),
-  nameSuffix: varchar('name_suffix', { length: 20 }), // Jr, Sr, III, etc.
+  nameSuffix: varchar('name_suffix', { length: 20 }), // Mr, Mrs, Miss, Dr, etc.
   fullNameStandardized: varchar('full_name_standardized', { length: 255 }),
   phoneStandardized: varchar('phone_standardized', { length: 20 }),
   address: text('address'),
