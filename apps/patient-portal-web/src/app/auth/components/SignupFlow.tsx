@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import axios from "axios";
 import PhoneStep from "./PhoneStep";
 import OtpStep from "./OtpStep";
 import ProfileStep, { type ProfileData } from "./ProfileStep";
@@ -101,8 +102,50 @@ export default function SignupFlow() {
 
           {step === "profile" && (
             <ProfileStep
-              onNext={(data) => { setProfile(data); setStep("consent"); }}
-              onSkip={() => setStep("consent")}
+              onNext={async (data) => {
+                setProfile(data);
+                
+                // Call registration API to create patient record in PostgreSQL
+                try {
+                  const response = await axios.post('/api/auth/register', {
+                    phone,
+                    linkToken,
+                    profile: data,
+                  });
+                  
+                  if (response.data.status === 'registration_complete' || response.data.status === 'existing_patient') {
+                    setPatientId(response.data.patientId);
+                    setStep("consent");
+                  } else {
+                    alert('Registration failed. Please try again.');
+                  }
+                } catch (error: any) {
+                  console.error('Registration error:', error);
+                  alert(error.response?.data?.message || 'Failed to create patient record. Please try again.');
+                }
+              }}
+              onSkip={async () => {
+                // Even if skipped, we need to create basic patient record
+                try {
+                  const response = await axios.post('/api/auth/register', {
+                    phone,
+                    linkToken,
+                    profile: {
+                      firstName: 'Patient',
+                      lastName: phone.slice(-4),
+                      dateOfBirth: '2000-01-01', // Placeholder
+                    },
+                  });
+                  
+                  if (response.data.patientId) {
+                    setPatientId(response.data.patientId);
+                    setStep("consent");
+                  }
+                } catch (error) {
+                  console.error('Registration error:', error);
+                  alert('Failed to proceed. Please complete your profile.');
+                }
+              }}
             />
           )}
 
