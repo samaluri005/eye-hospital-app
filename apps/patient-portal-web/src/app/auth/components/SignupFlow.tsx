@@ -95,7 +95,30 @@ export default function SignupFlow() {
           {step === "otp" && (
             <OtpStep
               phone={phone}
-              onVerified={(pid, token) => { setPatientId(pid); setLinkToken(token); setStep("profile"); }}
+              onVerified={async (pid, token) => { 
+                setPatientId(pid); 
+                setLinkToken(token); 
+                
+                // Check if patient already exists with profile data
+                try {
+                  const response = await axios.post('/api/auth/check-patient', {
+                    phone,
+                  });
+                  
+                  // If patient exists with profile, skip to success
+                  if (response.data.exists && response.data.hasProfile) {
+                    setPatientId(response.data.patientId);
+                    setStep("done");
+                  } else {
+                    // New patient or no profile data, show profile step
+                    setStep("profile");
+                  }
+                } catch (error) {
+                  // On error, default to showing profile step
+                  console.error('Error checking patient status:', error);
+                  setStep("profile");
+                }
+              }}
               onBack={() => setStep("phone")}
             />
           )}
