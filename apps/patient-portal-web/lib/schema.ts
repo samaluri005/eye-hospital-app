@@ -108,6 +108,7 @@ export const linkToken = pgTable('link_token', {
   expiresAt: timestamp('expires_at').notNull(),
   used: boolean('used').default(false),
   usedAt: timestamp('used_at'),
+  verified: boolean('verified').default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

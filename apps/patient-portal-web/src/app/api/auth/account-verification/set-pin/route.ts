@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../../../lib/db';
 import { patient, patientPin, hipaaAuditLog } from '../../../../../../lib/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
@@ -31,6 +31,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'PINs do not match' },
         { status: 400 }
+      );
+    }
+
+    // SECURITY: Validate linkToken before allowing PIN creation
+    const secret = process.env.LINK_TOKEN_HMAC_SECRET || process.env.OTP_HMAC_SECRET;
+    if (!secret) {
+      console.error('LINK_TOKEN_HMAC_SECRET not configured');
+      return NextResponse.json(
+        { error: 'service_configuration_error' },
+        { status: 500 }
+      );
+    }
+
+    const tokenHash = crypto.createHmac('sha256', secret).update(linkToken).digest('hex');
+
+    // Validate linkToken exists, matches patient, and is not used/expired
+    const linkTokenRecords = await db.execute(sql`
+      SELECT id, patient_id, expires_at, used
+      FROM link_token
+      WHERE token_hash = ${tokenHash}
+      AND patient_id = ${patientId}::uuid
+      AND used = false
+      AND expires_at > NOW()
+      LIMIT 1
+    `);
+
+    if (linkTokenRecords.rows.length === 0) {
+      return NextResponse.json(
+        { error: 'Invalid or expired link token' },
+        { status: 401 }
       );
     }
 
@@ -76,6 +106,14 @@ export async function POST(request: NextRequest) {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+
+    // Mark linkToken as verified (PIN creation counts as verification)
+    const linkTokenRecord = linkTokenRecords.rows[0] as any;
+    await db.execute(sql`
+      UPDATE link_token
+      SET verified = true
+      WHERE id = ${linkTokenRecord.id}
+    `);
 
     // Log PIN creation
     await db.insert(hipaaAuditLog).values({

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createSession } from '../../../../../lib/sessionService';
-import { sql } from '@vercel/postgres';
+import { db } from '../../../../../lib/db';
+import { linkToken as linkTokenTable } from '../../../../../lib/schema';
+import { eq, and, sql } from 'drizzle-orm';
 import { createHash, createHmac } from 'crypto';
 
 export async function POST(request: Request) {
@@ -31,31 +33,39 @@ export async function POST(request: Request) {
       .digest('hex');
 
     // Query the link_token table to validate
-    const { rows } = await sql`
-      SELECT id, patient_id, expires_at, used
+    const linkTokenRecords = await db.execute(sql`
+      SELECT id, patient_id, expires_at, used, verified
       FROM link_token
       WHERE token_hash = ${tokenHash}
-      AND patient_id = ${patientId}
+      AND patient_id = ${patientId}::uuid
       AND used = false
       AND expires_at > NOW()
       LIMIT 1
-    `;
+    `);
 
-    if (rows.length === 0) {
+    if (linkTokenRecords.rows.length === 0) {
       return NextResponse.json(
         { error: 'invalid_or_expired_link_token' },
         { status: 401 }
       );
     }
 
-    const linkTokenRecord = rows[0];
+    const linkTokenRecord = linkTokenRecords.rows[0] as any;
+
+    // SECURITY: Require verification before creating session
+    if (!linkTokenRecord.verified) {
+      return NextResponse.json(
+        { error: 'verification_required' },
+        { status: 403 }
+      );
+    }
 
     // Mark token as used (one-time use only)
-    await sql`
+    await db.execute(sql`
       UPDATE link_token
       SET used = true, used_at = NOW()
       WHERE id = ${linkTokenRecord.id}
-    `;
+    `);
 
     // Create secure session for the selected patient account
     const clientIp =
