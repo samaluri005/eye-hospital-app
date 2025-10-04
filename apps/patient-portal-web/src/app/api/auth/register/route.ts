@@ -102,13 +102,25 @@ export async function POST(request: NextRequest) {
       .where(eq(patient.phone, phone))
       .limit(1);
 
-    if (existingPatient.length > 0) {
-      console.log(`[REGISTER] Patient already exists with phone ${phone}`);
+    if (existingPatient.length > 0 && existingPatient[0].firstName) {
+      // Patient exists and has complete profile - this is a returning user (sign-in)
+      console.log(`[REGISTER] Patient already exists with complete profile: ${phone}`);
       return NextResponse.json({
         status: 'existing_patient',
         patientId: existingPatient[0].patientId,
         message: 'Patient record already exists for this phone number',
       });
+    }
+    
+    // If patient exists but has incomplete profile, update it
+    let patientId: string;
+    let isUpdate = false;
+    
+    if (existingPatient.length > 0 && !existingPatient[0].firstName) {
+      // Patient exists but no profile data - update the record
+      patientId = existingPatient[0].patientId;
+      isUpdate = true;
+      console.log(`[REGISTER] Updating profile for existing patient: ${patientId}`);
     }
 
     // Standardize data for CDC de-duplication
@@ -136,42 +148,80 @@ export async function POST(request: NextRequest) {
     // Generate system email for phone-only users
     const systemEmail = email || `${phone.replace(/\D/g, '')}@patients.eyehospital.com`;
 
-    // Create patient record in database
-    const newPatient = await db.insert(patient).values({
-      phone: phoneStandardized,
-      email: email || null,
-      systemEmail,
-      emailVerifiedAt: email ? sql`NOW()` : null,
-      firstName: profile.firstName.trim(),
-      middleName: profile.middleName?.trim() || null,
-      lastName: profile.lastName.trim(),
-      nameSuffix: profile.nameSuffix?.trim() || null,
-      fullName,
-      fullNameStandardized,
-      dob: new Date(profile.dateOfBirth),
-      gender: profile.gender || null,
-      addressLine1: profile.addressLine1?.trim() || null,
-      addressLine2: profile.addressLine2?.trim() || null,
-      city: profile.city?.trim() || null,
-      state: profile.state?.trim() || null,
-      postalCode: profile.postalCode?.trim() || null,
-      country: profile.country || 'India',
-      address: addressString,
-      addressStandardized,
-      emergencyContact: profile.emergencyContact?.trim() || null,
-      emergencyPhone: profile.emergencyPhone?.trim() || null,
-      // CDC de-duplication fields
-      phoneStandardized,
-      soundexLastName,
-      blockingKey,
-      // Trust and verification
-      trustLevel: 'low', // Will upgrade to 'medium' after ID verification, 'high' after in-person
-      status: 'active',
-    }).returning();
+    // Create or update patient record in database
+    if (isUpdate) {
+      // Update existing patient with profile data
+      await db.update(patient)
+        .set({
+          email: email || null,
+          systemEmail,
+          emailVerifiedAt: email ? sql`NOW()` : null,
+          firstName: profile.firstName.trim(),
+          middleName: profile.middleName?.trim() || null,
+          lastName: profile.lastName.trim(),
+          nameSuffix: profile.nameSuffix?.trim() || null,
+          fullName,
+          fullNameStandardized,
+          dob: new Date(profile.dateOfBirth),
+          gender: profile.gender || null,
+          addressLine1: profile.addressLine1?.trim() || null,
+          addressLine2: profile.addressLine2?.trim() || null,
+          city: profile.city?.trim() || null,
+          state: profile.state?.trim() || null,
+          postalCode: profile.postalCode?.trim() || null,
+          country: profile.country || 'India',
+          address: addressString,
+          addressStandardized,
+          emergencyContact: profile.emergencyContact?.trim() || null,
+          emergencyPhone: profile.emergencyPhone?.trim() || null,
+          // CDC de-duplication fields
+          phoneStandardized,
+          soundexLastName,
+          blockingKey,
+          // Trust and verification
+          trustLevel: 'low',
+          updatedAt: sql`NOW()`,
+        })
+        .where(eq(patient.patientId, patientId));
+      
+      console.log(`[REGISTER] Updated patient profile: ${patientId}`);
+    } else {
+      // Create new patient record
+      const newPatient = await db.insert(patient).values({
+        phone: phoneStandardized,
+        email: email || null,
+        systemEmail,
+        emailVerifiedAt: email ? sql`NOW()` : null,
+        firstName: profile.firstName.trim(),
+        middleName: profile.middleName?.trim() || null,
+        lastName: profile.lastName.trim(),
+        nameSuffix: profile.nameSuffix?.trim() || null,
+        fullName,
+        fullNameStandardized,
+        dob: new Date(profile.dateOfBirth),
+        gender: profile.gender || null,
+        addressLine1: profile.addressLine1?.trim() || null,
+        addressLine2: profile.addressLine2?.trim() || null,
+        city: profile.city?.trim() || null,
+        state: profile.state?.trim() || null,
+        postalCode: profile.postalCode?.trim() || null,
+        country: profile.country || 'India',
+        address: addressString,
+        addressStandardized,
+        emergencyContact: profile.emergencyContact?.trim() || null,
+        emergencyPhone: profile.emergencyPhone?.trim() || null,
+        // CDC de-duplication fields
+        phoneStandardized,
+        soundexLastName,
+        blockingKey,
+        // Trust and verification
+        trustLevel: 'low',
+        status: 'active',
+      }).returning();
 
-    const patientId = newPatient[0].patientId;
-
-    console.log(`[REGISTER] Created new patient record: ${patientId}`);
+      patientId = newPatient[0].patientId;
+      console.log(`[REGISTER] Created new patient record: ${patientId}`);
+    }
 
     // Run CDC de-duplication algorithm to find potential duplicates
     try {
