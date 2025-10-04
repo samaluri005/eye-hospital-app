@@ -15,37 +15,42 @@ import {
   type PatientData 
 } from '../../../../../src/lib/deduplication/matching';
 
-// Validate link token (same HMAC logic as consent API)
-function validateLinkToken(token: string, phone: string): boolean {
+// Validate link token against database (matches temp-auth-service format)
+async function validateLinkToken(token: string, phone: string): Promise<boolean> {
   try {
-    const secret = process.env.LINK_TOKEN_HMAC_SECRET;
+    const secret = process.env.LINK_TOKEN_HMAC_SECRET || process.env.OTP_HMAC_SECRET;
     if (!secret) {
       console.error('LINK_TOKEN_HMAC_SECRET not configured');
       return false;
     }
 
-    // Token format: base64(phone:timestamp:hmac)
-    const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const [tokenPhone, timestamp, providedHmac] = decoded.split(':');
+    // Generate hash of provided token (matches temp-auth-service logic)
+    const tokenHash = crypto.createHmac('sha256', secret).update(token).digest('hex');
 
-    // Verify phone matches
-    if (tokenPhone !== phone) {
+    // Check if patient exists with this phone
+    const patientResult = await db.select()
+      .from(patient)
+      .where(eq(patient.phone, phone))
+      .limit(1);
+
+    if (patientResult.length === 0) {
+      console.error('[REGISTER] Patient not found for phone:', phone);
       return false;
     }
 
-    // Verify not expired (10 minutes)
-    const tokenTime = parseInt(timestamp, 10);
-    const now = Date.now();
-    if (now - tokenTime > 10 * 60 * 1000) {
-      return false;
-    }
+    const patientId = patientResult[0].patientId;
 
-    // Verify HMAC signature
-    const hmac = crypto.createHmac('sha256', secret);
-    hmac.update(`${phone}:${timestamp}`);
-    const calculatedHmac = hmac.digest('hex');
+    // Check link_token table using raw SQL (temp-auth-service uses token_hash column)
+    const linkTokenResult = await db.execute(sql`
+      SELECT * FROM link_token 
+      WHERE patient_id = ${patientId}
+      AND token_hash = ${tokenHash}
+      AND used = false
+      AND expires_at > NOW()
+      LIMIT 1
+    `);
 
-    return calculatedHmac === providedHmac;
+    return linkTokenResult.rows.length > 0;
   } catch (error) {
     console.error('Link token validation error:', error);
     return false;
@@ -66,7 +71,8 @@ export async function POST(request: NextRequest) {
     }
 
     // CRITICAL SECURITY: Validate link token to ensure caller is authorized
-    if (!validateLinkToken(linkToken, phone)) {
+    const isValidToken = await validateLinkToken(linkToken, phone);
+    if (!isValidToken) {
       console.error(`[REGISTER] Invalid or expired link token for phone ${phone}`);
       return NextResponse.json(
         { error: 'Invalid or expired authorization token' },
