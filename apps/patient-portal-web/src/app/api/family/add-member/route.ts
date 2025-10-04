@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../../lib/db';
-import { patient, familyAccess, patientConsents } from '../../../../../lib/schema';
-import { eq } from 'drizzle-orm';
+import { patient, familyAccess, patientConsents, linkToken as linkTokenTable } from '../../../../../lib/schema';
+import { eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 
 export const FAMILY_RELATIONSHIPS = [
   { value: 'spouse', label: 'Spouse' },
@@ -92,17 +93,26 @@ export async function POST(request: NextRequest) {
       isActive: true,
     });
 
-    await db.insert(patientConsents).values({
-      patientId: newPatientId,
-      consentType: 'family_access_granted_by_guardian',
-      granted: true,
-      grantedAt: new Date(),
-      createdAt: new Date(),
-    });
+    // Generate linkToken for consent step (10 minute expiry)
+    const secret = process.env.LINK_TOKEN_HMAC_SECRET || process.env.OTP_HMAC_SECRET;
+    if (!secret) {
+      throw new Error('LINK_TOKEN_HMAC_SECRET not configured');
+    }
+    
+    const token = uuidv4();
+    const tokenHash = crypto.createHmac('sha256', secret).update(token).digest('hex');
+    const expiresAtToken = new Date();
+    expiresAtToken.setMinutes(expiresAtToken.getMinutes() + 10);
+
+    await db.execute(sql`
+      INSERT INTO link_token (patient_id, token_hash, expires_at, used, created_at, used_at)
+      VALUES (${newPatientId}, ${tokenHash}, ${expiresAtToken}, false, NOW(), NULL)
+    `);
 
     return NextResponse.json({
       success: true,
       patientId: newPatientId,
+      linkToken: token,
       message: 'Family member added successfully',
     });
   } catch (error) {
