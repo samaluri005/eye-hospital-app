@@ -264,6 +264,18 @@ export const patientSessions = pgTable('patient_sessions', {
   isActive: boolean('is_active').default(true),
 });
 
+// Patient PIN for second-factor verification (NEW)
+export const patientPin = pgTable('patient_pin', {
+  id: serial('id').primaryKey(),
+  patientId: uuid('patient_id').notNull().unique().references(() => patient.patientId),
+  pinHash: varchar('pin_hash', { length: 255 }).notNull(),
+  salt: varchar('salt', { length: 255 }).notNull(),
+  failedAttempts: integer('failed_attempts').default(0),
+  lockedUntil: timestamp('locked_until'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // ============================================================================
 // HIPAA AUDIT LOGGING (Enhanced version of existing audit_log) (NEW)
 // ============================================================================
