@@ -104,9 +104,9 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
 
         {/* Send Button */}
         <button 
-          className={`bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 w-full flex items-center justify-center space-x-2 ${loading || !isValidPhone ? 'opacity-75 cursor-not-allowed' : ''}`}
+          className={`bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 w-full flex items-center justify-center space-x-2 ${loading || !isValidPhone || !isReady ? 'opacity-75 cursor-not-allowed' : ''}`}
           onClick={sendOtp} 
-          disabled={loading || !isValidPhone}
+          disabled={loading || !isValidPhone || !isReady}
         >
           {loading ? (
             <>

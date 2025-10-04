@@ -26,6 +26,15 @@ This is a comprehensive Eye Hospital Management System built as a monorepo with 
 
 ## Recent Changes
 ### October 4, 2025 (Latest Session)
+- **reCAPTCHA v3 INTEGRATION**: Implemented comprehensive bot protection for authentication flows
+  - Client-side React hook (`useRecaptcha`) with automatic script loading
+  - Server-side verification utility with configurable action-based thresholds
+  - Action-based scoring: signup (0.7), signin (0.5), verify (0.6)
+  - RecaptchaBadge component for Google Terms & Privacy Policy disclosure
+  - Integrated into PhoneStep (initial authentication entry point)
+  - Integrated into OtpStep (verification and resend actions)
+  - Integrated into send-otp and verify-otp API endpoints
+  - Score interpretation: High (≥0.9), Medium (≥0.7), Low (≥0.5), Bot (<0.5)
 - **CDC DATA STANDARDIZATION SERVICE**: Implemented comprehensive data normalization algorithms
   - Name/phone/address standardization with special character removal
   - E.164 phone formatting using libphonenumber-js
@@ -120,6 +129,15 @@ NEXT_PUBLIC_AZURE_TENANT_ID=your_azure_tenant_id
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_FROM_NUMBER=+1234567890
+```
+
+#### reCAPTCHA v3 Configuration
+```bash
+# Google reCAPTCHA v3 site key (public, safe to expose in client)
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_site_key
+
+# Google reCAPTCHA v3 secret key (keep secure, server-side only)
+RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key
 ```
 
 ### Local Development Prerequisites

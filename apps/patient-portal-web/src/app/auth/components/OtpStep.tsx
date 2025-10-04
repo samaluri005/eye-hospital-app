@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useRecaptcha } from "../../../hooks/useRecaptcha";
 
 type Props = {
   phone: string;
@@ -14,6 +15,7 @@ export default function OtpStep({ phone, onVerified, onBack }: Props) {
   const [loading, setLoading] = useState(false);
   const [resendDisabledUntil, setResendDisabledUntil] = useState<number | null>(null);
   const [attemptsLeft, setAttemptsLeft] = useState<number | null>(3);
+  const { executeRecaptcha } = useRecaptcha();
 
   useEffect(() => {
     let timer: any;
@@ -29,7 +31,19 @@ export default function OtpStep({ phone, onVerified, onBack }: Props) {
     setErr(null);
     setLoading(true);
     try {
-      const r = await axios.post(`/api/auth/verify-otp`, { phone, otp });
+      const recaptchaToken = await executeRecaptcha('verify');
+      
+      if (!recaptchaToken) {
+        setErr("Security verification failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      const r = await axios.post(`/api/auth/verify-otp`, { 
+        phone, 
+        otp,
+        recaptchaToken 
+      });
       if (r.data?.status === "verified") {
         onVerified(r.data.patientId, r.data.linkToken);
       } else {
@@ -48,7 +62,18 @@ export default function OtpStep({ phone, onVerified, onBack }: Props) {
     setErr(null);
     setLoading(true);
     try {
-      await axios.post(`/api/auth/send-otp`, { phone });
+      const recaptchaToken = await executeRecaptcha('signup');
+      
+      if (!recaptchaToken) {
+        setErr("Security verification failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      await axios.post(`/api/auth/send-otp`, { 
+        phone,
+        recaptchaToken 
+      });
       // disable resend for 15s quick UI; backend enforces server limits
       setResendDisabledUntil(Date.now() + 15000);
     } catch (e: any) {
