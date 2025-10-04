@@ -57,9 +57,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Get IP address for audit trail (HIPAA requirement)
-    const ipAddress = request.headers.get('x-forwarded-for') || 
-                      request.headers.get('x-real-ip') || 
-                      'unknown';
+    // x-forwarded-for can contain multiple IPs (client, proxy1, proxy2), take the first one
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const ipAddress = forwardedFor 
+      ? forwardedFor.split(',')[0].trim()
+      : (request.headers.get('x-real-ip') || 'unknown');
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     // Use transaction for atomic consent recording (HIPAA compliance)
