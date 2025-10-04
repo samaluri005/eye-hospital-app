@@ -103,10 +103,11 @@ export const otpAttempt = pgTable('otp_attempt', {
 // Existing link_token table (keep as-is)
 export const linkToken = pgTable('link_token', {
   id: serial('id').primaryKey(),
-  token: varchar('token', { length: 255 }).notNull().unique(),
+  tokenHash: varchar('token_hash', { length: 255 }).notNull().unique(),
   patientId: uuid('patient_id').notNull().references(() => patient.patientId),
   expiresAt: timestamp('expires_at').notNull(),
   used: boolean('used').default(false),
+  usedAt: timestamp('used_at'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

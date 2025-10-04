@@ -5,6 +5,8 @@ const tenantId = process.env.NEXT_PUBLIC_AZURE_TENANT_ID!;
 const clientId = process.env.NEXT_PUBLIC_AZURE_CLIENT_ID!;
 const clientSecret = process.env.AZURE_CLIENT_SECRET!;
 
+const tenantDomain = process.env.AZURE_TENANT_DOMAIN || 'eyehospitalb9337298.onmicrosoft.com';
+
 let graphClient: Client | null = null;
 
 export function getGraphClient(): Client {
@@ -52,25 +54,28 @@ export async function createEntraUser(input: CreateEntraUserInput): Promise<Entr
   const client = getGraphClient();
 
   try {
+    const mailNickname = input.email.split('@')[0];
+    const userPrincipalName = `${mailNickname}@${tenantDomain}`;
+
     const user = await client.api('/users').post({
       accountEnabled: true,
       displayName: input.displayName,
-      mailNickname: input.email.split('@')[0],
-      userPrincipalName: input.email,
+      mailNickname: mailNickname,
+      userPrincipalName: userPrincipalName,
       passwordProfile: {
         forceChangePasswordNextSignIn: false,
-        password: crypto.randomUUID() + 'Aa1!', // Random password (not used for passwordless auth)
+        password: crypto.randomUUID() + 'Aa1!',
       },
       identities: [
         {
           signInType: 'emailAddress',
-          issuer: `${tenantId}.onmicrosoft.com`,
+          issuer: tenantDomain,
           issuerAssignedId: input.email,
         },
       ],
     });
 
-    console.log(`✅ Created Entra user: ${user.id} (${input.email})`);
+    console.log(`✅ Created Entra user: ${user.id} (${userPrincipalName})`);
     return user as EntraUser;
   } catch (error: any) {
     if (error?.code === 'Request_ResourceNotFound' || error?.statusCode === 404) {
@@ -84,6 +89,7 @@ export async function createEntraUser(input: CreateEntraUserInput): Promise<Entr
     }
     
     console.error('❌ Graph API error:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     throw new Error(`Failed to create Entra user: ${error.message || 'Unknown error'}`);
   }
 }

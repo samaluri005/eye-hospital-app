@@ -26,6 +26,14 @@ This is a comprehensive Eye Hospital Management System built as a monorepo with 
 
 ## Recent Changes
 ### October 4, 2025 (Latest Session)
+- **MICROSOFT GRAPH API INTEGRATION**: Implemented automatic Entra External ID user provisioning
+  - Graph API client utility (`lib/graphClient.ts`) with ClientSecretCredential authentication
+  - Automatic user creation during signup with system-generated emails ({phone}@patients.eyehospital.com)
+  - Proper tenant domain configuration for valid issuer in identity creation
+  - PostgreSQL entraObjectId field to link patients to Entra users
+  - OnTokenIssuanceStart extension queries PostgreSQL to inject patientId as custom JWT claim
+  - Error handling ensures registration succeeds even if Entra creation fails (graceful degradation)
+  - Cleaned up legacy Auth Service and Entra OTP API workflows (functionality now in Patient Portal)
 - **reCAPTCHA v3 INTEGRATION**: Implemented comprehensive bot protection for authentication flows
   - Client-side React hook (`useRecaptcha`) with automatic script loading
   - Server-side verification utility with configurable action-based thresholds
