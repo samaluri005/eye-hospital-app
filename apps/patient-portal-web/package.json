@@ -14,15 +14,18 @@
     "@azure/msal-browser": "^4.23.0",
     "@azure/msal-react": "^3.0.19",
     "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@types/ioredis": "^5.0.0",
     "@types/node": "^20.10.0",
     "@types/pg": "^8.15.5",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@types/uuid": "^11.0.0",
     "autoprefixer": "^10.4.0",
     "axios": "^1.12.2",
     "double-metaphone": "^2.0.1",
     "drizzle-kit": "^0.31.5",
     "drizzle-orm": "^0.44.6",
+    "ioredis": "^5.8.0",
     "jose": "^6.1.0",
     "libphonenumber-js": "^1.12.18",
     "next": "^14.0.0",
@@ -33,7 +36,8 @@
     "react-dom": "^18.2.0",
     "tailwindcss": "^3.3.0",
     "twilio": "^5.10.2",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.0",
