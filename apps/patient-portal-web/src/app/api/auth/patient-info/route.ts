@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     const patientRecords = await db.execute(sql`
       SELECT 
         dob,
-        (SELECT COUNT(*) FROM patient_pin WHERE patient_id = ${patientId}::uuid AND deleted_at IS NULL) as has_pin
+        (SELECT COUNT(*) FROM patient_pin WHERE patient_id = ${patientId}::uuid) as has_pin
       FROM patient
       WHERE id = ${patientId}::uuid
       LIMIT 1

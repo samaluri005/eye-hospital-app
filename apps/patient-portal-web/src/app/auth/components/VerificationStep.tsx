@@ -193,9 +193,9 @@ export default function VerificationStep({
             />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">Verify Identity</h2>
-        <p className="text-gray-600 mt-2">
-          Please verify your identity for: <strong>{patientName}</strong>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Verify Your Identity</h2>
+        <p className="text-gray-600">
+          {patientName}
         </p>
       </div>
 
