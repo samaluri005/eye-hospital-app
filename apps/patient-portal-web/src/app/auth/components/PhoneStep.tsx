@@ -120,7 +120,17 @@ export default function PhoneStep({ initialPhone = "", onSent }: Props) {
         </div>
         <div className="text-xs text-gray-600 leading-relaxed">
           <p className="font-medium">HIPAA compliant • Protected by reCAPTCHA</p>
-          <p className="text-gray-500 mt-0.5">Google Privacy Policy and Terms of Service apply</p>
+          <p className="text-gray-500 mt-0.5">
+            Google{' '}
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+              Privacy Policy
+            </a>
+            {' '}and{' '}
+            <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+              Terms of Service
+            </a>
+            {' '}apply
+          </p>
         </div>
       </div>
     </div>

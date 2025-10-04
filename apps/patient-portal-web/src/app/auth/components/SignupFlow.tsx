@@ -38,7 +38,7 @@ export default function SignupFlow() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-2xl w-full">
+      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
         {/* Header with Medical Branding - Only on Phone Step */}
         {step === "phone" && (
           <div className="text-center mb-8">
