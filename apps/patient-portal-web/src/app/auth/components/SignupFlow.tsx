@@ -84,28 +84,13 @@ export default function SignupFlow() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex justify-center items-center gap-4">
-                  <SocialSignInButton provider="google" patientId={patientId} linkToken={linkToken} />
-                  <SocialSignInButton provider="microsoft" patientId={patientId} linkToken={linkToken} />
-                  <SocialSignInButton provider="x" patientId={patientId} linkToken={linkToken} />
-                  <SocialSignInButton provider="instagram" patientId={patientId} linkToken={linkToken} />
-                  <SocialSignInButton provider="facebook" patientId={patientId} linkToken={linkToken} />
-                  <SocialSignInButton provider="apple" patientId={patientId} linkToken={linkToken} />
-                </div>
-                
-                {/* Social Login Info Card */}
-                <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg">
-                  <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-amber-900">Account Verification Required</h4>
-                    <p className="text-xs text-amber-700 mt-0.5">Social accounts without phone numbers will require verification before account linking</p>
-                  </div>
-                </div>
+              <div className="flex justify-center items-center gap-4">
+                <SocialSignInButton provider="google" patientId={patientId} linkToken={linkToken} />
+                <SocialSignInButton provider="microsoft" patientId={patientId} linkToken={linkToken} />
+                <SocialSignInButton provider="x" patientId={patientId} linkToken={linkToken} />
+                <SocialSignInButton provider="instagram" patientId={patientId} linkToken={linkToken} />
+                <SocialSignInButton provider="facebook" patientId={patientId} linkToken={linkToken} />
+                <SocialSignInButton provider="apple" patientId={patientId} linkToken={linkToken} />
               </div>
             </>
           )}
