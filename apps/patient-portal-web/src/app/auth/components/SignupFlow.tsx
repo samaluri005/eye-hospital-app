@@ -14,7 +14,6 @@ const ProfileStep = dynamic(() => import("./ProfileStep"), { ssr: false });
 const ConsentStep = dynamic(() => import("./ConsentStep"), { ssr: false });
 const MfaStep = dynamic(() => import("./MfaStep"), { ssr: false });
 const TestApi = dynamic(() => import("./TestApi"), { ssr: false });
-const SocialSignInButton = dynamic(() => import("./SocialSignInButton"), { ssr: false });
 
 export type Step = "phone" | "otp" | "accountSelection" | "verification" | "profile" | "consent" | "mfa" | "done";
 
@@ -29,6 +28,7 @@ export default function SignupFlow() {
   const [primaryPatientId, setPrimaryPatientId] = useState<string | null>(null);
   const [isExistingUser, setIsExistingUser] = useState(false);
   const [selectedAccountName, setSelectedAccountName] = useState<string>("");
+  const [showSocialButtons, setShowSocialButtons] = useState(false);
 
   const stepTitles = {
     phone: "Welcome to Your Care",
@@ -68,24 +68,8 @@ export default function SignupFlow() {
                 onSent={(p) => { setPhone(p); setStep("otp"); }}
               />
               
-              {/* Social Sign-In Options - Only on Phone Step */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500 font-medium">Or continue with</span>
-                </div>
-              </div>
-
-              <div className="flex justify-center items-center gap-4">
-                <SocialSignInButton provider="google" patientId={patientId} linkToken={linkToken} />
-                <SocialSignInButton provider="microsoft" patientId={patientId} linkToken={linkToken} />
-                <SocialSignInButton provider="x" patientId={patientId} linkToken={linkToken} />
-                <SocialSignInButton provider="instagram" patientId={patientId} linkToken={linkToken} />
-                <SocialSignInButton provider="facebook" patientId={patientId} linkToken={linkToken} />
-                <SocialSignInButton provider="apple" patientId={patientId} linkToken={linkToken} />
-              </div>
+              {/* Social Sign-In Options - Removed to improve performance */}
+              {/* Users can use phone/SMS authentication which is faster and more secure */}
             </>
           )}
 
