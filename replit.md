@@ -31,7 +31,8 @@ The project is structured as a monorepo utilizing pnpm workspaces and Turbo for 
 - Improved spacing and card-like layouts for better readability.
 
 **Technical Implementations:**
-- **Two-Factor Authentication (2FA)**: Implemented using Date of Birth (DOB) and a 4-digit PIN with conditional flows for new/existing users and family members. This includes bcrypt hashing for PINs, failed attempt tracking, 15-minute lockout after 5 failed attempts, and LinkToken validation to prevent brute-force attacks.
+- **Phase 1 Identity Architecture (COMPLETED)**: UPI-first approach with 9 new tables (users, credentials, external_identities, proxy_access, verification_evidence, staff_invites, empi_records, merge_tickets, attempt_counters). Argon2id password hashing with automatic bcrypt legacy migration. PostgreSQL extensions enabled (pgcrypto, pg_trgm).
+- **Two-Factor Authentication (2FA)**: Implemented using Date of Birth (DOB) and a 4-digit PIN with conditional flows for new/existing users and family members. Now uses Argon2id hashing with pepper for enhanced security, includes failed attempt tracking, 15-minute lockout after 5 failed attempts, and LinkToken validation to prevent brute-force attacks.
 - **Session Management**: Secure HTTP-only cookie authentication with session revocation on new logins, PostgreSQL cross-checks for active sessions, and atomic invalidation.
 - **CDC Data Standardization and Matching**: Algorithms for name/phone/address standardization (E.164, Soundex, Metaphone), string similarity (Levenshtein, Jaro, Jaro-Winkler), and multi-field matching with weighted scoring for duplicate detection and patient identity management.
 - **Authentication Flow**: Consolidated and improved authentication components following Next.js best practices.
