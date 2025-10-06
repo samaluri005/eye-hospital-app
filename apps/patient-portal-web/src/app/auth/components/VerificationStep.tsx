@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import LoadingSpinner from "./LoadingSpinner";
+import { maskUPI } from "../../../../lib/utils";
 
 interface VerificationStepProps {
   patientId: string;
   patientName: string;
+  patientUpi?: string;
   linkToken: string;
   onVerified: () => void;
   onBack: () => void;
@@ -17,12 +19,14 @@ interface VerificationStepProps {
 export default function VerificationStep({
   patientId,
   patientName,
+  patientUpi = "",
   linkToken,
   onVerified,
   onBack,
   isNewUser = false,
   profileDob = "",
 }: VerificationStepProps) {
+  const [upi, setUpi] = useState(patientUpi);
   const [dob, setDob] = useState(profileDob); // Pre-fill with profile DOB for new users
   const [pin, setPin] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
@@ -191,6 +195,37 @@ export default function VerificationStep({
       </div>
 
       <form onSubmit={handleVerify} className="space-y-6">
+        {/* UPI Display/Edit - Show masked UPI if available */}
+        {upi && (
+          <div>
+            <label
+              htmlFor="upi"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              UPI (Unique Patient ID)
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                id="upi"
+                value={upi}
+                onChange={(e) => setUpi(e.target.value.toUpperCase())}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono bg-gray-50"
+                placeholder={maskUPI(upi)}
+                disabled={loading || !!isLocked}
+              />
+              <div className="absolute right-3 top-3 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Verify your UPI is correct (shown as {maskUPI(upi)})
+            </p>
+          </div>
+        )}
+
         {/* DOB Input - Only for existing users */}
         {!isNewUser && (
           <div>

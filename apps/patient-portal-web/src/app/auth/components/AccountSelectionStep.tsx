@@ -1,9 +1,11 @@
 "use client";
 import React from "react";
+import { maskUPI } from "../../../../lib/utils";
 
 export interface AccountOption {
   patientId: string;
   name: string;
+  upi?: string;
   hasProfile: boolean;
   relationship?: string;
   isPrimary?: boolean;
@@ -46,6 +48,14 @@ export default function AccountSelectionStep({
                   {account.name}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
+                  {account.upi && (
+                    <>
+                      <span className="text-sm text-gray-600 font-mono">
+                        UPI: {maskUPI(account.upi)}
+                      </span>
+                      <span className="text-gray-300">•</span>
+                    </>
+                  )}
                   <span className="text-sm text-gray-600">
                     {account.relationship || "Primary Account"}
                   </span>
