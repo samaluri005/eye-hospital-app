@@ -3,7 +3,7 @@ import { db } from '../../../../../../lib/db';
 import { patient, patientPin, hipaaAuditLog } from '../../../../../../lib/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
+import { verifyPin, needsPasswordUpgrade, hashPin } from '../../../../../../lib/argon2';
 
 export async function POST(request: NextRequest) {
   try {
@@ -142,9 +142,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate PIN
+    // Validate PIN with Argon2id
     const pinRecord = pinData[0];
-    const isValidPin = await bcrypt.compare(pin + pinRecord.salt, pinRecord.pinHash);
+    const isValidPin = await verifyPin(pin, pinRecord.salt, pinRecord.pinHash);
 
     if (!isValidPin) {
       // Increment failed attempts
@@ -197,14 +197,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // PIN is correct - reset failed attempts
+    // PIN is correct - reset failed attempts and upgrade to Argon2id if needed
+    const updateData: any = {
+      failedAttempts: 0,
+      lockedUntil: null,
+      updatedAt: new Date(),
+    };
+
+    if (needsPasswordUpgrade(pinRecord.pinHash)) {
+      const newPinHash = await hashPin(pin, pinRecord.salt);
+      updateData.pinHash = newPinHash;
+    }
+
     await db
       .update(patientPin)
-      .set({
-        failedAttempts: 0,
-        lockedUntil: null,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(patientPin.patientId, patientId));
 
     // Mark linkToken as verified

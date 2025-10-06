@@ -3,7 +3,7 @@ import { db } from '../../../../../../lib/db';
 import { patient, patientPin, hipaaAuditLog } from '../../../../../../lib/schema';
 import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
+import { hashPin } from '../../../../../../lib/argon2';
 
 export async function POST(request: NextRequest) {
   try {
@@ -92,9 +92,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate salt and hash PIN
+    // Generate salt and hash PIN with Argon2id
     const salt = crypto.randomBytes(16).toString('hex');
-    const pinHash = await bcrypt.hash(pin + salt, 12);
+    const pinHash = await hashPin(pin, salt);
 
     // Store PIN
     await db.insert(patientPin).values({
