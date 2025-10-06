@@ -41,6 +41,9 @@ export interface CreateEntraUserInput {
   displayName: string;
   patientId: string;
   phoneNumber?: string;
+  upi?: string;
+  roles?: string[];
+  verifiedMethod?: 'gov_id' | 'biometric' | 'staff_attestation';
 }
 
 export interface EntraUser {
@@ -50,12 +53,31 @@ export interface EntraUser {
   mail: string | null;
 }
 
+function getExtensionAttributeName(attributeName: string): string {
+  return `extension_${clientId.replace(/-/g, '')}_${attributeName}`;
+}
+
 export async function createEntraUser(input: CreateEntraUserInput): Promise<EntraUser> {
   const client = getGraphClient();
 
   try {
     const mailNickname = input.email.split('@')[0];
     const userPrincipalName = `${mailNickname}@${tenantDomain}`;
+
+    const extensionAttributes: any = {};
+    
+    if (input.patientId) {
+      extensionAttributes[getExtensionAttributeName('patientId')] = input.patientId;
+    }
+    if (input.upi) {
+      extensionAttributes[getExtensionAttributeName('upi')] = input.upi;
+    }
+    if (input.verifiedMethod) {
+      extensionAttributes[getExtensionAttributeName('verified_method')] = input.verifiedMethod;
+    }
+    if (input.roles && input.roles.length > 0) {
+      extensionAttributes[getExtensionAttributeName('roles')] = JSON.stringify(input.roles);
+    }
 
     const user = await client.api('/users').post({
       accountEnabled: true,
@@ -73,6 +95,7 @@ export async function createEntraUser(input: CreateEntraUserInput): Promise<Entr
           issuerAssignedId: input.email,
         },
       ],
+      ...extensionAttributes,
     });
 
     console.log(`✅ Created Entra user: ${user.id} (${userPrincipalName})`);
@@ -101,7 +124,7 @@ export async function updateEntraUserExtensionAttribute(
   const client = getGraphClient();
 
   try {
-    const extensionName = `extension_${clientId.replace(/-/g, '')}_patientId`;
+    const extensionName = getExtensionAttributeName('patientId');
     
     await client.api(`/users/${userId}`).patch({
       [extensionName]: patientId,
@@ -111,6 +134,66 @@ export async function updateEntraUserExtensionAttribute(
   } catch (error: any) {
     console.error('❌ Failed to update extension attribute:', error);
     throw new Error(`Failed to set patientId claim: ${error.message || 'Unknown error'}`);
+  }
+}
+
+export async function updateEntraUserUPI(
+  userId: string,
+  upi: string
+): Promise<void> {
+  const client = getGraphClient();
+
+  try {
+    const extensionName = getExtensionAttributeName('upi');
+    
+    await client.api(`/users/${userId}`).patch({
+      [extensionName]: upi,
+    });
+
+    console.log(`✅ Updated Entra user ${userId} with UPI: ${upi}`);
+  } catch (error: any) {
+    console.error('❌ Failed to update UPI:', error);
+    throw new Error(`Failed to set UPI claim: ${error.message || 'Unknown error'}`);
+  }
+}
+
+export async function updateEntraUserVerificationMethod(
+  userId: string,
+  verifiedMethod: 'gov_id' | 'biometric' | 'staff_attestation'
+): Promise<void> {
+  const client = getGraphClient();
+
+  try {
+    const extensionName = getExtensionAttributeName('verified_method');
+    
+    await client.api(`/users/${userId}`).patch({
+      [extensionName]: verifiedMethod,
+    });
+
+    console.log(`✅ Updated Entra user ${userId} with verification method: ${verifiedMethod}`);
+  } catch (error: any) {
+    console.error('❌ Failed to update verification method:', error);
+    throw new Error(`Failed to set verification method: ${error.message || 'Unknown error'}`);
+  }
+}
+
+export async function updateEntraUserRoles(
+  userId: string,
+  roles: string[]
+): Promise<void> {
+  const client = getGraphClient();
+
+  try {
+    const extensionName = getExtensionAttributeName('roles');
+    
+    await client.api(`/users/${userId}`).patch({
+      [extensionName]: JSON.stringify(roles),
+    });
+
+    console.log(`✅ Updated Entra user ${userId} with roles: ${roles.join(', ')}`);
+  } catch (error: any) {
+    console.error('❌ Failed to update roles:', error);
+    throw new Error(`Failed to set roles: ${error.message || 'Unknown error'}`);
   }
 }
 
