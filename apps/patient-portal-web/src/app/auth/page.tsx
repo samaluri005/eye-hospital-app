@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import AuthMsalProvider from "./components/AuthMsalProvider";
 import useMsalRedirectResume from "../../hooks/useMsalRedirectResume";
 
-const SignupFlow = dynamic(() => import("./components/SignupFlow"), { 
+const EnhancedAuthFlow = dynamic(() => import("./components/EnhancedAuthFlow"), { 
   ssr: false,
   loading: () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -22,7 +22,7 @@ const SignupFlow = dynamic(() => import("./components/SignupFlow"), {
 
 function AuthContent() {
   useMsalRedirectResume();
-  return <SignupFlow />;
+  return <EnhancedAuthFlow />;
 }
 
 export default function AuthPage() {
