@@ -11,6 +11,9 @@ namespace AuthService.Models
         [Column("patient_id")]
         public Guid Id { get; set; } = Guid.NewGuid();
         
+        [Column("upi")]
+        public string? Upi { get; set; }
+        
         [Column("phone")]
         public string Phone { get; set; } = null!;
         

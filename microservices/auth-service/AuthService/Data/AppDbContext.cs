@@ -15,6 +15,11 @@ namespace AuthService.Data
         public DbSet<AuditLog> AuditLogs { get; set; } = default!;
         public DbSet<LinkToken> LinkTokens { get; set; } = default!;
         public DbSet<FamilyAccess> FamilyAccesses { get; set; } = default!;
+        
+        // Phase 1 Identity Architecture
+        public DbSet<User> Users { get; set; } = default!;
+        public DbSet<Credential> Credentials { get; set; } = default!;
+        public DbSet<ExternalIdentity> ExternalIdentities { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -29,6 +34,11 @@ namespace AuthService.Data
             builder.Entity<AuditLog>().ToTable("audit_log");
             builder.Entity<LinkToken>().ToTable("link_token");
             builder.Entity<FamilyAccess>().ToTable("family_access");
+            
+            // Phase 1 Identity Architecture tables
+            builder.Entity<User>().ToTable("users");
+            builder.Entity<Credential>().ToTable("credentials");
+            builder.Entity<ExternalIdentity>().ToTable("external_identities");
 
             // Configure column names to match the database schema
             builder.Entity<OtpAttempt>()

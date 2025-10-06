@@ -386,4 +386,395 @@ app.MapGet("/api/patient", async (HttpContext http, AppDbContext db) => {
     });
 }).RequireAuthorization();
 
+// ============================================================================
+// PHASE 1B: IDENTITY ARCHITECTURE API ENDPOINTS
+// ============================================================================
+
+// POST /auth/validate-upi - Validate UPI and return patient metadata
+app.MapPost("/auth/validate-upi", async (HttpContext http, AppDbContext db) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!body.TryGetValue("upi", out var upi) || string.IsNullOrWhiteSpace(upi))
+        return Results.BadRequest(new { error = "upi required" });
+    
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Upi == upi);
+    if (patient == null)
+        return Results.NotFound(new { error = "upi_not_found", message = "No patient found with this UPI" });
+    
+    // Check if user account exists for this patient
+    var user = await db.Users.FirstOrDefaultAsync(u => u.PatientId == patient.Id);
+    var hasCredentials = user != null && await db.Credentials.AnyAsync(c => c.UserId == user.UserId);
+    
+    return Results.Ok(new
+    {
+        upi = patient.Upi,
+        patientId = patient.Id,
+        status = patient.Status,
+        hasUserAccount = user != null,
+        hasCredentials = hasCredentials,
+        metadata = new
+        {
+            fullName = patient.FullName,
+            email = patient.Email,
+            phone = patient.Phone
+        }
+    });
+});
+
+// POST /auth/exchange - Exchange Entra External ID token for internal session
+app.MapPost("/auth/exchange", async (HttpContext http, AppDbContext db) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    
+    // Get OID from Entra token (would come from validated JWT in production)
+    var oid = http.User.FindFirst("oid")?.Value ?? http.User.FindFirst("sub")?.Value;
+    if (string.IsNullOrEmpty(oid))
+    {
+        // For testing, allow oid from body
+        if (!body.TryGetValue("oid", out oid) || string.IsNullOrWhiteSpace(oid))
+            return Results.Unauthorized();
+    }
+    
+    // Find user via external identity
+    var externalIdentity = await db.ExternalIdentities
+        .FirstOrDefaultAsync(ei => ei.Provider == "Microsoft" && ei.ProviderSub == oid);
+    
+    if (externalIdentity == null)
+        return Results.NotFound(new { error = "identity_not_linked", message = "No user linked to this Entra ID" });
+    
+    var user = await db.Users.FirstOrDefaultAsync(u => u.UserId == externalIdentity.UserId);
+    if (user == null)
+        return Results.NotFound(new { error = "user_not_found" });
+    
+    // Check if locked
+    if (user.IsLocked)
+        return Results.StatusCode(423);
+    
+    // Update last login
+    user.LastLogin = DateTime.UtcNow;
+    await db.SaveChangesAsync();
+    
+    // Audit log
+    db.AuditLogs.Add(new AuditLog
+    {
+        PatientId = user.PatientId ?? Guid.Empty,
+        Actor = oid,
+        Action = "token_exchange",
+        Details = $"{{\"provider\":\"Microsoft\",\"userId\":\"{user.UserId}\"}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new
+    {
+        userId = user.UserId,
+        patientId = user.PatientId,
+        displayName = user.DisplayName,
+        email = user.Email,
+        mfaEnabled = user.MfaEnabled
+    });
+});
+
+// POST /empi/match - EMPI matching for duplicate detection
+app.MapPost("/empi/match", async (HttpContext http, AppDbContext db) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,object>>() ?? new();
+    
+    // Extract patient data for matching
+    var firstName = body.ContainsKey("firstName") ? body["firstName"]?.ToString() : null;
+    var lastName = body.ContainsKey("lastName") ? body["lastName"]?.ToString() : null;
+    var dob = body.ContainsKey("dob") ? body["dob"]?.ToString() : null;
+    var phone = body.ContainsKey("phone") ? body["phone"]?.ToString() : null;
+    
+    if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+        return Results.BadRequest(new { error = "firstName and lastName required for matching" });
+    
+    // Simple matching logic (Phase 1C will implement full EMPI)
+    var matches = new List<object>();
+    var query = db.Patients.AsQueryable();
+    
+    // Name matching
+    if (!string.IsNullOrWhiteSpace(lastName))
+    {
+        query = query.Where(p => EF.Functions.ILike(p.FullName ?? "", $"%{lastName}%"));
+    }
+    
+    var candidates = await query.Take(10).ToListAsync();
+    
+    foreach (var candidate in candidates)
+    {
+        var score = 0.0;
+        
+        // Simple scoring
+        if (candidate.FullName != null && candidate.FullName.Contains(lastName, StringComparison.OrdinalIgnoreCase))
+            score += 50.0;
+        if (candidate.FullName != null && candidate.FullName.Contains(firstName, StringComparison.OrdinalIgnoreCase))
+            score += 30.0;
+        if (candidate.Phone == phone)
+            score += 20.0;
+        
+        if (score >= 50.0)
+        {
+            matches.Add(new
+            {
+                patientId = candidate.Id,
+                upi = candidate.Upi,
+                fullName = candidate.FullName,
+                dob = candidate.DateOfBirth,
+                phone = candidate.Phone,
+                score = score
+            });
+        }
+    }
+    
+    return Results.Ok(new
+    {
+        matches = matches.OrderByDescending(m => ((dynamic)m).score).ToList(),
+        count = matches.Count
+    });
+});
+
+// POST /auth/stepup/candidates - Get step-up authentication options
+app.MapPost("/auth/stepup/candidates", async (HttpContext http, AppDbContext db) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!body.TryGetValue("patientId", out var patientIdStr) || !Guid.TryParse(patientIdStr, out var patientId))
+        return Results.BadRequest(new { error = "patientId required" });
+    
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
+    if (patient == null)
+        return Results.NotFound(new { error = "patient_not_found" });
+    
+    var methods = new List<object>();
+    
+    // Check if DOB is available
+    if (patient.DateOfBirth != null)
+    {
+        methods.Add(new { method = "dob", label = "Date of Birth", available = true });
+    }
+    
+    // Check if PIN is set
+    var user = await db.Users.FirstOrDefaultAsync(u => u.PatientId == patientId);
+    if (user != null)
+    {
+        var hasPin = await db.Credentials.AnyAsync(c => c.UserId == user.UserId && c.PinHash != null);
+        if (hasPin)
+        {
+            methods.Add(new { method = "pin", label = "4-Digit PIN", available = true });
+        }
+    }
+    
+    return Results.Ok(new
+    {
+        patientId = patientId,
+        methods = methods
+    });
+});
+
+// POST /auth/stepup/verify - Verify step-up credentials (DOB + PIN)
+app.MapPost("/auth/stepup/verify", async (HttpContext http, AppDbContext db) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    
+    if (!body.TryGetValue("patientId", out var patientIdStr) || !Guid.TryParse(patientIdStr, out var patientId))
+        return Results.BadRequest(new { error = "patientId required" });
+    
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
+    if (patient == null)
+        return Results.NotFound(new { error = "patient_not_found" });
+    
+    var verifiedMethods = new List<string>();
+    var hasDob = body.TryGetValue("dob", out var dobStr);
+    var hasPin = body.TryGetValue("pin", out var pinStr);
+    
+    // SECURITY: Require at least one verification method
+    if (!hasDob && !hasPin)
+    {
+        return Results.BadRequest(new { 
+            error = "verification_method_required",
+            message = "At least one verification method (dob or pin) must be provided"
+        });
+    }
+    
+    // Verify DOB if provided
+    if (hasDob)
+    {
+        if (patient.DateOfBirth == null)
+            return Results.BadRequest(new { error = "dob_not_set" });
+        
+        if (!DateTime.TryParse(dobStr, out var providedDob))
+            return Results.BadRequest(new { error = "invalid_dob_format" });
+        
+        var storedDob = patient.DateOfBirth.Value;
+        var dobMatches = providedDob.Year == storedDob.Year &&
+                        providedDob.Month == storedDob.Month &&
+                        providedDob.Day == storedDob.Day;
+        
+        if (!dobMatches)
+        {
+            // Audit failed attempt
+            db.AuditLogs.Add(new AuditLog
+            {
+                PatientId = patientId,
+                Actor = "system",
+                Action = "stepup_failed_dob",
+                Details = "{\"reason\":\"dob_mismatch\"}",
+                Ip = http.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+                CreatedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+            
+            return Results.Unauthorized();
+        }
+        
+        verifiedMethods.Add("dob");
+    }
+    
+    // PIN verification (placeholder for Phase 1B - full implementation in Patient Portal)
+    if (hasPin)
+    {
+        // Note: Full PIN verification is handled by Patient Portal API
+        // This is a placeholder that always fails if PIN is provided here
+        return Results.BadRequest(new { 
+            error = "pin_verification_not_supported",
+            message = "PIN verification should be done through Patient Portal API"
+        });
+    }
+    
+    // SECURITY: Ensure at least one method was successfully verified
+    if (verifiedMethods.Count == 0)
+    {
+        return Results.Unauthorized();
+    }
+    
+    // Audit successful verification with exact methods used
+    var methodsJson = string.Join(",", verifiedMethods.Select(m => $"\"{m}\""));
+    db.AuditLogs.Add(new AuditLog
+    {
+        PatientId = patientId,
+        Actor = "system",
+        Action = "stepup_verified",
+        Details = $"{{\"methods\":[{methodsJson}]}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new
+    {
+        status = "verified",
+        patientId = patientId,
+        verifiedMethods = verifiedMethods
+    });
+});
+
+// POST /staff/create_patient - Staff creates new patient with UPI
+app.MapPost("/staff/create_patient", async (HttpContext http, AppDbContext db) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    
+    // Basic validation
+    if (!body.TryGetValue("phone", out var phone) || string.IsNullOrWhiteSpace(phone))
+        return Results.BadRequest(new { error = "phone required" });
+    
+    if (!body.TryGetValue("fullName", out var fullName))
+        fullName = null;
+    
+    if (!body.TryGetValue("email", out var email))
+        email = null;
+    
+    // Generate UPI (simple implementation - Phase 1C will enhance)
+    var upi = $"UPI-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
+    
+    // Create patient
+    var patient = new Patient
+    {
+        Upi = upi,
+        Phone = phone,
+        FullName = fullName,
+        Email = email,
+        Status = "active",
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+    
+    db.Patients.Add(patient);
+    
+    // Audit log
+    var staffId = body.ContainsKey("staffId") ? body["staffId"] : "unknown";
+    db.AuditLogs.Add(new AuditLog
+    {
+        PatientId = patient.Id,
+        Actor = staffId,
+        Action = "patient_created_by_staff",
+        Details = $"{{\"upi\":\"{upi}\",\"phone\":\"{phone}\"}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+    
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new
+    {
+        status = "created",
+        patientId = patient.Id,
+        upi = upi
+    });
+});
+
+// POST /staff/send_invite - Staff sends secure invite to patient
+app.MapPost("/staff/send_invite", async (HttpContext http, AppDbContext db) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    
+    if (!body.TryGetValue("patientId", out var patientIdStr) || !Guid.TryParse(patientIdStr, out var patientId))
+        return Results.BadRequest(new { error = "patientId required" });
+    
+    if (!body.TryGetValue("deliveryChannel", out var channel) || string.IsNullOrWhiteSpace(channel))
+        return Results.BadRequest(new { error = "deliveryChannel required (sms or email)" });
+    
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
+    if (patient == null)
+        return Results.NotFound(new { error = "patient_not_found" });
+    
+    // Generate secure invite token
+    var inviteToken = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+    var tokenHash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(inviteToken));
+    var tokenHashStr = Convert.ToBase64String(tokenHash);
+    
+    // Note: staff_invites table insert would go here in Phase 1C
+    // For now, we'll use the link_token table as a proxy
+    var linkSecret = builder.Configuration["LINK_TOKEN_HMAC_SECRET"] ?? otpSecret;
+    var linkToken = await AuthService.Services.LinkTokenHelper.CreateAndStoreLinkTokenAsync(
+        db, patientId, linkSecret ?? "", TimeSpan.FromDays(7));
+    
+    // Audit log
+    var staffId = body.ContainsKey("staffId") ? body["staffId"] : "unknown";
+    db.AuditLogs.Add(new AuditLog
+    {
+        PatientId = patientId,
+        Actor = staffId,
+        Action = "invite_sent",
+        Details = $"{{\"channel\":\"{channel}\"}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new
+    {
+        status = "invite_sent",
+        patientId = patientId,
+        inviteToken = linkToken,
+        channel = channel,
+        expiresIn = 604800 // 7 days in seconds
+    });
+});
+
 app.Run();
