@@ -41,6 +41,11 @@ The project is structured as a monorepo utilizing pnpm workspaces and Turbo for 
   - POST /staff/create_patient - Staff endpoint to create patients with auto-generated UPIs
   - POST /staff/send_invite - Staff endpoint to send secure invites with signed tokens
   All endpoints include comprehensive HIPAA audit logging, proper error handling, and security controls.
+- **Phase 1 PDF Schema Enhancements (COMPLETED - Oct 6, 2025)**:
+  - **Patient Table CDC/EMPI Fields**: Added first_name, middle_name, last_name, gender, addresses (JSONB), identifiers (JSONB), empi_score (NUMERIC), empi_status (TEXT default 'unknown'), verified_method, verified_by (UUID), verification_at (TIMESTAMPTZ) for CDC-compliant identity management and EMPI duplicate detection.
+  - **Trigram Fuzzy Matching Index**: Created idx_patients_name_trgm GIN trigram index on (first_name || ' ' || last_name) for efficient fuzzy name matching in EMPI de-duplication workflows.
+  - **Flexible Audit Log Structure**: Enhanced audit_log with actor_type (TEXT), actor_id (UUID), resource_type (TEXT), resource_id (UUID), meta (JSONB) for auditing any resource type beyond patients. Created idx_audit_actor and idx_audit_resource compound indexes for efficient audit queries.
+  - **Cross-Service Schema Alignment**: Updated Auth Service C# models (Patient.cs, AuditLog.cs) and Patient Portal Drizzle schema (schema.ts) to match Phase 1 database schema, ensuring consistent ORM/EF Core operations across services.
 - **Two-Factor Authentication (2FA)**: Implemented using Date of Birth (DOB) and a 4-digit PIN with conditional flows for new/existing users and family members. Now uses Argon2id hashing with pepper for enhanced security, includes failed attempt tracking, 15-minute lockout after 5 failed attempts, and LinkToken validation to prevent brute-force attacks.
 - **Session Management**: Secure HTTP-only cookie authentication with session revocation on new logins, PostgreSQL cross-checks for active sessions, and atomic invalidation.
 - **CDC Data Standardization and Matching**: Algorithms for name/phone/address standardization (E.164, Soundex, Metaphone), string similarity (Levenshtein, Jaro, Jaro-Winkler), and multi-field matching with weighted scoring for duplicate detection and patient identity management.
