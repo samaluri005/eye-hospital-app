@@ -37,5 +37,39 @@ namespace AuthService.Models
         
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        
+        // Phase 1 PDF Requirements: CDC and EMPI fields (NEW)
+        [Column("first_name")]
+        public string? FirstName { get; set; }
+        
+        [Column("middle_name")]
+        public string? MiddleName { get; set; }
+        
+        [Column("last_name")]
+        public string? LastName { get; set; }
+        
+        [Column("gender")]
+        public string? Gender { get; set; }
+        
+        [Column("addresses", TypeName = "jsonb")]
+        public string? Addresses { get; set; } // JSONB: [{"type":"home","line1":"..."}]
+        
+        [Column("identifiers", TypeName = "jsonb")]
+        public string? Identifiers { get; set; } // JSONB: [{"system":"SSN","value":"***"}]
+        
+        [Column("empi_score")]
+        public decimal? EmpiScore { get; set; }
+        
+        [Column("empi_status")]
+        public string EmpiStatus { get; set; } = "unknown"; // 'unknown', 'verified', 'duplicate_suspected'
+        
+        [Column("verified_method")]
+        public string? VerifiedMethod { get; set; } // 'gov_id', 'biometric', 'staff_attestation'
+        
+        [Column("verified_by")]
+        public Guid? VerifiedBy { get; set; } // Staff user_id who verified identity
+        
+        [Column("verification_at")]
+        public DateTime? VerificationAt { get; set; }
     }
 }

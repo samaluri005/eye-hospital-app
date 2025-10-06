@@ -65,6 +65,15 @@ export const patient = pgTable('patient', {
   
   // Security (NEW)
   recaptchaScore: decimal('recaptcha_score', { precision: 3, scale: 2 }),
+  
+  // Phase 1 PDF Requirements: EMPI & Verification (NEW)
+  addresses: jsonb('addresses'), // Structured address data: [{"type":"home","line1":"...","city":"..."}]
+  identifiers: jsonb('identifiers'), // Government IDs: [{"system":"SSN","value":"***"},{"system":"MRN","value":"12345"}]
+  empiScore: decimal('empi_score', { precision: 5, scale: 2 }), // EMPI matching confidence score
+  empiStatus: text('empi_status').default('unknown'), // 'unknown', 'verified', 'duplicate_suspected', 'merged'
+  verifiedMethod: text('verified_method'), // How identity was verified: 'gov_id', 'biometric', 'staff_attestation'
+  verifiedBy: uuid('verified_by'), // Staff user_id who verified identity
+  verificationAt: timestamp('verification_at'), // When identity verification occurred
 });
 
 // Existing auth_identity table (keep as-is)
@@ -116,15 +125,18 @@ export const linkToken = pgTable('link_token', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-// Existing audit_log table (keep as-is)
+// Phase 1 PDF: Flexible audit_log structure
 export const auditLog = pgTable('audit_log', {
   id: serial('id').primaryKey(),
-  patientId: uuid('patient_id'),
+  patientId: uuid('patient_id'), // LEGACY: keep for backward compatibility
   action: varchar('action', { length: 100 }).notNull(),
-  actorId: varchar('actor_id', { length: 255 }).notNull(),
-  actorType: varchar('actor_type', { length: 50 }).notNull(),
+  actorId: uuid('actor_id'), // Phase 1: Changed from varchar to UUID
+  actorType: varchar('actor_type', { length: 50 }), // Phase 1: 'user', 'system', 'staff'
+  resourceType: varchar('resource_type', { length: 50 }), // Phase 1: 'patient', 'user', 'session', 'credential'
+  resourceId: uuid('resource_id'), // Phase 1: UUID of the resource being audited
   ipAddress: varchar('ip_address', { length: 45 }),
-  metadata: jsonb('metadata'),
+  metadata: jsonb('metadata'), // LEGACY: keep for backward compatibility
+  meta: jsonb('meta'), // Phase 1: Flexible metadata storage
   timestamp: timestamp('timestamp').defaultNow(),
 });
 
