@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 5000",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:push": "drizzle-kit push --config=../../drizzle.config.ts",
+    "db:generate": "drizzle-kit generate --config=../../drizzle.config.ts",
+    "db:studio": "drizzle-kit studio --config=../../drizzle.config.ts"
   },
   "dependencies": {
     "@azure/identity": "^4.12.0",

@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, boolean, integer, decimal, uuid, jsonb, inet } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, timestamp, boolean, integer, decimal, uuid, jsonb, inet, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
@@ -6,10 +6,14 @@ import { sql } from 'drizzle-orm';
 // EXISTING TABLES (Keep as-is for backward compatibility)
 // ============================================================================
 
-// Main patient table (existing structure + CDC enhancements)
+// Main patient table (existing structure + CDC enhancements + Phase 1 UPI)
 export const patient = pgTable('patient', {
   // Existing fields (DO NOT MODIFY)
   patientId: uuid('patient_id').primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Phase 1: UPI (Unique Patient Identifier) - Canonical clinical entity identifier
+  upi: text('upi').unique(),
+  
   email: varchar('email', { length: 255 }),
   phone: varchar('phone', { length: 20 }).notNull(),
   fullName: varchar('full_name', { length: 255 }),
@@ -328,6 +332,116 @@ export const familyAccess = pgTable('family_access', {
 });
 
 // ============================================================================
+// PHASE 1: IDENTITY ARCHITECTURE TABLES (UPI-first, Entra External ID)
+// ============================================================================
+
+// users - Authentication principals (patients and caregivers)
+export const users = pgTable('users', {
+  userId: uuid('user_id').primaryKey().default(sql`gen_random_uuid()`),
+  patientId: uuid('patient_id').references(() => patient.patientId), // NULL for caregiver/staff-only accounts
+  displayName: text('display_name'),
+  email: text('email'),
+  phoneNormalized: text('phone_normalized'),
+  isLocked: boolean('is_locked').default(false),
+  mfaEnabled: boolean('mfa_enabled').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  lastLogin: timestamp('last_login'),
+}, (table) => ({
+  emailIdx: sql`CREATE INDEX IF NOT EXISTS idx_users_email ON users (lower(email))`,
+  phoneIdx: sql`CREATE INDEX IF NOT EXISTS idx_users_phone ON users (phone_normalized)`,
+}));
+
+// credentials - Consolidated password/PIN/WebAuthn storage
+export const credentials = pgTable('credentials', {
+  credentialId: uuid('credential_id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.userId, { onDelete: 'cascade' }),
+  credentialType: text('credential_type').notNull(), // 'password','pin','webauthn'
+  passwordHash: text('password_hash'),
+  passwordSalt: text('password_salt'),
+  pinHash: text('pin_hash'),
+  createdAt: timestamp('created_at').defaultNow(),
+  lastUsedAt: timestamp('last_used_at'),
+});
+
+// external_identities - Map Entra/social provider subjects to users
+export const externalIdentities = pgTable('external_identities', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.userId, { onDelete: 'cascade' }),
+  provider: text('provider').notNull(),
+  providerSub: text('provider_sub').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  providerSubUnique: uniqueIndex('external_identities_provider_sub_unique').on(table.provider, table.providerSub),
+}));
+
+// proxy_access - Caregiver delegations (patients -> delegate users)
+export const proxyAccess = pgTable('proxy_access', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  patientId: uuid('patient_id').notNull().references(() => patient.patientId, { onDelete: 'cascade' }),
+  delegateUserId: uuid('delegate_user_id').notNull().references(() => users.userId, { onDelete: 'cascade' }),
+  grantedByUserId: uuid('granted_by_user_id').references(() => users.userId),
+  scopes: jsonb('scopes'),
+  status: text('status').default('active'),
+  startAt: timestamp('start_at').defaultNow(),
+  endAt: timestamp('end_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// verification_evidence - ID verification file references
+export const verificationEvidence = pgTable('verification_evidence', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  patientId: uuid('patient_id').notNull().references(() => patient.patientId, { onDelete: 'cascade' }),
+  evidenceType: text('evidence_type'),
+  fileRef: text('file_ref'), // link to encrypted object store
+  hashedName: text('hashed_name'),
+  uploadedBy: uuid('uploaded_by'),
+  uploadedAt: timestamp('uploaded_at').defaultNow(),
+  retentionPolicy: text('retention_policy'),
+});
+
+// staff_invites - Secure patient invite system
+export const staffInvites = pgTable('staff_invites', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  patientId: uuid('patient_id').references(() => patient.patientId, { onDelete: 'cascade' }),
+  invitedByStaffId: uuid('invited_by_staff_id'),
+  inviteTokenHash: text('invite_token_hash'),
+  deliveryChannel: text('delivery_channel'),
+  expiresAt: timestamp('expires_at'),
+  usedAt: timestamp('used_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// empi_records - Store EMPI metadata for audit
+export const empiRecords = pgTable('empi_records', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  patientId: uuid('patient_id').references(() => patient.patientId),
+  empiPayload: jsonb('empi_payload'),
+  score: decimal('score', { precision: 10, scale: 2 }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// merge_tickets - Patient duplicate merge management
+export const mergeTickets = pgTable('merge_tickets', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  sourcePatientId: uuid('source_patient_id').references(() => patient.patientId, { onDelete: 'restrict' }),
+  targetPatientId: uuid('target_patient_id').references(() => patient.patientId, { onDelete: 'restrict' }),
+  status: text('status').default('open'),
+  createdBy: uuid('created_by'),
+  approvedBy: uuid('approved_by'),
+  createdAt: timestamp('created_at').defaultNow(),
+  resolvedAt: timestamp('resolved_at'),
+});
+
+// attempt_counters - Rate limiting tracking
+export const attemptCounters = pgTable('attempt_counters', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  contextType: text('context_type'),
+  contextValue: text('context_value'),
+  count: integer('count').default(0),
+  lastAttempt: timestamp('last_attempt'),
+});
+
+// ============================================================================
 // RELATIONS
 // ============================================================================
 
@@ -434,3 +548,23 @@ export type LinkToken = typeof linkToken.$inferSelect;
 export type InsertLinkToken = typeof linkToken.$inferInsert;
 export type AuditLog = typeof auditLog.$inferSelect;
 export type InsertAuditLog = typeof auditLog.$inferInsert;
+
+// Phase 1 types
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+export type Credential = typeof credentials.$inferSelect;
+export type InsertCredential = typeof credentials.$inferInsert;
+export type ExternalIdentity = typeof externalIdentities.$inferSelect;
+export type InsertExternalIdentity = typeof externalIdentities.$inferInsert;
+export type ProxyAccess = typeof proxyAccess.$inferSelect;
+export type InsertProxyAccess = typeof proxyAccess.$inferInsert;
+export type VerificationEvidence = typeof verificationEvidence.$inferSelect;
+export type InsertVerificationEvidence = typeof verificationEvidence.$inferInsert;
+export type StaffInvite = typeof staffInvites.$inferSelect;
+export type InsertStaffInvite = typeof staffInvites.$inferInsert;
+export type EmpiRecord = typeof empiRecords.$inferSelect;
+export type InsertEmpiRecord = typeof empiRecords.$inferInsert;
+export type MergeTicket = typeof mergeTickets.$inferSelect;
+export type InsertMergeTicket = typeof mergeTickets.$inferInsert;
+export type AttemptCounter = typeof attemptCounters.$inferSelect;
+export type InsertAttemptCounter = typeof attemptCounters.$inferInsert;

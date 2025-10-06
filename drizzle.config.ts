@@ -8,5 +8,5 @@ export default {
     url: process.env.DATABASE_URL!,
   },
   verbose: true,
-  strict: true,
+  strict: false, // Disable confirmation prompts for automated pushes
 } satisfies Config;
