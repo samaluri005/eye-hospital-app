@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       const tempToken = await sessionService.createOtpSession(
         upi,
         ipAddress,
-        { userAgent, type: 'mfa_pending', patientId: data.patientId }
+        { userAgent }
       );
 
       return NextResponse.json({
@@ -80,11 +80,12 @@ export async function POST(request: NextRequest) {
     const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
-    const sessionToken = await sessionService.createSession(
+    const session = await sessionService.createAuthenticatedSession(
       data.patientId,
       ipAddress,
       { userAgent }
     );
+    const sessionToken = session.sessionToken;
 
     const responseObj = NextResponse.json({
       success: true,

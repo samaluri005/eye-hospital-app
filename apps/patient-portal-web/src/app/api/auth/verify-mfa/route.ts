@@ -17,15 +17,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate temp token
-    const tempSession = await sessionService.validateSession(tempToken);
-    if (!tempSession || !tempSession.metadata?.patientId) {
+    const tempSession = await sessionService.getSession(tempToken, 'otp');
+    if (!tempSession) {
       return NextResponse.json(
         { error: 'Invalid or expired temporary session' },
         { status: 401 }
       );
     }
 
-    const patientId = tempSession.metadata.patientId;
+    const patientId = tempSession.patientId;
 
     // Rate limiting by patient ID
     const rateLimit = await rateLimiter.checkRateLimit(
@@ -72,14 +72,15 @@ export async function POST(request: NextRequest) {
     const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
-    const sessionToken = await sessionService.createSession(
+    const session = await sessionService.createAuthenticatedSession(
       patientId,
       ipAddress,
       { userAgent }
     );
+    const sessionToken = session.sessionToken;
 
     // Invalidate temp session
-    await sessionService.revokeSession(tempToken);
+    await sessionService.invalidateSession(tempToken, 'otp');
 
     const responseObj = NextResponse.json({
       success: true,
