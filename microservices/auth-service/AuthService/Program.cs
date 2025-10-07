@@ -260,6 +260,18 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
     {
         // Use first primary patient as the default
         primaryPatientId = primaryPatients.FirstOrDefault()?.Id ?? Guid.Empty;
+        
+        // If the user has accounts but ALL of them have incomplete profiles, treat as new user
+        // This ensures they go through the complete signup flow (password, MFA, consent)
+        var allAccountsIncomplete = accounts.All(a => {
+            var hasProfile = a.GetType().GetProperty("hasProfile")?.GetValue(a);
+            return hasProfile is bool b && !b;
+        });
+        
+        if (allAccountsIncomplete && accounts.Count == 1)
+        {
+            isNewUser = true; // Force complete signup flow for users with incomplete profiles
+        }
     }
 
     // Create short-lived link token for account selection (10 minutes)

@@ -68,7 +68,8 @@ export async function POST(req: NextRequest) {
     });
 
     // Create authenticated session after consent
-    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const forwardedFor = req.headers.get('x-forwarded-for');
+    const ipAddress = forwardedFor ? forwardedFor.split(',')[0].trim() : (req.headers.get('x-real-ip') || 'unknown');
     const userAgent = req.headers.get('user-agent') || 'unknown';
     
     const session = await sessionService.createAuthenticatedSession(
