@@ -55,11 +55,21 @@ The project is structured as a monorepo utilizing pnpm workspaces and Turbo for 
 - **Hybrid Authentication System (COMPLETED - Oct 7, 2025)**: Implemented comprehensive multi-method authentication:
   - **UPI Sign-In**: Traditional password-based authentication for returning patients (UPI + Password → MFA if enabled → Dashboard)
   - **Phone Sign-In**: OTP-based authentication (Phone + OTP → Account Selection → DOB/PIN verification → Dashboard)
-  - **Email Sign-In**: OTP-based authentication with email parity (Email + OTP → Account Selection → DOB/PIN verification → Dashboard)
+  - **Email Sign-In**: OTP-based authentication with email parity (Email + OTP → Account Selection → DOB/PIN verification → Dashboard, requires SMTP configuration)
   - **Social Sign-In**: OAuth integration with EMPI matching (Google/Microsoft/Apple → EMPI match → Account Selection if multiple → DOB/PIN verification → Dashboard)
   - **UPI Masking**: Last 4 characters visible (UPI123456 → ****3456) for account selection and verification screens
-  - **Unified Auth Landing**: AuthMethodSelector component with 4 sign-in options, EnhancedAuthFlow router managing all authentication paths
-  - **API Endpoints**: Created /api/auth/upi-signin, /api/auth/verify-mfa, /api/auth/send-email-otp, /api/auth/social-signin with rate limiting and session management
+  - **Unified Auth Landing**: Homepage displays both "Sign In" and "Sign Up" buttons, AuthMethodSelector component with 4 sign-in options, EnhancedAuthFlow router managing all authentication paths
+  - **Backend API Endpoints (Auth Service)**:
+    * POST /auth/upi-signin - UPI + password validation with Argon2id, MFA check
+    * POST /auth/verify-mfa - PIN-based MFA verification using Argon2id
+    * POST /signup/start-email - Email OTP generation (requires SMTP/SendGrid configuration)
+    * POST /signup/verify-email - Email OTP verification with account selection
+    * Enhanced /signup/verify - Now includes UPI field in account responses for masked display
+  - **Security Enhancements**:
+    * Konscious.Security.Cryptography.Argon2 (v1.3.1) for password hashing
+    * PasswordHelper service with Argon2id salt+pepper hashing
+    * OtpAttempt model enhanced with Email field for email OTP support
+    * All endpoints include HIPAA audit logging and failed attempt tracking
 - **De-duplication**: CDC-compliant patient identity management with strategic indexes for performance.
 - **Performance Optimizations**: 17 strategic indexes for fast de-duplication, HIPAA audit searches, and appointment lookups.
 - **HIPAA Compliance**: All PHI stored in PostgreSQL; authentication-only data in Entra External ID.
