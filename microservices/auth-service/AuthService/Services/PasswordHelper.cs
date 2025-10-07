@@ -44,13 +44,20 @@ namespace AuthService.Services
                     // Parse the hash to extract salt and expected hash
                     // Format: $argon2id$v=19$m=19456,t=2,p=1$salt$hash
                     var parts = hashedPassword.Split('$');
-                    if (parts.Length != 6) return false;
+                    if (parts.Length != 6) 
+                    {
+                        Console.WriteLine($"Invalid hash format: {parts.Length} parts");
+                        return false;
+                    }
                     
                     var saltBase64 = AddBase64Padding(parts[4]);
                     var expectedHashBase64 = AddBase64Padding(parts[5]);
                     
                     var salt = Convert.FromBase64String(saltBase64);
                     var expectedHash = Convert.FromBase64String(expectedHashBase64);
+                    
+                    Console.WriteLine($"Salt length: {salt.Length}, Expected hash length: {expectedHash.Length}");
+                    Console.WriteLine($"Pepper length: {pepper?.Length ?? 0}");
                     
                     // Use Argon2 library's built-in verification with matching parameters
                     var passwordBytes = Encoding.UTF8.GetBytes(password + pepper);
@@ -63,7 +70,12 @@ namespace AuthService.Services
 
                     var hash = await argon2.GetBytesAsync(32);
                     
-                    return CryptographicOperations.FixedTimeEquals(hash, expectedHash);
+                    var matches = CryptographicOperations.FixedTimeEquals(hash, expectedHash);
+                    Console.WriteLine($"Expected hash (hex): {BitConverter.ToString(expectedHash).Replace("-", "")}");
+                    Console.WriteLine($"Computed hash (hex): {BitConverter.ToString(hash).Replace("-", "")}");
+                    Console.WriteLine($"Hashes match: {matches}");
+                    
+                    return matches;
                 }
                 catch (Exception ex)
                 {
