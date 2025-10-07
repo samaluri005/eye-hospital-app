@@ -26,8 +26,8 @@ export default function VerificationStep({
   isNewUser = false,
   profileDob = "",
 }: VerificationStepProps) {
-  const [upi, setUpi] = useState(patientUpi);
-  const [displayUpi, setDisplayUpi] = useState(maskUPI(patientUpi));
+  const [fullUpi, setFullUpi] = useState(patientUpi);
+  const [lastFourInput, setLastFourInput] = useState("");
   const [isUpiEditing, setIsUpiEditing] = useState(false);
   const [dob, setDob] = useState(profileDob);
   const [loading, setLoading] = useState(false);
@@ -68,27 +68,31 @@ export default function VerificationStep({
   }, [profileDob]);
 
   useEffect(() => {
-    if (!isUpiEditing && upi) {
-      setDisplayUpi(maskUPI(upi));
+    if (patientUpi && patientUpi !== fullUpi) {
+      setFullUpi(patientUpi);
     }
-  }, [upi, isUpiEditing]);
+  }, [patientUpi]);
 
   const handleUpiFocus = () => {
     setIsUpiEditing(true);
-    setDisplayUpi("");
+    setLastFourInput("");
   };
 
   const handleUpiBlur = () => {
     setIsUpiEditing(false);
-    if (upi) {
-      setDisplayUpi(maskUPI(upi));
+    if (lastFourInput.length === 4 && fullUpi) {
+      const prefix = fullUpi.slice(0, -4);
+      const newFullUpi = prefix + lastFourInput.toUpperCase();
+      setFullUpi(newFullUpi);
     }
+    setLastFourInput("");
   };
 
   const handleUpiChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toUpperCase();
-    setUpi(value);
-    setDisplayUpi(value);
+    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (value.length <= 4) {
+      setLastFourInput(value);
+    }
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -166,7 +170,7 @@ export default function VerificationStep({
       </div>
 
       <form onSubmit={handleVerify} className="space-y-6">
-        {upi && (
+        {fullUpi && (
           <div>
             <label
               htmlFor="upi"
@@ -178,13 +182,14 @@ export default function VerificationStep({
               <input
                 type="text"
                 id="upi"
-                value={displayUpi}
+                value={isUpiEditing ? lastFourInput : maskUPI(fullUpi)}
                 onChange={handleUpiChange}
                 onFocus={handleUpiFocus}
                 onBlur={handleUpiBlur}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono bg-gray-50"
-                placeholder="Enter your UPI"
+                placeholder={isUpiEditing ? "Enter last 4 characters" : ""}
                 disabled={loading || !!isLocked}
+                maxLength={4}
               />
               <div className="absolute right-3 top-3 text-gray-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,7 +198,7 @@ export default function VerificationStep({
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Click to edit and verify your UPI
+              {isUpiEditing ? "Enter only the last 4 characters of your UPI" : "Click to edit and verify the last 4 characters"}
             </p>
           </div>
         )}

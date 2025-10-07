@@ -3,17 +3,16 @@
  */
 
 /**
- * Masks UPI showing only last 4 characters
+ * Masks UPI showing first part and masking last 4 characters
  * @param upi - Full UPI string (e.g., "UPI123456")
- * @returns Masked UPI (e.g., "****3456")
+ * @returns Masked UPI (e.g., "UPI12****")
  */
 export function maskUPI(upi: string): string {
   if (!upi || upi.length <= 4) {
     return upi;
   }
-  const lastFour = upi.slice(-4);
-  const masked = '*'.repeat(upi.length - 4);
-  return masked + lastFour;
+  const firstPart = upi.slice(0, -4);
+  return firstPart + '****';
 }
 
 /**

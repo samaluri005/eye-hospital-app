@@ -1,30 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../../../lib/db';
-import { patient, patientPin, hipaaAuditLog } from '../../../../../../lib/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { patient, hipaaAuditLog } from '../../../../../../lib/schema';
+import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
-import { verifyPin, needsPasswordUpgrade, hashPin } from '../../../../../../lib/argon2';
 
-// Force Node.js runtime for native Argon2 module
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { patientId, dob, pin, linkToken } = body;
+    const { patientId, dob, linkToken } = body;
 
     // Validate required fields
-    if (!patientId || !dob || !pin || !linkToken) {
+    if (!patientId || !dob || !linkToken) {
       return NextResponse.json(
-        { error: 'Missing required fields: patientId, dob, pin, linkToken' },
-        { status: 400 }
-      );
-    }
-
-    // Validate PIN format (exactly 4 digits)
-    if (!/^\d{4}$/.test(pin)) {
-      return NextResponse.json(
-        { error: 'PIN must be exactly 4 digits' },
+        { error: 'Missing required fields: patientId, dob, linkToken' },
         { status: 400 }
       );
     }
@@ -75,29 +65,6 @@ export async function POST(request: NextRequest) {
 
     const patientRecord = patientData[0];
 
-    // Get PIN data (if exists)
-    const pinData = await db
-      .select()
-      .from(patientPin)
-      .where(eq(patientPin.patientId, patientId))
-      .limit(1);
-
-    // Check if account is locked
-    if (pinData.length > 0 && pinData[0].lockedUntil) {
-      const lockExpiry = new Date(pinData[0].lockedUntil);
-      if (lockExpiry > new Date()) {
-        const minutesLeft = Math.ceil((lockExpiry.getTime() - Date.now()) / 60000);
-        return NextResponse.json(
-          {
-            error: 'Account temporarily locked due to too many failed attempts',
-            lockedUntil: lockExpiry.toISOString(),
-            minutesLeft,
-          },
-          { status: 423 }
-        );
-      }
-    }
-
     // Validate DOB
     const providedDOB = new Date(dob);
     const storedDOB = patientRecord.dob ? new Date(patientRecord.dob) : null;
@@ -140,7 +107,7 @@ export async function POST(request: NextRequest) {
           ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown',
           userAgent: request.headers.get('user-agent') || 'unknown',
           accessedData: { reason: 'dob_mismatch' },
-          hipaaComplianceNote: 'Failed second-factor verification - DOB mismatch',
+          hipaaComplianceNote: 'Failed verification - DOB mismatch',
         });
 
         return NextResponse.json(
@@ -149,89 +116,6 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-
-    // If no PIN exists, user needs to set one
-    if (pinData.length === 0) {
-      return NextResponse.json(
-        {
-          status: 'pin_required',
-          message: 'Please set a PIN to secure your account',
-        },
-        { status: 200 }
-      );
-    }
-
-    // Validate PIN with Argon2id
-    const pinRecord = pinData[0];
-    const isValidPin = await verifyPin(pin, pinRecord.salt, pinRecord.pinHash);
-
-    if (!isValidPin) {
-      // Increment failed attempts
-      const newFailedAttempts = (pinRecord.failedAttempts || 0) + 1;
-      const lockDuration = newFailedAttempts >= 5 ? 15 * 60 * 1000 : null; // 15 minutes
-      const lockedUntil = lockDuration ? new Date(Date.now() + lockDuration) : null;
-      const minutesLeft = lockDuration ? 15 : 0;
-
-      await db
-        .update(patientPin)
-        .set({
-          failedAttempts: newFailedAttempts,
-          lockedUntil,
-          updatedAt: new Date(),
-        })
-        .where(eq(patientPin.patientId, patientId));
-
-      // Log failed PIN attempt
-      await db.insert(hipaaAuditLog).values({
-        patientId,
-        action: 'verification_failed_pin_mismatch',
-        actorId: patientId,
-        actorType: 'patient',
-        ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown',
-        userAgent: request.headers.get('user-agent') || 'unknown',
-        accessedData: {
-          failedAttempts: newFailedAttempts,
-          locked: newFailedAttempts >= 5,
-        },
-        hipaaComplianceNote: `Failed second-factor verification - PIN mismatch (attempt ${newFailedAttempts})`,
-      });
-
-      if (lockedUntil) {
-        return NextResponse.json(
-          {
-            error: 'Too many failed attempts. Account locked for 15 minutes.',
-            lockedUntil: lockedUntil.toISOString(),
-            minutesLeft,
-          },
-          { status: 423 }
-        );
-      }
-
-      return NextResponse.json(
-        {
-          error: 'Incorrect PIN',
-          attemptsRemaining: 5 - newFailedAttempts,
-        },
-        { status: 401 }
-      );
-    }
-
-    // PIN is correct - reset failed attempts and upgrade to Argon2id if needed
-    const updateData: any = {
-      failedAttempts: 0,
-      lockedUntil: null,
-      updatedAt: new Date(),
-    };
-
-    if (needsPasswordUpgrade(pinRecord.pinHash)) {
-      const newPinHash = await hashPin(pin, pinRecord.salt);
-      updateData.pinHash = newPinHash;
-    }
-
-    await db
-      .update(patientPin)
-      .set(updateData)
-      .where(eq(patientPin.patientId, patientId));
 
     // Mark linkToken as verified
     const linkTokenRecord = linkTokenRecords.rows[0] as any;
@@ -244,13 +128,13 @@ export async function POST(request: NextRequest) {
     // Log successful verification
     await db.insert(hipaaAuditLog).values({
       patientId,
-      action: 'second_factor_verification_success',
+      action: 'verification_success',
       actorId: patientId,
       actorType: 'patient',
       ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown',
       accessedData: { verified: true },
-      hipaaComplianceNote: 'Successful second-factor verification (DOB + PIN)',
+      hipaaComplianceNote: 'Successful verification (DOB)',
     });
 
     return NextResponse.json({
