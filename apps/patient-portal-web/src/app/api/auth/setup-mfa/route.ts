@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../../lib/db";
-import { users } from "../../../../../lib/schema";
-import { eq } from "drizzle-orm";
+import { users, credentials } from "../../../../../lib/schema";
+import { eq, and } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,16 +17,47 @@ export async function POST(req: NextRequest) {
 
     // TODO: Validate linkToken
 
-    if ((mfa.method === "totp" && mfa.totpVerified) || (mfa.method === "sms" && mfa.phoneNumber)) {
+    // Get the user record to get userId
+    const userRecord = await db.select()
+      .from(users)
+      .where(eq(users.patientId, patientId))
+      .limit(1);
+
+    if (!userRecord || userRecord.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    const userId = userRecord[0].userId;
+
+    if (mfa.method === "totp" && mfa.totpVerified && mfa.totpSecret) {
+      // Store TOTP secret in credentials table
+      await db.insert(credentials).values({
+        userId,
+        credentialType: "totp",
+        passwordHash: mfa.totpSecret, // Store the TOTP secret (encrypt in production)
+      });
+
       // Enable MFA for user
-      // Note: TOTP secret is scanned client-side, SMS uses existing phone verification
       await db.update(users)
         .set({ mfaEnabled: true })
-        .where(eq(users.patientId, patientId));
+        .where(eq(users.userId, userId));
 
       return NextResponse.json({
         success: true,
-        message: `${mfa.method.toUpperCase()} MFA enabled successfully`,
+        message: "TOTP MFA enabled successfully",
+      });
+    } else if (mfa.method === "sms" && mfa.phoneNumber) {
+      // SMS MFA uses existing phone verification, just enable flag
+      await db.update(users)
+        .set({ mfaEnabled: true })
+        .where(eq(users.userId, userId));
+
+      return NextResponse.json({
+        success: true,
+        message: "SMS MFA enabled successfully",
       });
     }
 

@@ -17,15 +17,15 @@ export async function POST(req: NextRequest) {
     // TODO: Validate linkToken
 
     const consentRecords = [];
+    const now = new Date();
 
     // HIPAA Consent (Required)
     if (consent.hipaaConsent) {
       consentRecords.push({
         patientId,
         consentType: "hipaa_privacy_notice",
-        consentGiven: true,
-        consentText: "Patient has reviewed and accepted the HIPAA Privacy Notice",
-        consentVersion: "1.0",
+        granted: true,
+        grantedAt: now,
       });
     }
 
@@ -34,9 +34,8 @@ export async function POST(req: NextRequest) {
       consentRecords.push({
         patientId,
         consentType: "electronic_communications",
-        consentGiven: true,
-        consentText: "Patient consents to receive electronic communications including appointment reminders, test results, billing statements, and portal notifications",
-        consentVersion: "1.0",
+        granted: true,
+        grantedAt: now,
       });
     }
 
@@ -45,9 +44,8 @@ export async function POST(req: NextRequest) {
       consentRecords.push({
         patientId,
         consentType: "research_participation",
-        consentGiven: true,
-        consentText: "Patient consents to the use of de-identified health data for approved research studies",
-        consentVersion: "1.0",
+        granted: true,
+        grantedAt: now,
       });
     }
 
@@ -58,12 +56,11 @@ export async function POST(req: NextRequest) {
 
     // Audit log
     await db.insert(hipaaAuditLog).values({
+      patientId,
+      action: "consent_accepted",
       actorType: "patient",
       actorId: patientId,
-      action: "consent_accepted",
-      resourceType: "consent",
-      resourceId: patientId,
-      meta: {
+      accessedData: {
         consentTypes: consentRecords.map(c => c.consentType),
         timestamp: new Date().toISOString(),
       },

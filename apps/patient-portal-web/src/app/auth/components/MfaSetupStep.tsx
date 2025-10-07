@@ -8,6 +8,7 @@ export type MfaSetupData = {
   method: MfaMethod;
   phoneNumber?: string;
   totpVerified?: boolean;
+  totpSecret?: string;
 };
 
 type Props = {
@@ -78,6 +79,7 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone }: Props) {
       onNext({
         method: "totp",
         totpVerified: true,
+        totpSecret: totpSecret, // Pass the secret to be stored server-side
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");

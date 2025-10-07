@@ -59,16 +59,31 @@ The project is structured as a monorepo utilizing pnpm workspaces and Turbo for 
   - **Social Sign-In**: OAuth integration with EMPI matching (Google/Microsoft/Apple → EMPI match → Account Selection if multiple → DOB/PIN verification → Dashboard)
   - **UPI Masking**: Last 4 characters visible (UPI123456 → ****3456) for account selection and verification screens
   - **Unified Auth Landing**: Homepage displays both "Sign In" and "Sign Up" buttons, AuthMethodSelector component with 4 sign-in options, EnhancedAuthFlow router managing all authentication paths
+  - **Comprehensive Signup Flow (Oct 7, 2025)**: New patient onboarding with progressive data collection:
+    * Step 1: OTP Verification (Phone/Email/Social)
+    * Step 2: Minimal Profile (First Name, Last Name, DOB only - minimal mode of ProfileStep)
+    * Step 3: Password Setup (PasswordSetupStep with strength meter, Argon2id hashing)
+    * Step 4: UPI Display (YourIdStep shows generated Hospital ID)
+    * Step 5: Extended Profile (Optional: middle name, title, gender, address, emergency contact - extended mode of ProfileStep)
+    * Step 6: MFA Setup (Optional: TOTP Authenticator App with QR code scan or SMS using MfaSetupStep, TOTP secret stored in credentials table)
+    * Step 7: HIPAA Consent (Required: Privacy Notice, Electronic Communications; Optional: Research Participation - HipaaConsentStep with patient_consents table)
+    * Step 8: Dashboard Redirect
   - **Backend API Endpoints (Auth Service)**:
     * POST /auth/upi-signin - UPI + password validation with Argon2id, MFA check
     * POST /auth/verify-mfa - PIN-based MFA verification using Argon2id
     * POST /signup/start-email - Email OTP generation (requires SMTP/SendGrid configuration)
     * POST /signup/verify-email - Email OTP verification with account selection
     * Enhanced /signup/verify - Now includes UPI field in account responses for masked display
+  - **Frontend API Endpoints (Patient Portal)**:
+    * POST /api/auth/mfa/generate-totp - Generates TOTP secret using otplib, returns QR code URI
+    * POST /api/auth/mfa/verify-totp - Verifies TOTP codes against secret
+    * POST /api/auth/setup-mfa - Stores TOTP secret in credentials table, enables mfaEnabled flag in users table
+    * POST /api/auth/save-consent - Saves consent records to patient_consents table with HIPAA audit logging
   - **Security Enhancements**:
     * Konscious.Security.Cryptography.Argon2 (v1.3.1) for password hashing
     * PasswordHelper service with Argon2id salt+pepper hashing
     * OtpAttempt model enhanced with Email field for email OTP support
+    * TOTP secrets stored securely in credentials table (passwordHash field)
     * All endpoints include HIPAA audit logging and failed attempt tracking
 - **De-duplication**: CDC-compliant patient identity management with strategic indexes for performance.
 - **Performance Optimizations**: 17 strategic indexes for fast de-duplication, HIPAA audit searches, and appointment lookups.

@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
+import { authenticator } from "otplib";
 
 export async function POST(req: NextRequest) {
   try {
-    const secret = crypto.randomBytes(20).toString("hex");
+    // Generate a base32 secret for TOTP (compatible with authenticator apps)
+    const secret = authenticator.generateSecret();
     
     const issuer = "Eye Hospital";
     const accountName = "Patient Portal";
     
-    const totpUri = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountName)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}`;
+    // Generate otpauth:// URI for QR code
+    const totpUri = authenticator.keyuri(accountName, issuer, secret);
 
+    // Return secret to be temporarily stored client-side until verification
+    // The secret will be saved server-side only after successful verification
     return NextResponse.json({
       success: true,
       secret,
