@@ -47,7 +47,7 @@ export default function EnhancedAuthFlow() {
   };
 
   const handleOtpVerified = async (data: any) => {
-    const { accountCount, accounts: accountList, primaryPatientId: primaryPid, linkToken: token } = data;
+    const { accountCount, accounts: accountList, primaryPatientId: primaryPid, linkToken: token, isNewUser } = data;
     
     setLinkToken(token);
     setPrimaryPatientId(primaryPid);
@@ -58,8 +58,20 @@ export default function EnhancedAuthFlow() {
       upi: acc.upi || ""
     }));
     
+    // BRAND NEW USER - Start complete signup flow (profile → password → UPI → extended → MFA → consent)
+    if (isNewUser === true) {
+      // Safety guard: New user should have at least one account created by backend
+      if (accountList.length === 0) {
+        console.error("Backend returned isNewUser=true but no accounts - this should not happen");
+        return;
+      }
+      setPatientId(accountList[0].patientId);
+      setPatientUpi(accountList[0].upi || "");
+      setIsExistingUser(false);
+      setStep("profile"); // Start with minimal profile step
+    }
     // Existing user with complete profile - show account selection
-    if (accountCount === 1 && accountList[0].hasProfile) {
+    else if (accountCount === 1 && accountList[0].hasProfile) {
       setAccounts(accountsWithUpi);
       setPatientId(accountList[0].patientId);
       setPatientUpi(accountList[0].upi || "");
@@ -73,14 +85,14 @@ export default function EnhancedAuthFlow() {
       setIsExistingUser(true);
       setStep("accountSelection");
     }
-    // Single account with incomplete profile - complete profile (minimal mode)
+    // Existing user with incomplete profile - go to verification (they started signup before but didn't finish)
     else if (accountCount === 1 && !accountList[0].hasProfile) {
       setPatientId(accountList[0].patientId);
       setPatientUpi(accountList[0].upi || "");
       setIsExistingUser(true);
-      setStep("profile");
+      setStep("verification"); // Existing user needs to verify to continue
     }
-    // New user - start with minimal profile
+    // Fallback - treat as new user
     else {
       setPatientId(accountList[0]?.patientId);
       setPatientUpi(accountList[0]?.upi || "");
@@ -373,14 +385,14 @@ export default function EnhancedAuthFlow() {
 
         {step === "password" && (
           <PasswordSetupStep
-            onNext={handlePasswordSetup}
+            onPasswordSet={handlePasswordSetup}
           />
         )}
 
         {step === "upiDisplay" && (
           <YourIdStep
             upi={patientUpi}
-            onComplete={handleUpiDisplayNext}
+            onCompleteProfile={handleUpiDisplayNext}
             onSkip={handleUpiDisplayNext}
           />
         )}
