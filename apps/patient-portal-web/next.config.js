@@ -28,6 +28,19 @@ const nextConfig = {
   async rewrites() {
     return []
   },
+  // Webpack configuration to handle native modules
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Externalize native Argon2 modules for server-side only
+      config.externals = config.externals || [];
+      config.externals.push({
+        '@node-rs/argon2': 'commonjs @node-rs/argon2',
+        '@node-rs/argon2-linux-x64-gnu': 'commonjs @node-rs/argon2-linux-x64-gnu',
+        '@node-rs/argon2-linux-x64-musl': 'commonjs @node-rs/argon2-linux-x64-musl',
+      });
+    }
+    return config;
+  },
 }
 
 module.exports = nextConfig
