@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import AuthMethodSelector from "./AuthMethodSelector";
 import UpiSignInStep from "./UpiSignInStep";
@@ -35,6 +35,15 @@ export default function EnhancedAuthFlow() {
   const [primaryPatientId, setPrimaryPatientId] = useState<string | null>(null);
   const [isExistingUser, setIsExistingUser] = useState(false);
 
+  useEffect(() => {
+    const savedIsNewUser = sessionStorage.getItem('signup_isNewUser');
+    if (savedIsNewUser === 'true') {
+      setIsExistingUser(false);
+    } else if (savedIsNewUser === 'false') {
+      setIsExistingUser(true);
+    }
+  }, []);
+
   const handleMethodSelected = (method: Exclude<AuthMethod, "selector">) => {
     setAuthMethod(method);
     if (method === "upi") {
@@ -68,6 +77,7 @@ export default function EnhancedAuthFlow() {
       setPatientId(accountList[0].patientId);
       setPatientUpi(accountList[0].upi || "");
       setIsExistingUser(false);
+      sessionStorage.setItem('signup_isNewUser', 'true');
       setStep("profile"); // Start with minimal profile step
     }
     // Existing user with complete profile - show account selection
@@ -77,12 +87,14 @@ export default function EnhancedAuthFlow() {
       setPatientUpi(accountList[0].upi || "");
       setPatientName(accountList[0].name || "");
       setIsExistingUser(true);
+      sessionStorage.setItem('signup_isNewUser', 'false');
       setStep("accountSelection");
     }
     // Multiple accounts - show selection screen
     else if (accountCount > 1) {
       setAccounts(accountsWithUpi);
       setIsExistingUser(true);
+      sessionStorage.setItem('signup_isNewUser', 'false');
       setStep("accountSelection");
     }
     // Existing user with incomplete profile - go to verification (they started signup before but didn't finish)
@@ -90,6 +102,7 @@ export default function EnhancedAuthFlow() {
       setPatientId(accountList[0].patientId);
       setPatientUpi(accountList[0].upi || "");
       setIsExistingUser(true);
+      sessionStorage.setItem('signup_isNewUser', 'false');
       setStep("verification"); // Existing user needs to verify to continue
     }
     // Fallback - treat as new user
@@ -97,6 +110,7 @@ export default function EnhancedAuthFlow() {
       setPatientId(accountList[0]?.patientId);
       setPatientUpi(accountList[0]?.upi || "");
       setIsExistingUser(false);
+      sessionStorage.setItem('signup_isNewUser', 'true');
       setStep("profile");
     }
   };
@@ -242,6 +256,7 @@ export default function EnhancedAuthFlow() {
         console.error("Failed to save consent:", error);
       }
     }
+    sessionStorage.removeItem('signup_isNewUser');
     window.location.href = "/dashboard";
   };
 
