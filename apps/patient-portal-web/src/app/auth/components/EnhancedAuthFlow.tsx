@@ -186,8 +186,34 @@ export default function EnhancedAuthFlow() {
     }
   };
 
-  const handleVerified = () => {
-    // Old flow for existing users - skip new signup steps
+  const handleVerified = async () => {
+    // Check if consent already exists for this patient
+    if (patientId && linkToken) {
+      try {
+        const response = await axios.post("/api/auth/check-consent", {
+          patientId,
+          linkToken,
+        });
+
+        if (response.data.hasConsent) {
+          // Consent exists - create session and redirect to dashboard
+          const sessionResponse = await axios.post("/api/auth/create-session", {
+            patientId,
+            linkToken,
+          });
+
+          if (sessionResponse.data.success) {
+            sessionStorage.removeItem('signup_isNewUser');
+            window.location.href = "/dashboard";
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check consent:", error);
+      }
+    }
+
+    // No consent found - show consent screen
     setStep("hipaaConsent");
   };
 
