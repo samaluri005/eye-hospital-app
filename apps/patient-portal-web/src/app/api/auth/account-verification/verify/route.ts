@@ -103,35 +103,51 @@ export async function POST(request: NextRequest) {
     const storedDOB = patientRecord.dob ? new Date(patientRecord.dob) : null;
 
     if (!storedDOB) {
-      return NextResponse.json(
-        { error: 'Date of birth not set for this patient' },
-        { status: 400 }
-      );
-    }
+      // First-time verification: Save the DOB for new patients
+      await db
+        .update(patient)
+        .set({ 
+          dob: providedDOB,
+          updatedAt: new Date()
+        })
+        .where(eq(patient.patientId, patientId));
 
-    // Compare dates (ignore time component)
-    const dobMatches =
-      providedDOB.getFullYear() === storedDOB.getFullYear() &&
-      providedDOB.getMonth() === storedDOB.getMonth() &&
-      providedDOB.getDate() === storedDOB.getDate();
-
-    if (!dobMatches) {
-      // Log failed DOB attempt
+      // Log DOB setup for new patient
       await db.insert(hipaaAuditLog).values({
         patientId,
-        action: 'verification_failed_dob_mismatch',
+        action: 'patient_dob_set',
         actorId: patientId,
         actorType: 'patient',
         ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown',
-        accessedData: { reason: 'dob_mismatch' },
-        hipaaComplianceNote: 'Failed second-factor verification - DOB mismatch',
+        accessedData: { dob: providedDOB.toISOString().split('T')[0] },
+        hipaaComplianceNote: 'Patient date of birth set during first verification',
       });
+    } else {
+      // Existing patient: Compare dates (ignore time component)
+      const dobMatches =
+        providedDOB.getFullYear() === storedDOB.getFullYear() &&
+        providedDOB.getMonth() === storedDOB.getMonth() &&
+        providedDOB.getDate() === storedDOB.getDate();
 
-      return NextResponse.json(
-        { error: 'Date of birth does not match' },
-        { status: 401 }
-      );
+      if (!dobMatches) {
+        // Log failed DOB attempt
+        await db.insert(hipaaAuditLog).values({
+          patientId,
+          action: 'verification_failed_dob_mismatch',
+          actorId: patientId,
+          actorType: 'patient',
+          ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown',
+          userAgent: request.headers.get('user-agent') || 'unknown',
+          accessedData: { reason: 'dob_mismatch' },
+          hipaaComplianceNote: 'Failed second-factor verification - DOB mismatch',
+        });
+
+        return NextResponse.json(
+          { error: 'Date of birth does not match' },
+          { status: 401 }
+        );
+      }
     }
 
     // If no PIN exists, user needs to set one
