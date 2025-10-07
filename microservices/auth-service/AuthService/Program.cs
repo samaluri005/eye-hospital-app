@@ -229,12 +229,15 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
     
     // If no accounts exist, create a new primary patient
     Guid primaryPatientId;
+    bool isNewUser = false;
+    
     if (accounts.Count == 0)
     {
         var newPatient = new Patient { Phone = phone, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
         db.Patients.Add(newPatient);
         await db.SaveChangesAsync();
         primaryPatientId = newPatient.Id;
+        isNewUser = true; // Flag this as a brand new user
         
         accounts.Add(new
         {
@@ -272,7 +275,8 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
         accountCount = accounts.Count,
         accounts = accounts,
         primaryPatientId = primaryPatientId,
-        linkToken = linkToken 
+        linkToken = linkToken,
+        isNewUser = isNewUser // Flag to indicate brand new user vs existing user
     });
 });
 
