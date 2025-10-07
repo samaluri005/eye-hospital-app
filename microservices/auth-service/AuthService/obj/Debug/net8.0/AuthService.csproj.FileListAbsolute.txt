@@ -148,3 +148,5 @@
 /home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Microsoft.Extensions.Caching.Abstractions.dll
 /home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Microsoft.Extensions.Primitives.dll
 /home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/System.Diagnostics.DiagnosticSource.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Konscious.Security.Cryptography.Argon2.dll
+/home/runner/workspace/microservices/auth-service/AuthService/bin/Debug/net8.0/Konscious.Security.Cryptography.Blake2.dll

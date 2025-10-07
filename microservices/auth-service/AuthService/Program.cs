@@ -199,6 +199,7 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
         accounts.Add(new
         {
             patientId = pt.Id,
+            upi = pt.Upi,
             name = pt.FullName ?? "Incomplete Profile",
             relationship = "Primary",
             isPrimary = true,
@@ -216,6 +217,7 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
             accounts.Add(new
             {
                 patientId = pt.Id,
+                upi = pt.Upi,
                 name = pt.FullName ?? "Incomplete Profile",
                 relationship = fa.Relationship,
                 isPrimary = false,
@@ -237,6 +239,7 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
         accounts.Add(new
         {
             patientId = newPatient.Id,
+            upi = newPatient.Upi,
             name = "Incomplete Profile",
             relationship = "Primary",
             isPrimary = true,
@@ -262,6 +265,155 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
 
     // Audit log
     db.AuditLogs.Add(new AuditLog { PatientId=primaryPatientId, Actor="system", Action="otp_verified", Details=$"{{\"phone\":\"{phone}\",\"accountCount\":{accounts.Count}}}", Ip=http.Connection.RemoteIpAddress?.ToString(), UserAgent=http.Request.Headers["User-Agent"].FirstOrDefault(), CreatedAt=DateTime.UtcNow });
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { 
+        status="verified", 
+        accountCount = accounts.Count,
+        accounts = accounts,
+        primaryPatientId = primaryPatientId,
+        linkToken = linkToken 
+    });
+});
+
+// POST /signup/start-email - Send OTP to email address
+app.MapPost("/signup/start-email", async (HttpContext http, AppDbContext db) =>
+{
+    var payload = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!payload.TryGetValue("email", out var email)) return Results.BadRequest(new { error = "email required" });
+    var ip = http.Connection.RemoteIpAddress?.ToString() ?? http.Request.Headers["x-forwarded-for"].FirstOrDefault() ?? "unknown";
+
+    if (rateLimiter != null)
+    {
+        var ipCount = await rateLimiter.IncrementAsync($"rl:ip:{ip}", 60);
+        if (ipCount > 60) return Results.StatusCode(429);
+        var ecount = await rateLimiter.IncrementAsync($"rl:email:{email}", 15*60);
+        if (ecount > 3) return Results.StatusCode(429);
+    }
+
+    var otp = AuthService.Services.OtpHelper.GenerateOtp();
+    var nonce = AuthService.Services.OtpHelper.NewNonce();
+    var hash = AuthService.Services.OtpHelper.ComputeHmac(otpSecret ?? "", otp, nonce);
+    var expiresAt = DateTime.UtcNow.AddMinutes(5);
+
+    var entry = new OtpAttempt {
+      Email = email, OtpHash = hash, Nonce = nonce, ExpiresAt = expiresAt,
+      Attempts = 0, ResendCount = 1, Status = "pending", CreatedAt = DateTime.UtcNow
+    };
+    db.OtpAttempts.Add(entry);
+    await db.SaveChangesAsync();
+
+    // TODO: Send email via email service (SMTP, SendGrid, etc.)
+    // Email delivery should be implemented using a secure email provider
+    // DO NOT log OTP values to console - security violation
+
+    return Results.Ok(new { status="otp_sent", expires_in=300 });
+});
+
+// POST /signup/verify-email - Verify email OTP
+app.MapPost("/signup/verify-email", async (HttpContext http, AppDbContext db) => {
+    var p = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!p.TryGetValue("email", out var email) || !p.TryGetValue("otp", out var otp)) return Results.BadRequest(new { error="email+otp required" });
+
+    var entry = await db.OtpAttempts.Where(x=>x.Email==email && x.Status=="pending").OrderByDescending(x=>x.CreatedAt).FirstOrDefaultAsync();
+    if (entry==null) return Results.BadRequest(new { error="no_otp_found" });
+    if (DateTime.UtcNow > entry.ExpiresAt) { entry.Status="expired"; await db.SaveChangesAsync(); return Results.BadRequest(new { error="otp_expired" }); }
+    if (entry.Attempts >= 3) { entry.Status="failed"; await db.SaveChangesAsync(); return Results.BadRequest(new { error="max_attempts_exceeded", message="Too many incorrect attempts. Please request a new OTP." }); }
+
+    var expected = AuthService.Services.OtpHelper.ComputeHmac(otpSecret ?? "", otp, entry.Nonce ?? "");
+    if (!string.Equals(expected, entry.OtpHash, StringComparison.OrdinalIgnoreCase)) { entry.Attempts++; await db.SaveChangesAsync(); return Results.BadRequest(new { error="invalid_otp", attemptsLeft = 3-entry.Attempts }); }
+
+    entry.Status = "verified";
+    await db.SaveChangesAsync();
+
+    // Find all patients associated with this email address
+    var primaryPatients = await db.Patients.Where(x => x.Email == email).ToListAsync();
+    
+    // Family member accounts via primary patients
+    var primaryIds = primaryPatients.Select(p => p.Id).ToList();
+    var familyAccesses = await db.FamilyAccesses
+        .Where(fa => primaryIds.Contains(fa.GuardianPatientId) && fa.IsActive)
+        .ToListAsync();
+    
+    var familyPatientIds = familyAccesses.Select(fa => fa.PatientId).ToList();
+    var familyPatients = await db.Patients.Where(p => familyPatientIds.Contains(p.Id)).ToListAsync();
+    
+    // Build account list
+    var accounts = new List<object>();
+    
+    // Add primary accounts
+    foreach (var pt in primaryPatients)
+    {
+        var hasProfile = !string.IsNullOrEmpty(pt.FullName) && pt.DateOfBirth != null;
+        accounts.Add(new
+        {
+            patientId = pt.Id,
+            upi = pt.Upi,
+            name = pt.FullName ?? "Incomplete Profile",
+            relationship = "Primary",
+            isPrimary = true,
+            hasProfile = hasProfile
+        });
+    }
+    
+    // Add family member accounts
+    foreach (var fa in familyAccesses)
+    {
+        var pt = familyPatients.FirstOrDefault(p => p.Id == fa.PatientId);
+        if (pt != null)
+        {
+            var hasProfile = !string.IsNullOrEmpty(pt.FullName) && pt.DateOfBirth != null;
+            accounts.Add(new
+            {
+                patientId = pt.Id,
+                upi = pt.Upi,
+                name = pt.FullName ?? "Incomplete Profile",
+                relationship = fa.Relationship,
+                isPrimary = false,
+                hasProfile = hasProfile,
+                guardianPatientId = fa.GuardianPatientId
+            });
+        }
+    }
+    
+    // If no accounts exist, create a new primary patient
+    Guid primaryPatientId;
+    if (accounts.Count == 0)
+    {
+        var newPatient = new Patient { Email = email, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        db.Patients.Add(newPatient);
+        await db.SaveChangesAsync();
+        primaryPatientId = newPatient.Id;
+        
+        accounts.Add(new
+        {
+            patientId = newPatient.Id,
+            upi = newPatient.Upi,
+            name = "Incomplete Profile",
+            relationship = "Primary",
+            isPrimary = true,
+            hasProfile = false
+        });
+    }
+    else
+    {
+        // Use first primary patient as the default
+        primaryPatientId = primaryPatients.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    // Create short-lived link token for account selection (10 minutes)
+    var linkSecret = builder.Configuration["LINK_TOKEN_HMAC_SECRET"] ?? otpSecret;
+    if (string.IsNullOrEmpty(linkSecret))
+    {
+        Console.WriteLine("LINK_TOKEN_HMAC_SECRET not set - cannot create link token");
+        return Results.StatusCode(500);
+    }
+
+    var linkToken = await AuthService.Services.LinkTokenHelper.CreateAndStoreLinkTokenAsync(
+        db, primaryPatientId, linkSecret, TimeSpan.FromMinutes(10));
+
+    // Audit log
+    db.AuditLogs.Add(new AuditLog { PatientId=primaryPatientId, Actor="system", Action="email_otp_verified", Details=$"{{\"email\":\"{email}\",\"accountCount\":{accounts.Count}}}", Ip=http.Connection.RemoteIpAddress?.ToString(), UserAgent=http.Request.Headers["User-Agent"].FirstOrDefault(), CreatedAt=DateTime.UtcNow });
     await db.SaveChangesAsync();
 
     return Results.Ok(new { 
@@ -474,6 +626,159 @@ app.MapPost("/auth/exchange", async (HttpContext http, AppDbContext db) =>
         displayName = user.DisplayName,
         email = user.Email,
         mfaEnabled = user.MfaEnabled
+    });
+});
+
+// POST /auth/upi-signin - UPI + Password authentication
+app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!body.TryGetValue("upi", out var upi) || string.IsNullOrWhiteSpace(upi))
+        return Results.BadRequest(new { error = "upi required" });
+    if (!body.TryGetValue("password", out var password) || string.IsNullOrWhiteSpace(password))
+        return Results.BadRequest(new { error = "password required" });
+    
+    // Find patient by UPI
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Upi == upi);
+    if (patient == null)
+        return Results.Unauthorized();
+    
+    // Find user account
+    var user = await db.Users.FirstOrDefaultAsync(u => u.PatientId == patient.Id);
+    if (user == null)
+        return Results.Unauthorized();
+    
+    // Check if locked
+    if (user.IsLocked)
+        return Results.StatusCode(423);
+    
+    // Find password credential
+    var credential = await db.Credentials
+        .FirstOrDefaultAsync(c => c.UserId == user.UserId && c.CredentialType == "password");
+    
+    if (credential == null)
+        return Results.Unauthorized();
+    
+    // Verify password
+    var pepper = builder.Configuration["ARGON2_PEPPER"] ?? "";
+    var isValid = await AuthService.Services.PasswordHelper.VerifyPasswordAsync(password, credential.PasswordHash ?? "", pepper);
+    
+    if (!isValid)
+    {
+        // Audit failed attempt
+        db.AuditLogs.Add(new AuditLog
+        {
+            PatientId = patient.Id,
+            Actor = upi,
+            Action = "upi_signin_failed",
+            Details = "{\"reason\":\"invalid_password\"}",
+            Ip = http.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+        return Results.Unauthorized();
+    }
+    
+    // Update last login
+    user.LastLogin = DateTime.UtcNow;
+    await db.SaveChangesAsync();
+    
+    // Audit successful login
+    db.AuditLogs.Add(new AuditLog
+    {
+        PatientId = patient.Id,
+        Actor = upi,
+        Action = "upi_signin_success",
+        Details = $"{{\"userId\":\"{user.UserId}\",\"mfaEnabled\":{user.MfaEnabled.ToString().ToLower()}}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new
+    {
+        patientId = patient.Id,
+        userId = user.UserId,
+        mfaRequired = user.MfaEnabled,
+        displayName = user.DisplayName
+    });
+});
+
+// POST /auth/verify-mfa - Verify MFA (uses DOB/PIN step-up authentication)
+app.MapPost("/auth/verify-mfa", async (HttpContext http, AppDbContext db) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    
+    if (!body.TryGetValue("patientId", out var patientIdStr) || !Guid.TryParse(patientIdStr, out var patientId))
+        return Results.BadRequest(new { error = "patientId required" });
+    
+    if (!body.TryGetValue("code", out var code) || string.IsNullOrWhiteSpace(code))
+        return Results.BadRequest(new { error = "code required" });
+    
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
+    if (patient == null)
+        return Results.NotFound(new { error = "patient_not_found" });
+    
+    var user = await db.Users.FirstOrDefaultAsync(u => u.PatientId == patientId);
+    if (user == null || !user.MfaEnabled)
+        return Results.BadRequest(new { error = "mfa_not_enabled" });
+    
+    // Check if locked
+    if (user.IsLocked)
+        return Results.StatusCode(423);
+    
+    // Find PIN credential
+    var credential = await db.Credentials
+        .FirstOrDefaultAsync(c => c.UserId == user.UserId && c.PinHash != null);
+    
+    if (credential == null)
+        return Results.Unauthorized();
+    
+    // Verify PIN (4-digit code)
+    var pepper = builder.Configuration["ARGON2_PEPPER"] ?? "";
+    var isValid = await AuthService.Services.PasswordHelper.VerifyPasswordAsync(code, credential.PinHash ?? "", pepper);
+    
+    if (!isValid)
+    {
+        // Audit failed attempt
+        db.AuditLogs.Add(new AuditLog
+        {
+            PatientId = patientId,
+            Actor = user.UserId.ToString(),
+            Action = "mfa_verification_failed",
+            Details = "{\"reason\":\"invalid_code\"}",
+            Ip = http.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+        return Results.Unauthorized();
+    }
+    
+    // Update credential last used
+    credential.LastUsedAt = DateTime.UtcNow;
+    await db.SaveChangesAsync();
+    
+    // Audit successful MFA
+    db.AuditLogs.Add(new AuditLog
+    {
+        PatientId = patientId,
+        Actor = user.UserId.ToString(),
+        Action = "mfa_verification_success",
+        Details = $"{{\"userId\":\"{user.UserId}\"}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new
+    {
+        success = true,
+        patientId = patientId,
+        userId = user.UserId
     });
 });
 
