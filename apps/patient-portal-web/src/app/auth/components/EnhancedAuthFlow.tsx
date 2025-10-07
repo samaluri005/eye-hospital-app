@@ -124,7 +124,23 @@ export default function EnhancedAuthFlow() {
         console.error("Failed to add family member:", error);
       }
     } else {
-      setStep("verification");
+      // Primary patient - save profile to database
+      if (patientId && linkToken) {
+        try {
+          await axios.post("/api/auth/save-profile", {
+            patientId,
+            linkToken,
+            profile: profileData,
+          });
+          setStep("verification");
+        } catch (error) {
+          console.error("Failed to save profile:", error);
+          // Still proceed to verification even if save fails
+          setStep("verification");
+        }
+      } else {
+        setStep("verification");
+      }
     }
   };
 
