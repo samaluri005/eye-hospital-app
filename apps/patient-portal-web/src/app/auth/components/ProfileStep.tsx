@@ -24,6 +24,7 @@ type Props = {
   onNext: (data: ProfileData) => void;
   onSkip: () => void;
   isAddingFamilyMember?: boolean;
+  mode?: "minimal" | "extended"; // minimal: only name + DOB, extended: all fields
 };
 
 const FAMILY_RELATIONSHIPS = [
@@ -38,7 +39,8 @@ const FAMILY_RELATIONSHIPS = [
   { value: 'other', label: 'Other Family Member' },
 ];
 
-export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = false }: Props) {
+export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = false, mode = "extended" }: Props) {
+  const isMinimalMode = mode === "minimal";
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -125,12 +127,19 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
           </svg>
         </div>
         <h3 className="text-xl font-bold text-gray-900 mb-2">
-          {isAddingFamilyMember ? "Add Family Member" : "Complete Your Profile"}
+          {isAddingFamilyMember 
+            ? "Add Family Member" 
+            : isMinimalMode 
+              ? "Create Your Profile" 
+              : "Complete Your Profile"
+          }
         </h3>
         <p className="text-gray-600">
           {isAddingFamilyMember 
             ? "Please provide information for the family member you're adding"
-            : "Please provide your demographic information for accurate medical records"
+            : isMinimalMode
+              ? "Let's get started with your basic information"
+              : "Help us serve you better with additional details (optional)"
           }
         </p>
       </div>
@@ -191,18 +200,20 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Middle Name
-              </label>
-              <input 
-                type="text"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                value={middleName} 
-                onChange={(e)=>setMiddleName(e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
+            {!isMinimalMode && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Middle Name
+                </label>
+                <input 
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={middleName} 
+                  onChange={(e)=>setMiddleName(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -218,23 +229,25 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Title
-              </label>
-              <select 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                value={nameSuffix} 
-                onChange={(e)=>setNameSuffix(e.target.value)}
-              >
-                <option value="">None</option>
-                <option value="Mr">Mr</option>
-                <option value="Mrs">Mrs</option>
-                <option value="Miss">Miss</option>
-                <option value="Ms">Ms</option>
-                <option value="Dr">Dr</option>
-              </select>
-            </div>
+            {!isMinimalMode && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Title
+                </label>
+                <select 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={nameSuffix} 
+                  onChange={(e)=>setNameSuffix(e.target.value)}
+                >
+                  <option value="">None</option>
+                  <option value="Mr">Mr</option>
+                  <option value="Mrs">Mrs</option>
+                  <option value="Miss">Miss</option>
+                  <option value="Ms">Ms</option>
+                  <option value="Dr">Dr</option>
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -252,21 +265,23 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Gender
-              </label>
-              <select 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                value={gender} 
-                onChange={(e)=>setGender(e.target.value)}
-              >
-                <option value="">Prefer not to say</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+            {!isMinimalMode && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Gender
+                </label>
+                <select 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={gender} 
+                  onChange={(e)=>setGender(e.target.value)}
+                >
+                  <option value="">Prefer not to say</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Family Relationship Field */}
@@ -310,26 +325,28 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
         </div>
 
         {/* Optional Information Toggle */}
-        <button
-          type="button"
-          onClick={() => setShowOptional(!showOptional)}
-          className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
-        >
-          <span className="font-medium text-gray-900">
-            {showOptional ? 'Hide' : 'Show'} Optional Information
-          </span>
-          <svg
-            className={`w-5 h-5 text-gray-600 transition-transform ${showOptional ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        {!isMinimalMode && (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowOptional(!showOptional)}
+              className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+            >
+              <span className="font-medium text-gray-900">
+                {showOptional ? 'Hide' : 'Show'} Optional Information
+              </span>
+              <svg
+                className={`w-5 h-5 text-gray-600 transition-transform ${showOptional ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
 
-        {/* Optional Fields */}
-        {showOptional && (
+            {/* Optional Fields */}
+            {showOptional && (
           <div className="space-y-6">
             {/* Address Section */}
             <div className="border border-gray-200 rounded-lg p-4 space-y-4">
@@ -446,6 +463,8 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               </div>
             </div>
           </div>
+            )}
+          </>
         )}
       </div>
 
@@ -459,16 +478,18 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span>Continue</span>
+          <span>{isMinimalMode ? "Continue" : "Save Profile"}</span>
         </button>
         
-        <button 
-          type="button"
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 w-full"
-          onClick={onSkip}
-        >
-          Skip for now (not recommended)
-        </button>
+        {!isMinimalMode && (
+          <button 
+            type="button"
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 w-full"
+            onClick={onSkip}
+          >
+            Skip for now
+          </button>
+        )}
       </div>
 
       <p className="text-xs text-gray-500 text-center">

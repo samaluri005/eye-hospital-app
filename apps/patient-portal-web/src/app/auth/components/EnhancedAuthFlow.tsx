@@ -7,17 +7,19 @@ import PhoneStep from "./PhoneStep";
 import EmailStep from "./EmailStep";
 import OtpStep from "./OtpStep";
 import ProfileStep, { type ProfileData } from "./ProfileStep";
+import PasswordSetupStep from "./PasswordSetupStep";
+import YourIdStep from "./YourIdStep";
+import MfaSetupStep, { type MfaSetupData } from "./MfaSetupStep";
+import HipaaConsentStep, { type ConsentData } from "./HipaaConsentStep";
 import AccountSelectionStep, { type AccountOption } from "./AccountSelectionStep";
 import VerificationStep from "./VerificationStep";
 import SocialSignInWithEmpi from "./SocialSignInWithEmpi";
 import axios from "axios";
 
 const SocialSignInButton = dynamic(() => import("./SocialSignInButton"), { ssr: false });
-const ConsentStep = dynamic(() => import("./ConsentStep"), { ssr: false });
-const MfaStep = dynamic(() => import("./MfaStep"), { ssr: false });
 
 type AuthMethod = "selector" | "phone" | "email" | "upi" | "social";
-type FlowStep = "method" | "input" | "otp" | "accountSelection" | "verification" | "profile" | "consent" | "mfa" | "done";
+type FlowStep = "method" | "input" | "otp" | "accountSelection" | "verification" | "profile" | "password" | "upiDisplay" | "extendedProfile" | "mfaSetup" | "hipaaConsent" | "done";
 
 export default function EnhancedAuthFlow() {
   const [authMethod, setAuthMethod] = useState<AuthMethod>("selector");
@@ -71,14 +73,14 @@ export default function EnhancedAuthFlow() {
       setIsExistingUser(true);
       setStep("accountSelection");
     }
-    // Single account with incomplete profile - complete profile
+    // Single account with incomplete profile - complete profile (minimal mode)
     else if (accountCount === 1 && !accountList[0].hasProfile) {
       setPatientId(accountList[0].patientId);
       setPatientUpi(accountList[0].upi || "");
       setIsExistingUser(true);
       setStep("profile");
     }
-    // New user - create profile
+    // New user - start with minimal profile
     else {
       setPatientId(accountList[0]?.patientId);
       setPatientUpi(accountList[0]?.upi || "");
@@ -124,7 +126,7 @@ export default function EnhancedAuthFlow() {
         console.error("Failed to add family member:", error);
       }
     } else {
-      // Primary patient - save profile to database
+      // Save minimal profile to database
       if (patientId && linkToken) {
         try {
           await axios.post("/api/auth/save-profile", {
@@ -132,27 +134,102 @@ export default function EnhancedAuthFlow() {
             linkToken,
             profile: profileData,
           });
-          setStep("verification");
+          
+          // New users go to password setup, existing users go to verification
+          if (!isExistingUser) {
+            setStep("password");
+          } else {
+            setStep("verification");
+          }
         } catch (error) {
           console.error("Failed to save profile:", error);
-          // Still proceed to verification even if save fails
-          setStep("verification");
+          // Still proceed to next step even if save fails
+          if (!isExistingUser) {
+            setStep("password");
+          } else {
+            setStep("verification");
+          }
         }
       } else {
-        setStep("verification");
+        if (!isExistingUser) {
+          setStep("password");
+        } else {
+          setStep("verification");
+        }
       }
     }
   };
 
   const handleVerified = () => {
-    setStep("consent");
+    // Old flow for existing users - skip new signup steps
+    setStep("hipaaConsent");
   };
 
-  const handleConsentAccepted = () => {
-    setStep("mfa");
+  const handlePasswordSetup = async () => {
+    // Password is set up, show UPI
+    setStep("upiDisplay");
   };
 
-  const handleMfaDone = () => {
+  const handleUpiDisplayNext = () => {
+    // User saw their UPI, now show extended profile
+    setStep("extendedProfile");
+  };
+
+  const handleExtendedProfileComplete = async (profileData: ProfileData) => {
+    // Save extended profile
+    if (patientId && linkToken) {
+      try {
+        await axios.post("/api/auth/save-profile", {
+          patientId,
+          linkToken,
+          profile: profileData,
+        });
+      } catch (error) {
+        console.error("Failed to save extended profile:", error);
+      }
+    }
+    setStep("mfaSetup");
+  };
+
+  const handleExtendedProfileSkip = () => {
+    // Skip extended profile, go to MFA
+    setStep("mfaSetup");
+  };
+
+  const handleMfaSetupComplete = async (mfaData: MfaSetupData) => {
+    // Save MFA settings
+    if (patientId && linkToken) {
+      try {
+        await axios.post("/api/auth/setup-mfa", {
+          patientId,
+          linkToken,
+          mfa: mfaData,
+        });
+      } catch (error) {
+        console.error("Failed to setup MFA:", error);
+      }
+    }
+    setStep("hipaaConsent");
+  };
+
+  const handleMfaSetupSkip = () => {
+    // Skip MFA setup, go to HIPAA consent
+    setStep("hipaaConsent");
+  };
+
+  const handleConsentAccepted = async (consentData: ConsentData) => {
+    // Save consent
+    if (patientId && linkToken) {
+      try {
+        await axios.post("/api/auth/save-consent", {
+          patientId,
+          linkToken,
+          consent: consentData,
+        });
+      } catch (error) {
+        console.error("Failed to save consent:", error);
+      }
+    }
     window.location.href = "/dashboard";
   };
 
@@ -290,24 +367,44 @@ export default function EnhancedAuthFlow() {
             onNext={handleProfileComplete}
             onSkip={() => setStep("verification")}
             isAddingFamilyMember={isAddingFamilyMember}
+            mode={!isExistingUser ? "minimal" : "extended"}
           />
         )}
 
-        {step === "consent" && patientId && linkToken && (
-          <ConsentStep
-            patientId={patientId}
-            linkToken={linkToken}
-            onAccepted={handleConsentAccepted}
-            onDeclined={handleBackToMethod}
+        {step === "password" && (
+          <PasswordSetupStep
+            onNext={handlePasswordSetup}
           />
         )}
 
-        {step === "mfa" && (
-          <MfaStep
-            onDone={handleMfaDone}
-            skip={handleMfaDone}
-            patientId={patientId || undefined}
-            linkToken={linkToken || undefined}
+        {step === "upiDisplay" && (
+          <YourIdStep
+            upi={patientUpi}
+            onComplete={handleUpiDisplayNext}
+            onSkip={handleUpiDisplayNext}
+          />
+        )}
+
+        {step === "extendedProfile" && (
+          <ProfileStep
+            onNext={handleExtendedProfileComplete}
+            onSkip={handleExtendedProfileSkip}
+            mode="extended"
+          />
+        )}
+
+        {step === "mfaSetup" && (
+          <MfaSetupStep
+            onNext={handleMfaSetupComplete}
+            onSkip={handleMfaSetupSkip}
+            userPhone={contactInfo}
+          />
+        )}
+
+        {step === "hipaaConsent" && (
+          <HipaaConsentStep
+            onNext={handleConsentAccepted}
+            patientName={patientName}
           />
         )}
 
