@@ -652,12 +652,12 @@ app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
     // Find patient by UPI
     var patient = await db.Patients.FirstOrDefaultAsync(p => p.Upi == upi);
     if (patient == null)
-        return Results.Unauthorized();
+        return Results.Json(new { error = "invalid_credentials" }, statusCode: 401);
     
     // Find user account
     var user = await db.Users.FirstOrDefaultAsync(u => u.PatientId == patient.Id);
     if (user == null)
-        return Results.Unauthorized();
+        return Results.Json(new { error = "incomplete_signup", message = "Please complete your account setup" }, statusCode: 401);
     
     // Check if locked
     if (user.IsLocked)
@@ -668,7 +668,7 @@ app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
         .FirstOrDefaultAsync(c => c.UserId == user.UserId && c.CredentialType == "password");
     
     if (credential == null)
-        return Results.Unauthorized();
+        return Results.Json(new { error = "incomplete_signup", message = "Please complete your account setup" }, statusCode: 401);
     
     // Verify password
     var pepper = builder.Configuration["ARGON2_PEPPER"] ?? "";
@@ -688,7 +688,7 @@ app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
             CreatedAt = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
-        return Results.Unauthorized();
+        return Results.Json(new { error = "invalid_credentials", message = "Invalid UPI or password" }, statusCode: 401);
     }
     
     // Check if MFA credential actually exists (TOTP or PIN)

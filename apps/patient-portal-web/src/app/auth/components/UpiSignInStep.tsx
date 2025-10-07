@@ -51,8 +51,16 @@ export default function UpiSignInStep({ onSuccess, onBack }: Props) {
         setError("Unexpected response from server");
       }
     } catch (e: any) {
-      const errorMsg = e?.response?.data?.error || e.message || "Sign in failed";
-      setError(errorMsg);
+      const errorCode = e?.response?.data?.error;
+      const errorMessage = e?.response?.data?.message;
+      
+      if (errorCode === "incomplete_signup") {
+        setError(errorMessage || "Your account setup is incomplete. Please complete signup.");
+      } else if (errorCode === "invalid_credentials") {
+        setError(errorMessage || "Invalid UPI or password");
+      } else {
+        setError(errorMessage || e.message || "Sign in failed");
+      }
     } finally {
       setLoading(false);
     }
