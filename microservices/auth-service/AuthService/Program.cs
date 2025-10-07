@@ -233,7 +233,14 @@ app.MapPost("/signup/verify", async (HttpContext http, AppDbContext db) => {
     
     if (accounts.Count == 0)
     {
-        var newPatient = new Patient { Phone = phone, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        // Generate UPI for new patient
+        var upi = $"UPI{Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper()}";
+        var newPatient = new Patient { 
+            Phone = phone, 
+            Upi = upi,
+            CreatedAt = DateTime.UtcNow, 
+            UpdatedAt = DateTime.UtcNow 
+        };
         db.Patients.Add(newPatient);
         await db.SaveChangesAsync();
         primaryPatientId = newPatient.Id;
