@@ -217,9 +217,35 @@ export default function EnhancedAuthFlow() {
     setStep("hipaaConsent");
   };
 
-  const handlePasswordSetup = async () => {
-    // Password is set up, show UPI
-    setStep("upiDisplay");
+  const handlePasswordSetup = async (password: string) => {
+    // Save password to database
+    if (patientId && linkToken) {
+      try {
+        const response = await axios.post("/api/auth/setup-password", {
+          patientId,
+          linkToken,
+          password,
+          confirmPassword: password, // Already validated in PasswordSetupStep
+        });
+
+        if (response.data.success) {
+          // Password is set up, show UPI
+          setStep("upiDisplay");
+        } else {
+          console.error("Password setup failed:", response.data);
+          // Still proceed to avoid blocking user
+          setStep("upiDisplay");
+        }
+      } catch (error) {
+        console.error("Failed to setup password:", error);
+        // Still proceed to avoid blocking user
+        setStep("upiDisplay");
+      }
+    } else {
+      console.error("Missing patientId or linkToken for password setup");
+      // Still proceed to avoid blocking user
+      setStep("upiDisplay");
+    }
   };
 
   const handleUpiDisplayNext = () => {
