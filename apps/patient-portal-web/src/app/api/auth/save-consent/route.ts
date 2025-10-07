@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../../lib/db";
 import { patientConsents, hipaaAuditLog } from "../../../../../lib/schema";
+import { sessionService } from "../../../../../lib/sessionService";
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,10 +67,32 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    // Create authenticated session after consent
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const userAgent = req.headers.get('user-agent') || 'unknown';
+    
+    const session = await sessionService.createAuthenticatedSession(
+      patientId,
+      ipAddress,
+      { userAgent }
+    );
+
+    const response = NextResponse.json({
       success: true,
       message: "Consent saved successfully",
+      sessionToken: session.sessionToken,
     });
+
+    // Set HTTP-only session cookie
+    response.cookies.set('session_token', session.sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60, // 1 day
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error("Consent save error:", error);
     return NextResponse.json(
