@@ -52,6 +52,14 @@ The project is structured as a monorepo utilizing pnpm workspaces and Turbo for 
 - **Session Management**: Secure HTTP-only cookie authentication with session revocation on new logins, PostgreSQL cross-checks for active sessions, and atomic invalidation.
 - **CDC Data Standardization and Matching**: Algorithms for name/phone/address standardization (E.164, Soundex, Metaphone), string similarity (Levenshtein, Jaro, Jaro-Winkler), and multi-field matching with weighted scoring for duplicate detection and patient identity management.
 - **Authentication Flow**: Consolidated and improved authentication components following Next.js best practices.
+- **Hybrid Authentication System (COMPLETED - Oct 7, 2025)**: Implemented comprehensive multi-method authentication:
+  - **UPI Sign-In**: Traditional password-based authentication for returning patients (UPI + Password → MFA if enabled → Dashboard)
+  - **Phone Sign-In**: OTP-based authentication (Phone + OTP → Account Selection → DOB/PIN verification → Dashboard)
+  - **Email Sign-In**: OTP-based authentication with email parity (Email + OTP → Account Selection → DOB/PIN verification → Dashboard)
+  - **Social Sign-In**: OAuth integration with EMPI matching (Google/Microsoft/Apple → EMPI match → Account Selection if multiple → DOB/PIN verification → Dashboard)
+  - **UPI Masking**: Last 4 characters visible (UPI123456 → ****3456) for account selection and verification screens
+  - **Unified Auth Landing**: AuthMethodSelector component with 4 sign-in options, EnhancedAuthFlow router managing all authentication paths
+  - **API Endpoints**: Created /api/auth/upi-signin, /api/auth/verify-mfa, /api/auth/send-email-otp, /api/auth/social-signin with rate limiting and session management
 - **De-duplication**: CDC-compliant patient identity management with strategic indexes for performance.
 - **Performance Optimizations**: 17 strategic indexes for fast de-duplication, HIPAA audit searches, and appointment lookups.
 - **HIPAA Compliance**: All PHI stored in PostgreSQL; authentication-only data in Entra External ID.
