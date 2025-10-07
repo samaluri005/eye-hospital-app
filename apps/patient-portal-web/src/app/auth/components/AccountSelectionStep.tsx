@@ -31,7 +31,10 @@ export default function AccountSelectionStep({
           Multiple Accounts Found
         </h3>
         <p className="text-sm text-gray-600">
-          We found {accounts.length} account{accounts.length > 1 ? "s" : ""} associated with {phone}
+          We found {accounts.length} account{accounts.length > 1 ? "s" : ""} associated with:
+        </p>
+        <p className="text-base font-semibold text-emerald-600 mt-1">
+          {phone}
         </p>
       </div>
 
