@@ -10,6 +10,8 @@ namespace AuthService.Models
         [Key]
         public long Id { get; set; }
         public string? Phone { get; set; }
+        
+        [Column("email")]
         public string? Email { get; set; }
         public string? OtpHash { get; set; }
         public string? Nonce { get; set; }
