@@ -691,6 +691,14 @@ app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
         return Results.Unauthorized();
     }
     
+    // Check if MFA credential actually exists (TOTP or PIN)
+    var mfaCredential = await db.Credentials
+        .FirstOrDefaultAsync(c => c.UserId == user.UserId && 
+            (c.CredentialType == "totp" || c.PinHash != null));
+    
+    // Only require MFA if user has mfaEnabled AND a credential exists
+    bool requireMfa = user.MfaEnabled && mfaCredential != null;
+    
     // Update last login
     user.LastLogin = DateTime.UtcNow;
     await db.SaveChangesAsync();
@@ -701,7 +709,7 @@ app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
         PatientId = patient.Id,
         Actor = upi,
         Action = "upi_signin_success",
-        Details = $"{{\"userId\":\"{user.UserId}\",\"mfaEnabled\":{user.MfaEnabled.ToString().ToLower()}}}",
+        Details = $"{{\"userId\":\"{user.UserId}\",\"mfaEnabled\":{user.MfaEnabled.ToString().ToLower()},\"mfaRequired\":{requireMfa.ToString().ToLower()}}}",
         Ip = http.Connection.RemoteIpAddress?.ToString(),
         UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
         CreatedAt = DateTime.UtcNow
@@ -712,7 +720,7 @@ app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
     {
         patientId = patient.Id,
         userId = user.UserId,
-        mfaRequired = user.MfaEnabled,
+        mfaRequired = requireMfa,
         displayName = user.DisplayName
     });
 });
