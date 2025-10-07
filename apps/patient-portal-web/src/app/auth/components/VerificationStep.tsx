@@ -12,8 +12,8 @@ interface VerificationStepProps {
   linkToken: string;
   onVerified: () => void;
   onBack: () => void;
-  isNewUser?: boolean; // New user (just completed profile)
-  profileDob?: string; // DOB from profile step (for new users)
+  isNewUser?: boolean;
+  profileDob?: string;
 }
 
 export default function VerificationStep({
@@ -27,16 +27,14 @@ export default function VerificationStep({
   profileDob = "",
 }: VerificationStepProps) {
   const [upi, setUpi] = useState(patientUpi);
-  const [dob, setDob] = useState(profileDob); // Pre-fill with profile DOB for new users
-  const [pin, setPin] = useState("");
-  const [pinConfirm, setPinConfirm] = useState("");
-  const [needsPin, setNeedsPin] = useState(isNewUser); // New users always need PIN
+  const [displayUpi, setDisplayUpi] = useState(maskUPI(patientUpi));
+  const [isUpiEditing, setIsUpiEditing] = useState(false);
+  const [dob, setDob] = useState(profileDob);
   const [loading, setLoading] = useState(false);
-  const [initializing, setInitializing] = useState(!isNewUser); // Check PIN for existing users
+  const [initializing, setInitializing] = useState(!isNewUser);
   const [error, setError] = useState("");
   const [lockedUntil, setLockedUntil] = useState<string | null>(null);
 
-  // Fetch DOB and PIN status for existing users on mount
   useEffect(() => {
     const fetchPatientInfo = async () => {
       if (!isNewUser && patientId && linkToken) {
@@ -48,12 +46,9 @@ export default function VerificationStep({
           });
 
           if (response.data.success) {
-            // Set DOB if available
             if (response.data.dob) {
               setDob(response.data.dob);
             }
-            // Check if PIN exists
-            setNeedsPin(!response.data.hasPin);
           }
         } catch (err) {
           console.error('Failed to fetch patient info:', err);
@@ -66,12 +61,35 @@ export default function VerificationStep({
     fetchPatientInfo();
   }, [patientId, linkToken, isNewUser]);
 
-  // Sync local dob state with profileDob prop changes (for family member flow)
   useEffect(() => {
     if (profileDob && profileDob !== dob) {
       setDob(profileDob);
     }
   }, [profileDob]);
+
+  useEffect(() => {
+    if (!isUpiEditing && upi) {
+      setDisplayUpi(maskUPI(upi));
+    }
+  }, [upi, isUpiEditing]);
+
+  const handleUpiFocus = () => {
+    setIsUpiEditing(true);
+    setDisplayUpi("");
+  };
+
+  const handleUpiBlur = () => {
+    setIsUpiEditing(false);
+    if (upi) {
+      setDisplayUpi(maskUPI(upi));
+    }
+  };
+
+  const handleUpiChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setUpi(value);
+    setDisplayUpi(value);
+  };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,78 +97,32 @@ export default function VerificationStep({
     setLoading(true);
 
     try {
-      // If user needs to set PIN, call set-pin endpoint first
-      if (needsPin) {
-        if (pin !== pinConfirm) {
-          setError("PINs do not match");
-          setLoading(false);
-          return;
+      const verifyResponse = await axios.post(
+        "/api/auth/account-verification/verify",
+        {
+          patientId,
+          dob,
+          linkToken,
         }
+      );
 
-        if (!/^\d{4}$/.test(pin)) {
-          setError("PIN must be exactly 4 digits");
-          setLoading(false);
-          return;
-        }
-
-        const setPinResponse = await axios.post(
-          "/api/auth/account-verification/set-pin",
-          {
-            patientId,
-            pin,
-            pinConfirm,
-            linkToken,
-          }
-        );
-
-        if (setPinResponse.data.status === "pin_set") {
-          // PIN set successfully, now verify
-          const verifyResponse = await axios.post(
-            "/api/auth/account-verification/verify",
-            {
-              patientId,
-              dob,
-              pin,
-              linkToken,
-            }
-          );
-
-          if (verifyResponse.data.status === "verified") {
-            onVerified();
-          }
-        }
-      } else {
-        // Normal verification flow
-        const verifyResponse = await axios.post(
-          "/api/auth/account-verification/verify",
-          {
-            patientId,
-            dob,
-            pin,
-            linkToken,
-          }
-        );
-
-        if (verifyResponse.data.status === "verified") {
-          onVerified();
-        }
+      if (verifyResponse.data.status === "verified") {
+        onVerified();
       }
     } catch (err: any) {
       console.error("Verification error:", err);
 
       if (err.response?.status === 423) {
-        // Account locked
         setLockedUntil(err.response.data.lockedUntil);
         const minutesLeft = err.response.data.minutesLeft;
         setError(
           `Account locked due to too many failed attempts. Please try again in ${minutesLeft} minutes.`
         );
       } else if (err.response?.status === 401) {
-        // Wrong DOB or PIN
         const attemptsRemaining = err.response.data.attemptsRemaining;
         if (attemptsRemaining !== undefined) {
           setError(
-            `Incorrect PIN. ${attemptsRemaining} attempts remaining before account lock.`
+            `Incorrect information. ${attemptsRemaining} attempts remaining before account lock.`
           );
         } else {
           setError(err.response.data.error || "Verification failed");
@@ -165,7 +137,6 @@ export default function VerificationStep({
 
   const isLocked = lockedUntil && new Date(lockedUntil) > new Date();
 
-  // Show loading state while fetching patient info
   if (initializing) {
     return <LoadingSpinner size="lg" message="Loading verification..." />;
   }
@@ -195,7 +166,6 @@ export default function VerificationStep({
       </div>
 
       <form onSubmit={handleVerify} className="space-y-6">
-        {/* UPI Display/Edit - Show masked UPI if available */}
         {upi && (
           <div>
             <label
@@ -208,10 +178,12 @@ export default function VerificationStep({
               <input
                 type="text"
                 id="upi"
-                value={upi}
-                onChange={(e) => setUpi(e.target.value.toUpperCase())}
+                value={displayUpi}
+                onChange={handleUpiChange}
+                onFocus={handleUpiFocus}
+                onBlur={handleUpiBlur}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono bg-gray-50"
-                placeholder={maskUPI(upi)}
+                placeholder="Enter your UPI"
                 disabled={loading || !!isLocked}
               />
               <div className="absolute right-3 top-3 text-gray-400">
@@ -221,12 +193,11 @@ export default function VerificationStep({
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Verify your UPI is correct (shown as {maskUPI(upi)})
+              Click to edit and verify your UPI
             </p>
           </div>
         )}
 
-        {/* DOB Input - Only for existing users */}
         {!isNewUser && (
           <div>
             <label
@@ -247,88 +218,6 @@ export default function VerificationStep({
           </div>
         )}
 
-        {/* PIN Input or Create PIN */}
-        {!needsPin ? (
-          <div>
-            <label
-              htmlFor="pin"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              4-Digit PIN <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="password"
-              id="pin"
-              value={pin}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-                setPin(value);
-              }}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center text-2xl tracking-widest"
-              placeholder="••••"
-              maxLength={4}
-              required
-              disabled={loading || !!isLocked}
-            />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>First time login!</strong> Please create a 4-digit PIN to
-                secure your account.
-              </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="pin"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Create 4-Digit PIN <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="password"
-                id="pin"
-                value={pin}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-                  setPin(value);
-                }}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center text-2xl tracking-widest"
-                placeholder="••••"
-                maxLength={4}
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="pinConfirm"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Re-enter PIN <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="password"
-                id="pinConfirm"
-                value={pinConfirm}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-                  setPinConfirm(value);
-                }}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center text-2xl tracking-widest"
-                placeholder="••••"
-                maxLength={4}
-                required
-                disabled={loading}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Error Display */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-start">
@@ -348,7 +237,6 @@ export default function VerificationStep({
           </div>
         )}
 
-        {/* Buttons */}
         <div className="flex gap-3">
           <button
             type="button"
@@ -363,7 +251,7 @@ export default function VerificationStep({
             className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
             disabled={loading || !!isLocked}
           >
-            {loading ? (needsPin ? "Creating PIN..." : "Verifying...") : needsPin ? "Create PIN" : "Verify"}
+            {loading ? "Verifying..." : "Verify"}
           </button>
         </div>
       </form>
