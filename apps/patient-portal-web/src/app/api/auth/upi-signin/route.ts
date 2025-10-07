@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Auth Service to validate UPI + password
-    // TODO: This endpoint needs to be implemented in the Auth Service
+    // TODO: Implement this endpoint in Auth Service (.NET):
+    //   - POST /auth/upi-signin
+    //   - Validates UPI + password (Argon2id hash)
+    //   - Returns: { patientId, mfaRequired, mfaMethods? }
     const response = await fetch(`${AUTH_SERVICE_URL}/auth/upi-signin`, {
       method: 'POST',
       headers: {
@@ -60,13 +63,16 @@ export async function POST(request: NextRequest) {
     // Check if MFA is required
     if (data.mfaRequired) {
       // Create temporary session token for MFA verification
+      // Store as patientId in OTP session so MFA verification can retrieve it
       const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
       const userAgent = request.headers.get('user-agent') || 'unknown';
       
       const tempToken = await sessionService.createOtpSession(
-        upi,
+        upi, // Phone/identifier field
         ipAddress,
-        { userAgent }
+        { userAgent },
+        undefined, // deviceFingerprint
+        data.patientId // Pass patientId as 5th parameter
       );
 
       return NextResponse.json({

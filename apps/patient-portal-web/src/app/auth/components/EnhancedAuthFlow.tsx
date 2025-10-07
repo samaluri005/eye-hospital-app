@@ -9,6 +9,7 @@ import OtpStep from "./OtpStep";
 import ProfileStep, { type ProfileData } from "./ProfileStep";
 import AccountSelectionStep, { type AccountOption } from "./AccountSelectionStep";
 import VerificationStep from "./VerificationStep";
+import SocialSignInWithEmpi from "./SocialSignInWithEmpi";
 import axios from "axios";
 
 const SocialSignInButton = dynamic(() => import("./SocialSignInButton"), { ssr: false });
@@ -216,25 +217,33 @@ export default function EnhancedAuthFlow() {
 
         {/* Social Flow */}
         {authMethod === "social" && step === "input" && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Social Sign-In</h3>
-              <p className="text-gray-600">Choose your preferred provider</p>
+          <>
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Social Sign-In</h3>
+                <p className="text-gray-600">Choose your preferred provider</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <SocialSignInButton provider="google" patientId={patientId} linkToken={linkToken} />
+                <SocialSignInButton provider="microsoft" patientId={patientId} linkToken={linkToken} />
+                <SocialSignInButton provider="apple" patientId={patientId} linkToken={linkToken} />
+              </div>
+
+              <button
+                onClick={handleBackToMethod}
+                className="w-full py-3 px-6 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Back
+              </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <SocialSignInButton provider="google" patientId={patientId} linkToken={linkToken} />
-              <SocialSignInButton provider="microsoft" patientId={patientId} linkToken={linkToken} />
-              <SocialSignInButton provider="apple" patientId={patientId} linkToken={linkToken} />
-            </div>
-
-            <button
-              onClick={handleBackToMethod}
-              className="w-full py-3 px-6 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-            >
-              Back
-            </button>
-          </div>
+            {/* EMPI Matching Logic - Triggers after social auth */}
+            <SocialSignInWithEmpi 
+              onAccountsFound={handleOtpVerified}
+              onError={(error) => console.error("Social auth error:", error)}
+            />
+          </>
         )}
 
         {/* Common Steps (Account Selection, Verification, Profile, Consent, MFA) */}

@@ -45,7 +45,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Auth Service to verify MFA code
-    // TODO: This endpoint needs to be implemented in the Auth Service
+    // TODO: Implement this endpoint in Auth Service (.NET):
+    //   - POST /auth/verify-mfa
+    //   - Validates MFA code (TOTP/SMS) for patientId
+    //   - Returns: { success: true }
     const response = await fetch(`${AUTH_SERVICE_URL}/auth/verify-mfa`, {
       method: 'POST',
       headers: {

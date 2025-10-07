@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
     // In production, verify the token with Google reCAPTCHA API
 
     // Call Auth Service to send email OTP
-    // Note: This endpoint may need to be implemented in the Auth Service
+    // TODO: Implement this endpoint in Auth Service (.NET):
+    //   - POST /signup/start-email
+    //   - Sends OTP to email address
+    //   - Returns: { status: 'otp_sent' }
     const response = await fetch(`${AUTH_SERVICE_URL}/signup/start-email`, {
       method: 'POST',
       headers: {

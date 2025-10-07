@@ -32,7 +32,8 @@ export class SessionService {
     phone: string,
     ipAddress: string,
     deviceInfo: DeviceInfo,
-    deviceFingerprint?: string
+    deviceFingerprint?: string,
+    patientId?: string
   ): Promise<string> {
     const sessionToken = uuidv4();
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
@@ -41,6 +42,7 @@ export class SessionService {
       const sessionData = {
         sessionToken,
         phone,
+        patientId, // Optional patientId for MFA flows
         sessionType: 'otp',
         ipAddress,
         deviceInfo,
