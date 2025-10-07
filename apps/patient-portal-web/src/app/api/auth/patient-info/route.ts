@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         dob,
         (SELECT COUNT(*) FROM patient_pin WHERE patient_id = ${patientId}::uuid) as has_pin
       FROM patient
-      WHERE id = ${patientId}::uuid
+      WHERE patient_id = ${patientId}::uuid
       LIMIT 1
     `);
 

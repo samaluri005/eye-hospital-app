@@ -5,6 +5,9 @@ import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { hashPin } from '../../../../../../lib/argon2';
 
+// Force Node.js runtime for native Argon2 module
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
