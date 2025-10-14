@@ -15,7 +15,8 @@ export const patient = pgTable('patient', {
   upi: text('upi').unique(),
   
   email: varchar('email', { length: 255 }),
-  phone: varchar('phone', { length: 20 }).notNull(),
+  phone: varchar('phone', { length: 20 }).notNull(), // Primary phone for authentication (OTP)
+  mobile: varchar('mobile', { length: 20 }), // User-entered mobile number (optional, can differ from auth phone)
   fullName: varchar('full_name', { length: 255 }),
   dob: timestamp('dob'),
   mrnEncrypted: text('mrn_encrypted'),

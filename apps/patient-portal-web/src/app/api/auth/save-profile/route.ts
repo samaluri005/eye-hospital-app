@@ -127,7 +127,7 @@ export async function POST(request: Request) {
         fullName: fullName || null,
         dob: dateOfBirth ? new Date(dateOfBirth) : null,
         gender: gender || null,
-        mobile: mobile || null,
+        mobile: mobile || null, // User-entered mobile (optional, separate from auth phone)
         email: email || null,
         patientType: patientType || null,
         guardianName: isMinor ? (guardianName || null) : null,
