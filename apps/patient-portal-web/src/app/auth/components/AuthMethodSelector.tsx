@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import axios from "axios";
 
 type AuthMethod = "phone" | "email" | "upi" | "social" | "signup";
 
@@ -12,11 +13,54 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
   const [hospitalId, setHospitalId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (hospitalId && password) {
-      onMethodSelected("upi");
+    setError(null);
+
+    if (!hospitalId.trim()) {
+      setError("Please enter your Hospital ID");
+      return;
+    }
+
+    if (!password) {
+      setError("Please enter your password");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await axios.post("/api/auth/upi-signin", {
+        upi: hospitalId.toUpperCase().trim(),
+        password,
+        rememberMe: false,
+      });
+
+      if (response.data.mfaRequired) {
+        // Handle MFA flow - redirect to MFA step
+        window.location.href = "/dashboard"; // Temporary - should handle MFA properly
+      } else if (response.data.sessionToken || response.data.accessToken) {
+        // Success - redirect to dashboard
+        window.location.href = "/dashboard";
+      } else {
+        setError("Unexpected response from server");
+      }
+    } catch (e: any) {
+      const errorCode = e?.response?.data?.error;
+      const errorMessage = e?.response?.data?.message;
+      
+      if (errorCode === "incomplete_signup") {
+        setError(errorMessage || "Your account setup is incomplete. Please complete signup.");
+      } else if (errorCode === "invalid_credentials") {
+        setError(errorMessage || "Invalid Hospital ID or password");
+      } else {
+        setError(errorMessage || e.message || "Sign in failed");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -103,15 +147,23 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
           </a>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            {error}
+          </div>
+        )}
+
         {/* Sign In Button */}
         <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: loading ? 1 : 1.02 }}
+          whileTap={{ scale: loading ? 1 : 0.98 }}
           transition={{ duration: 0.15 }}
           type="submit"
-          className="w-full py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+          disabled={loading}
+          className="w-full py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Sign In
+          {loading ? "Signing In..." : "Sign In"}
         </motion.button>
       </form>
 
