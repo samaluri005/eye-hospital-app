@@ -370,20 +370,23 @@ export default function EnhancedAuthFlow() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
-        {/* Method Selector */}
-        {step === "method" && (
-          <AuthMethodSelector onMethodSelected={handleMethodSelected} />
-        )}
+    <>
+      {/* Method Selector - Full Screen */}
+      {step === "method" && (
+        <AuthMethodSelector onMethodSelected={handleMethodSelected} />
+      )}
 
-        {/* UPI Sign-In Flow */}
-        {authMethod === "upi" && step === "input" && (
-          <UpiSignInStep
-            onSuccess={handleUpiSignInSuccess}
-            onBack={handleBackToMethod}
-          />
-        )}
+      {/* All Other Steps - Centered Card */}
+      {step !== "method" && (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
+            {/* UPI Sign-In Flow */}
+            {authMethod === "upi" && step === "input" && (
+              <UpiSignInStep
+                onSuccess={handleUpiSignInSuccess}
+                onBack={handleBackToMethod}
+              />
+            )}
 
         {/* Phone Flow */}
         {authMethod === "phone" && (
@@ -541,18 +544,20 @@ export default function EnhancedAuthFlow() {
           />
         )}
 
-        {/* Back to Method Selector - Show only on input steps */}
-        {step === "input" && authMethod !== "upi" && (
-          <div className="mt-4 text-center">
-            <button
-              onClick={handleBackToMethod}
-              className="text-sm text-gray-600 hover:text-gray-900 font-medium"
-            >
-              ← Back to sign-in options
-            </button>
+            {/* Back to Method Selector - Show only on input steps */}
+            {step === "input" && authMethod !== "upi" && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={handleBackToMethod}
+                  className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+                >
+                  ← Back to sign-in options
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }
