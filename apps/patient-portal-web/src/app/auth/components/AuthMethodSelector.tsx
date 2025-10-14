@@ -113,7 +113,7 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-emerald-500 to-teal-600">
         <div className="absolute inset-0 bg-black/20"></div>
         <img 
-          src="/attached_assets/stock_images/abstract_eye_care_me_fb46b19d.jpg" 
+          src="/abstract_eye_care_me_fb46b19d.jpg" 
           alt="Eye Care"
           className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-60"
         />
