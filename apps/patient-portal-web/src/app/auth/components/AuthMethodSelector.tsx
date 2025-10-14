@@ -99,17 +99,8 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
   if (mfaRequired) {
     return (
       <div className="space-y-8">
-        {/* Logo and Header */}
+        {/* Header */}
         <div className="space-y-2">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">EyeCare Hospital</h1>
-          </div>
-          
           <h2 className="text-2xl font-bold text-gray-900">Two-Factor Authentication</h2>
           <p className="text-gray-600">Enter your 4-digit security PIN to continue</p>
         </div>
@@ -170,18 +161,8 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* Logo and Header */}
+      {/* Header */}
       <div className="space-y-2">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">EyeCare Hospital</h1>
-        </div>
-        
         <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
         <p className="text-gray-600">Sign in to access your eye care account</p>
       </div>
@@ -288,13 +269,6 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
       >
         Create New Account
       </motion.button>
-
-      {/* Copyright Footer */}
-      <div className="pt-6 border-t border-gray-200">
-        <p className="text-center text-xs text-gray-900 font-semibold">
-          © 2025 EyeCare Hospital. All rights reserved
-        </p>
-      </div>
     </div>
   );
 }
