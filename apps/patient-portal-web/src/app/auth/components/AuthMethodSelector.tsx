@@ -185,9 +185,11 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 transition-colors"
             required
           />
-          <a href="#" className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline mt-1 inline-block">
-            Forgot ID?
-          </a>
+          <div className="text-right">
+            <a href="#" className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline mt-1 inline-block">
+              Forgot ID?
+            </a>
+          </div>
         </div>
 
         {/* Password Field */}
@@ -224,9 +226,11 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
               )}
             </button>
           </div>
-          <a href="#" className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline mt-1 inline-block">
-            Forgot Password?
-          </a>
+          <div className="text-right">
+            <a href="#" className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline mt-1 inline-block">
+              Forgot Password?
+            </a>
+          </div>
         </div>
 
         {/* Error Message */}

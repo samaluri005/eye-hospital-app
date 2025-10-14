@@ -102,8 +102,8 @@ export default function PersistentAuthLayout({ children }: Props) {
         </motion.div>
       </div>
 
-      {/* Bottom Copyright - Fixed Position */}
-      <div className="absolute bottom-6 left-0 right-0 z-50">
+      {/* Bottom Copyright - Fixed Position on Right Side */}
+      <div className="absolute bottom-6 right-0 lg:right-6 z-50 lg:w-1/2 w-full">
         <p className="text-center text-xs text-gray-900 font-semibold">
           © 2025 EyeCare Hospital. All rights reserved
         </p>
