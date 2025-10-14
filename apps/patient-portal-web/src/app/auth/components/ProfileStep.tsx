@@ -14,6 +14,8 @@ export type ProfileData = {
   email?: string;
   patientType?: string;
   guardianName?: string;
+  govtIdType?: string; // Government ID type
+  govtIdNumber?: string; // Government ID number
   bloodGroup?: string;
   sourceOfPatient?: string;
   referralName?: string;
@@ -71,6 +73,8 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
   const [patientType, setPatientType] = useState("");
   const [guardianName, setGuardianName] = useState("");
   const [relationship, setRelationship] = useState("");
+  const [govtIdType, setGovtIdType] = useState("");
+  const [govtIdNumber, setGovtIdNumber] = useState("");
   
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
@@ -183,6 +187,8 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
       email: email.trim() || undefined,
       patientType: patientType || undefined,
       guardianName: isMinor ? guardianName.trim() || undefined : undefined,
+      govtIdType: govtIdType || undefined,
+      govtIdNumber: govtIdNumber.trim() || undefined,
       bloodGroup: bloodGroup || undefined,
       sourceOfPatient: sourceOfPatient || undefined,
       referralName: sourceOfPatient === "Referral" ? referralName.trim() || undefined : undefined,
@@ -605,6 +611,49 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Government ID Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Government ID Type
+                    <span className="ml-2 text-xs text-gray-500">(Optional - helps prevent duplicates)</span>
+                  </label>
+                  <select 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                    value={govtIdType} 
+                    onChange={(e)=>setGovtIdType(e.target.value)}
+                  >
+                    <option value="">Select ID Type</option>
+                    <option value="aadhaar">Aadhaar Card</option>
+                    <option value="passport">Passport</option>
+                    <option value="voter_id">Voter ID</option>
+                    <option value="driving_license">Driving License</option>
+                    <option value="pan_card">PAN Card</option>
+                  </select>
+                </div>
+
+                {/* Government ID Number */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Government ID Number
+                    {govtIdType && (
+                      <span className="ml-2 text-xs text-blue-600">
+                        ({govtIdType === 'aadhaar' ? 'XXXX XXXX XXXX' : 
+                          govtIdType === 'passport' ? 'A1234567' : 
+                          govtIdType === 'pan_card' ? 'ABCDE1234F' : 
+                          'Enter ID number'})
+                      </span>
+                    )}
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                    value={govtIdNumber} 
+                    onChange={(e)=>setGovtIdNumber(e.target.value)}
+                    placeholder={govtIdType ? "Enter ID number" : "Select ID type first"}
+                    disabled={!govtIdType}
+                  />
+                </div>
+
                 {/* Blood Group */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Blood Group</label>

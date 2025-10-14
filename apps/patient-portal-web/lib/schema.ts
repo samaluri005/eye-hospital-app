@@ -48,6 +48,8 @@ export const patient = pgTable('patient', {
   emailVerifiedAt: timestamp('email_verified_at'),
   
   // Government ID Verification (NEW)
+  govtIdType: varchar('govt_id_type', { length: 50 }), // aadhaar, passport, voter_id, driving_license, pan_card
+  govtIdNumber: varchar('govt_id_number', { length: 100 }), // Government ID number
   govtIdVerified: boolean('govt_id_verified').default(false),
   trustLevel: varchar('trust_level', { length: 20 }).default('low'), // low, medium, high
   

@@ -34,37 +34,43 @@ export async function POST(request: NextRequest) {
         firstName: profile.firstName,
         middleName: profile.middleName || "",
         lastName: profile.lastName,
-        dateOfBirth: profile.dateOfBirth,
+        dob: profile.dateOfBirth,
+        gender: profile.gender,
         phone: profile.mobile || "",
-        addresses: profile.addressLine1 ? [
-          {
-            line1: profile.addressLine1,
-            line2: profile.addressLine2 || "",
-            city: profile.city || "",
-            state: profile.state || "",
-            postalCode: profile.postalCode || "",
-            country: profile.country || "India"
-          }
-        ] : [],
+        email: profile.email || "",
+        govtIdType: profile.govtIdType || "",
+        govtIdNumber: profile.govtIdNumber || "",
       });
 
-      const { score, matchedPatient } = empiResponse.data;
+      const { decision, highestScore, matches } = empiResponse.data;
 
-      // Hard block if high-confidence match (≥80% similarity)
-      if (score >= 80) {
+      // Hard block if high-confidence match (≥80% similarity) or government ID match
+      if (decision === 'block') {
+        const topMatch = matches && matches.length > 0 ? matches[0] : null;
         return NextResponse.json(
           {
             success: false,
             duplicateFound: true,
-            message: "An account with similar details already exists. Please sign in using your Hospital ID.",
-            matchedPatient: {
-              name: matchedPatient?.name || "Unknown",
-              dob: matchedPatient?.dateOfBirth || "",
-              score: score,
-            },
+            message: topMatch?.matchReason?.includes('Government ID') 
+              ? "This Government ID is already registered. Please sign in using your Hospital ID."
+              : "An account with similar details already exists. Please sign in using your Hospital ID.",
+            matchedPatient: topMatch ? {
+              upi: topMatch.upi,
+              name: `${topMatch.firstName || ''} ${topMatch.lastName || ''}`.trim() || "Unknown",
+              dob: topMatch.dob || "",
+              score: topMatch.score,
+              reason: topMatch.matchReason
+            } : null,
           },
           { status: 409 }
         );
+      }
+
+      // Medium probability match (50-79) - create but flag for review
+      if (decision === 'review') {
+        console.log('Medium-probability duplicate detected (score 50-79), creating with review flag');
+        // We'll create the patient but mark them for manual review
+        // This will be handled in the patient creation step below
       }
 
       // Step 2: No duplicate found, create patient record
@@ -107,12 +113,16 @@ export async function POST(request: NextRequest) {
         fullName,
         dob: new Date(profile.dateOfBirth),
         gender: profile.gender,
-        phone: profile.mobile || "UNKNOWN", // Temp value, will be updated
+        phone: profile.mobile || null,
         mobile: profile.mobile || null,
         email: profile.email || null,
         patientType: profile.patientType || null,
         guardianName: profile.guardianName || null,
+        govtIdType: profile.govtIdType || null,
+        govtIdNumber: profile.govtIdNumber || null,
         addresses: presentAddress ? JSON.stringify([presentAddress]) : null,
+        empiStatus: decision === 'review' ? 'duplicate_suspected' : 'unknown',
+        empiScore: decision === 'review' ? String(highestScore) : null,
         status: "active",
         createdAt: new Date(),
         updatedAt: new Date(),
