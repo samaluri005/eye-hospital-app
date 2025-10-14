@@ -71,5 +71,12 @@ namespace AuthService.Models
         
         [Column("verification_at")]
         public DateTime? VerificationAt { get; set; }
+        
+        // Government ID fields for EMPI duplicate detection
+        [Column("govt_id_type")]
+        public string? GovtIdType { get; set; } // 'aadhaar', 'passport', 'voter_id', 'driving_license'
+        
+        [Column("govt_id_number")]
+        public string? GovtIdNumber { get; set; }
     }
 }
