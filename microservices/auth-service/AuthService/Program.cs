@@ -8,6 +8,8 @@ using AuthService.Services;
 using AuthService.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,11 +57,36 @@ builder.Services.AddDbContext<AppDbContext>(opts =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// NOTE: Azure AD authentication commented out - OTP endpoints are public/anonymous
-// Uncomment if you need authenticated endpoints in the future
-// builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//   .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-// builder.Services.AddAuthorization();
+// Register JWT Service
+builder.Services.AddSingleton<JwtService>();
+
+// Configure JWT Authentication
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
+if (!string.IsNullOrEmpty(jwtSecret))
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                    System.Text.Encoding.UTF8.GetBytes(jwtSecret)),
+                ValidateIssuer = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+        });
+    builder.Services.AddAuthorization();
+    Console.WriteLine("JWT Authentication configured successfully");
+}
+else
+{
+    Console.WriteLine("WARNING: JWT_SECRET not set - authentication disabled");
+}
 
 // Add CORS to allow frontend access
 builder.Services.AddCors(options =>
@@ -1293,5 +1320,335 @@ app.MapPost("/staff/send_invite", async (HttpContext http, AppDbContext db) =>
         expiresIn = 604800 // 7 days in seconds
     });
 });
+
+// POST /auth/register - New patient registration with EMPI check and JWT generation
+app.MapPost("/auth/register", async (HttpContext http, AppDbContext db, JwtService jwtService) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,object>>() ?? new();
+    
+    // Extract patient data
+    if (!body.TryGetValue("profileData", out var profileDataObj))
+        return Results.BadRequest(new { error = "profileData required" });
+    
+    var profileData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,object>>(
+        profileDataObj.ToString() ?? "{}"
+    ) ?? new();
+    
+    if (!body.TryGetValue("password", out var passwordObj) || string.IsNullOrWhiteSpace(passwordObj?.ToString()))
+        return Results.BadRequest(new { error = "password required" });
+    
+    var password = passwordObj.ToString()!;
+    
+    // Extract required fields
+    var firstName = profileData.ContainsKey("firstName") ? profileData["firstName"]?.ToString() : null;
+    var lastName = profileData.ContainsKey("lastName") ? profileData["lastName"]?.ToString() : null;
+    var dob = profileData.ContainsKey("dob") ? profileData["dob"]?.ToString() : null;
+    var phone = profileData.ContainsKey("phone") ? profileData["phone"]?.ToString() : null;
+    
+    if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+        return Results.BadRequest(new { error = "firstName and lastName required" });
+    
+    // EMPI Check - call existing /empi/match endpoint internally
+    var empiRequest = new
+    {
+        firstName,
+        lastName,
+        dob,
+        phone,
+        email = profileData.ContainsKey("email") ? profileData["email"]?.ToString() : null,
+        govtIdType = profileData.ContainsKey("govtIdType") ? profileData["govtIdType"]?.ToString() : null,
+        govtIdNumber = profileData.ContainsKey("govtIdNumber") ? profileData["govtIdNumber"]?.ToString() : null
+    };
+    
+    var empiResponse = await PerformEmpiCheckAsync(db, empiRequest);
+    
+    // Block if duplicate score >= 80
+    if (empiResponse.score >= 80)
+    {
+        // Log HIPAA audit for duplicate attempt (no PHI in response)
+        db.HipaaAuditLogs.Add(new HipaaAuditLog
+        {
+            PatientId = null,
+            ActorType = "system",
+            ActorId = null,
+            Action = "registration_blocked_duplicate",
+            ResourceType = "patient",
+            ResourceId = null,
+            Meta = System.Text.Json.JsonDocument.Parse($"{{\"empiScore\":{empiResponse.score}}}"),
+            Ip = http.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+            Timestamp = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+        
+        return Results.Conflict(new { 
+            error = "duplicate_detected",
+            message = "A patient with similar information already exists. Please contact support."
+        });
+    }
+    
+    // Generate UPI
+    var upi = $"UPI-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}";
+    
+    // Create patient record
+    var patient = new Patient
+    {
+        Id = Guid.NewGuid(),
+        Upi = upi,
+        FirstName = firstName,
+        LastName = lastName,
+        MiddleName = profileData.ContainsKey("middleName") ? profileData["middleName"]?.ToString() : null,
+        Title = profileData.ContainsKey("title") ? profileData["title"]?.ToString() : null,
+        Gender = profileData.ContainsKey("gender") ? profileData["gender"]?.ToString() : null,
+        DateOfBirth = !string.IsNullOrWhiteSpace(dob) ? DateTime.Parse(dob) : null,
+        Phone = phone,
+        Mobile = phone,
+        Email = profileData.ContainsKey("email") ? profileData["email"]?.ToString() : null,
+        GuardianName = profileData.ContainsKey("guardianName") ? profileData["guardianName"]?.ToString() : null,
+        PatientType = profileData.ContainsKey("patientType") ? profileData["patientType"]?.ToString() : "general",
+        EmpiScore = empiResponse.score,
+        EmpiStatus = empiResponse.score >= 50 ? "flagged_for_review" : "verified",
+        VerifiedMethod = "self_registration",
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+    
+    db.Patients.Add(patient);
+    
+    // Create user record
+    var user = new User
+    {
+        Id = Guid.NewGuid(),
+        Upi = upi,
+        Email = patient.Email,
+        Phone = phone,
+        MfaEnabled = false,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+    
+    db.Users.Add(user);
+    
+    // Hash password using Argon2id
+    var passwordHelper = new PasswordHelper(builder.Configuration);
+    var passwordHash = await passwordHelper.HashPasswordAsync(password);
+    
+    // Create credential record
+    var credential = new Credential
+    {
+        Id = Guid.NewGuid(),
+        UserId = user.Id,
+        CredentialType = "password",
+        PasswordHash = passwordHash,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+    
+    db.Credentials.Add(credential);
+    
+    // HIPAA Audit Log
+    db.HipaaAuditLogs.Add(new HipaaAuditLog
+    {
+        PatientId = patient.Id,
+        ActorType = "patient",
+        ActorId = user.Id,
+        Action = "patient_registered",
+        ResourceType = "patient",
+        ResourceId = patient.Id,
+        Meta = System.Text.Json.JsonDocument.Parse($"{{\"empiScore\":{empiResponse.score},\"method\":\"self_registration\"}}"),
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        Timestamp = DateTime.UtcNow
+    });
+    
+    await db.SaveChangesAsync();
+    
+    // Generate JWT tokens
+    var accessToken = jwtService.GenerateAccessToken(
+        user.Id,
+        upi,
+        patient.Email
+    );
+    var refreshToken = jwtService.GenerateRefreshToken();
+    
+    // Create session
+    var session = new PatientSession
+    {
+        Id = Guid.NewGuid(),
+        PatientId = patient.Id,
+        SessionToken = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(refreshToken)).ToHexString(),
+        ExpiresAt = DateTime.UtcNow.AddDays(7),
+        CreatedAt = DateTime.UtcNow
+    };
+    
+    db.PatientSessions.Add(session);
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new
+    {
+        status = "registered",
+        patientId = patient.Id,
+        upi,
+        accessToken,
+        refreshToken,
+        expiresIn = 7200, // 2 hours in seconds
+        user = new
+        {
+            id = user.Id,
+            upi,
+            email = patient.Email,
+            firstName = patient.FirstName,
+            lastName = patient.LastName,
+            mfaEnabled = user.MfaEnabled
+        }
+    });
+});
+
+// Helper method for EMPI check
+async Task<(decimal score, List<object> matches)> PerformEmpiCheckAsync(AppDbContext db, object request)
+{
+    var reqDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,string>>(
+        System.Text.Json.JsonSerializer.Serialize(request)
+    ) ?? new();
+    
+    var firstName = reqDict.ContainsKey("firstName") ? reqDict["firstName"] : null;
+    var lastName = reqDict.ContainsKey("lastName") ? reqDict["lastName"] : null;
+    var dob = reqDict.ContainsKey("dob") ? reqDict["dob"] : null;
+    var phone = reqDict.ContainsKey("phone") ? reqDict["phone"] : null;
+    var email = reqDict.ContainsKey("email") ? reqDict["email"] : null;
+    var govtIdType = reqDict.ContainsKey("govtIdType") ? reqDict["govtIdType"] : null;
+    var govtIdNumber = reqDict.ContainsKey("govtIdNumber") ? reqDict["govtIdNumber"] : null;
+    
+    decimal maxScore = 0;
+    var matches = new List<object>();
+    
+    // Government ID exact match = 100 points (instant block)
+    if (!string.IsNullOrWhiteSpace(govtIdType) && !string.IsNullOrWhiteSpace(govtIdNumber))
+    {
+        var govtIdMatch = await db.Patients
+            .Where(p => p.GovtIdType == govtIdType && p.GovtIdNumber == govtIdNumber)
+            .FirstOrDefaultAsync();
+            
+        if (govtIdMatch != null)
+        {
+            return (100, new List<object> { new { patientId = govtIdMatch.Id, score = 100 } });
+        }
+    }
+    
+    // Demographics matching
+    var candidates = await db.Patients
+        .Where(p => p.FirstName != null && p.LastName != null)
+        .ToListAsync();
+    
+    foreach (var candidate in candidates)
+    {
+        decimal score = 0;
+        
+        // First name similarity (25 points)
+        if (!string.IsNullOrWhiteSpace(firstName) && !string.IsNullOrWhiteSpace(candidate.FirstName))
+        {
+            var similarity = CalculateJaroWinkler(firstName.ToLower(), candidate.FirstName.ToLower());
+            score += (decimal)(similarity * 25);
+        }
+        
+        // Last name similarity (25 points)
+        if (!string.IsNullOrWhiteSpace(lastName) && !string.IsNullOrWhiteSpace(candidate.LastName))
+        {
+            var similarity = CalculateJaroWinkler(lastName.ToLower(), candidate.LastName.ToLower());
+            score += (decimal)(similarity * 25);
+        }
+        
+        // DOB exact match (30 points)
+        if (!string.IsNullOrWhiteSpace(dob) && candidate.DateOfBirth.HasValue)
+        {
+            if (DateTime.Parse(dob).Date == candidate.DateOfBirth.Value.Date)
+                score += 30;
+        }
+        
+        // Gender exact match (10 points)
+        if (!string.IsNullOrWhiteSpace(reqDict.ContainsKey("gender") ? reqDict["gender"] : null) && 
+            !string.IsNullOrWhiteSpace(candidate.Gender))
+        {
+            if (reqDict["gender"]?.ToLower() == candidate.Gender?.ToLower())
+                score += 10;
+        }
+        
+        // Contact info (supporting evidence, max 15 points)
+        if (!string.IsNullOrWhiteSpace(phone) && !string.IsNullOrWhiteSpace(candidate.Phone))
+        {
+            if (phone == candidate.Phone)
+                score += 7;
+        }
+        
+        if (!string.IsNullOrWhiteSpace(email) && !string.IsNullOrWhiteSpace(candidate.Email))
+        {
+            if (email.ToLower() == candidate.Email.ToLower())
+                score += 5;
+        }
+        
+        if (score > maxScore)
+            maxScore = score;
+            
+        if (score >= 50)
+        {
+            matches.Add(new { patientId = candidate.Id, score });
+        }
+    }
+    
+    return (maxScore, matches);
+}
+
+// Jaro-Winkler similarity algorithm
+double CalculateJaroWinkler(string s1, string s2)
+{
+    if (s1 == s2) return 1.0;
+    if (s1.Length == 0 || s2.Length == 0) return 0.0;
+    
+    int matchDistance = Math.Max(s1.Length, s2.Length) / 2 - 1;
+    bool[] s1Matches = new bool[s1.Length];
+    bool[] s2Matches = new bool[s2.Length];
+    int matches = 0;
+    int transpositions = 0;
+    
+    for (int i = 0; i < s1.Length; i++)
+    {
+        int start = Math.Max(0, i - matchDistance);
+        int end = Math.Min(i + matchDistance + 1, s2.Length);
+        
+        for (int j = start; j < end; j++)
+        {
+            if (s2Matches[j] || s1[i] != s2[j]) continue;
+            s1Matches[i] = true;
+            s2Matches[j] = true;
+            matches++;
+            break;
+        }
+    }
+    
+    if (matches == 0) return 0.0;
+    
+    int k = 0;
+    for (int i = 0; i < s1.Length; i++)
+    {
+        if (!s1Matches[i]) continue;
+        while (!s2Matches[k]) k++;
+        if (s1[i] != s2[k]) transpositions++;
+        k++;
+    }
+    
+    double jaro = ((double)matches / s1.Length + (double)matches / s2.Length + 
+                   (matches - transpositions / 2.0) / matches) / 3.0;
+    
+    // Winkler modification
+    int prefixLength = 0;
+    for (int i = 0; i < Math.Min(s1.Length, s2.Length) && i < 4; i++)
+    {
+        if (s1[i] == s2[i]) prefixLength++;
+        else break;
+    }
+    
+    return jaro + prefixLength * 0.1 * (1.0 - jaro);
+}
 
 app.Run();
