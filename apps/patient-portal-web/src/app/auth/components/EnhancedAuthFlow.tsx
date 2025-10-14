@@ -253,6 +253,11 @@ export default function EnhancedAuthFlow() {
     setStep("extendedProfile");
   };
 
+  const handleUpiDisplaySkip = () => {
+    // User wants to skip Extended Profile and MFA - go straight to HIPAA Consent
+    setStep("hipaaConsent");
+  };
+
   const handleExtendedProfileComplete = async (profileData: ProfileData) => {
     // Save extended profile
     if (patientId && linkToken) {
@@ -460,7 +465,7 @@ export default function EnhancedAuthFlow() {
           <YourIdStep
             upi={patientUpi}
             onCompleteProfile={handleUpiDisplayNext}
-            onSkip={handleUpiDisplayNext}
+            onSkip={handleUpiDisplaySkip}
           />
         )}
 
