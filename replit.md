@@ -44,7 +44,19 @@ The project utilizes a monorepo structure with pnpm workspaces and Turbo for dep
 - **CDC Data Standardization and Matching**: Algorithms for name/phone/address standardization, string similarity, and multi-field matching with weighted scoring for duplicate detection.
 - **Hybrid Authentication System**: Supports UPI, Phone (OTP), Email (OTP), and Social Sign-In (OAuth) with EMPI matching.
 - **Simplified Registration Flow with CDC-Compliant EMPI**: Direct signup with weighted probabilistic duplicate detection based on government ID, demographics, and contact info, security checks to prevent PHI exposure, and a secure linkToken for step progression.
-- **JWT Authentication System**: Centralized `JwtService` for token generation and validation (access and refresh tokens) with user ID, UPI, email, and roles as claims. Refresh tokens are stored as SHA256 hashes. Middleware ensures authentication and authorization.
+- **JWT Authentication System (Oct 14, 2025)**: Centralized `JwtService` for token generation and validation (access and refresh tokens) with user ID, UPI, email, and roles as claims. Refresh tokens are stored as SHA256 hashes. Middleware ensures authentication and authorization.
+  - **Sign-In Endpoints**:
+    * POST /auth/signin/upi - UPI + password authentication with MFA check, returns JWT tokens
+    * POST /auth/verify-mfa - Verifies 4-digit PIN and returns JWT tokens after successful MFA
+    * POST /auth/signin/phone/request-otp - Sends OTP to phone via Twilio for phone-based sign-in
+    * POST /auth/signin/phone/verify-otp - Verifies phone OTP and returns JWT tokens
+    * POST /auth/signin/email/request-otp - Sends OTP to email (requires SMTP/SendGrid configuration)
+    * POST /auth/signin/email/verify-otp - Verifies email OTP and returns JWT tokens
+    * POST /auth/token/refresh - Refreshes access token using refresh token
+  - **Registration Endpoint**:
+    * POST /auth/register - Complete registration with EMPI duplicate detection and JWT token issuance
+  - **Token Security**: 2-hour access token expiration, 7-day refresh token expiration, SHA256 hashed storage, account lockout enforcement
+  - **Response Format**: Standardized JWT payload with user data (id, upi, name, email), accessToken, and refreshToken
 - **De-duplication**: CDC-compliant patient identity management with strategic indexes.
 - **Performance Optimizations**: 17 strategic indexes for fast de-duplication, HIPAA audit searches, and appointment lookups.
 - **HIPAA Compliance**: PHI stored in PostgreSQL; authentication-only data in Entra External ID.
