@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import InternationalPhoneInput from "./InternationalPhoneInput";
 
 export type ProfileData = {
   title?: string;
@@ -372,12 +373,9 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                 Mobile Number
                 <span className="text-gray-500 text-xs ml-1">(Recommended for appointment reminders)</span>
               </label>
-              <input 
-                type="tel"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                value={mobile} 
-                onChange={(e)=>setMobile(e.target.value)}
-                placeholder="+91 98765 43210"
+              <InternationalPhoneInput
+                value={mobile}
+                onChange={setMobile}
               />
             </div>
           )}
