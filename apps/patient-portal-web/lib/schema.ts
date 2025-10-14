@@ -51,9 +51,26 @@ export const patient = pgTable('patient', {
   trustLevel: varchar('trust_level', { length: 20 }).default('low'), // low, medium, high
   
   // Demographics (NEW)
+  title: varchar('title', { length: 20 }), // Mr, Mrs, Ms, Dr, Prof
   gender: varchar('gender', { length: 20 }),
+  guardianName: varchar('guardian_name', { length: 255 }), // For patients under 18
   emergencyContact: varchar('emergency_contact', { length: 255 }),
   emergencyPhone: varchar('emergency_phone', { length: 20 }),
+  
+  // Patient Classification & Visit Details (NEW)
+  patientType: varchar('patient_type', { length: 50 }), // General, Insurer, Camp, Arogya Bharatha, Arogyasree, CGHS, ECHS, Railway, Other
+  sourceOfPatient: varchar('source_of_patient', { length: 50 }), // General, Referral
+  referralName: varchar('referral_name', { length: 255 }), // Required if sourceOfPatient = Referral
+  referralPhone: varchar('referral_phone', { length: 20 }), // Required if sourceOfPatient = Referral
+  
+  // Medical & Personal Details (NEW)
+  bloodGroup: varchar('blood_group', { length: 10 }), // A+, A-, B+, B-, O+, O-, AB+, AB-
+  occupation: varchar('occupation', { length: 100 }),
+  maritalStatus: varchar('marital_status', { length: 20 }), // Single, Married
+  spouseName: varchar('spouse_name', { length: 255 }), // Required if maritalStatus = Married
+  
+  // Address Management (NEW)
+  permanentAddress: jsonb('permanent_address'), // Structured permanent address: {"line1":"...","city":"...","state":"...","postalCode":"..."}
   
   // Insurance (NEW)
   insuranceProvider: varchar('insurance_provider', { length: 100 }),
