@@ -1,6 +1,7 @@
 "use client";
 import React, { ReactNode } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 type Props = {
   children: ReactNode;
@@ -51,13 +52,13 @@ export default function PersistentAuthLayout({ children }: Props) {
             }}
             className="w-full max-w-md"
           >
-            <motion.img
-              src="/doctor-hd.png?v=2"
+            <Image
+              src="/doctor-hd.png"
               alt="EyeCare Doctor"
+              width={500}
+              height={600}
+              priority
               className="w-full h-auto object-contain drop-shadow-2xl"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
             />
           </motion.div>
         </div>
