@@ -157,45 +157,45 @@ export async function POST(request: NextRequest) {
     } catch (empiError: any) {
       console.error("EMPI check failed:", empiError);
       
-      // If EMPI service is down, allow registration to proceed
-      // Create patient without duplicate check
-      const patientId = uuidv4();
-      const tempUpi = `UPI${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-
-      const fullName = [profile.title, profile.firstName, profile.middleName, profile.lastName]
-        .filter(Boolean)
-        .join(" ");
-
-      await db.insert(patient).values({
-        patientId,
-        upi: tempUpi,
-        title: profile.title || null,
-        firstName: profile.firstName,
-        middleName: profile.middleName || null,
-        lastName: profile.lastName,
-        fullName,
-        dob: new Date(profile.dateOfBirth),
-        gender: profile.gender,
-        phone: profile.mobile || "UNKNOWN",
-        mobile: profile.mobile || null,
-        email: profile.email || null,
-        patientType: profile.patientType || null,
-        guardianName: profile.guardianName || null,
-        status: "active",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      return NextResponse.json({
-        success: true,
-        patientId,
-        upi: tempUpi,
-        message: "Patient created successfully (EMPI check skipped)",
-      });
+      // Check if it's a duplicate phone constraint error from Auth Service
+      if (empiError.response?.data?.includes?.('duplicate key value violates unique constraint "patient_phone_key"') ||
+          empiError.response?.data?.includes?.('already exists')) {
+        return NextResponse.json(
+          {
+            success: false,
+            duplicateFound: true,
+            message: "An account with this phone number already exists. Please sign in using your Hospital ID.",
+          },
+          { status: 409 }
+        );
+      }
+      
+      // For other EMPI errors, return a generic error without creating patient
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "Unable to verify patient information. Please try again or contact support." 
+        },
+        { status: 500 }
+      );
     }
 
   } catch (error: any) {
     console.error("Error creating patient:", error);
+    
+    // Check if it's a duplicate phone constraint error from database
+    if (error.message?.includes('duplicate key value violates unique constraint "patient_phone_key"') ||
+        error.constraint === 'patient_phone_key') {
+      return NextResponse.json(
+        {
+          success: false,
+          duplicateFound: true,
+          message: "An account with this phone number already exists. Please sign in using your Hospital ID.",
+        },
+        { status: 409 }
+      );
+    }
+    
     return NextResponse.json(
       { success: false, message: error.message || "Failed to create patient" },
       { status: 500 }
