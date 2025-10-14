@@ -143,6 +143,12 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
       return;
     }
     
+    // Validate gender in minimal mode
+    if (isMinimalMode && !gender) {
+      setError("Gender is required");
+      return;
+    }
+    
     // Validate guardian name if minor (in minimal mode during signup)
     if (isMinimalMode && isMinor && !guardianName.trim()) {
       setError("Guardian name is required for patients under 18 years");
@@ -396,23 +402,22 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               )}
             </div>
 
-            {!isMinimalMode && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Gender
-                </label>
-                <select 
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                  value={gender} 
-                  onChange={(e)=>setGender(e.target.value)}
-                >
-                  <option value="">Prefer not to say</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gender {isMinimalMode && <span className="text-red-500">*</span>}
+              </label>
+              <select 
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                value={gender} 
+                onChange={(e)=>setGender(e.target.value)}
+                required={isMinimalMode}
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
           </div>
 
           {/* Guardian Name - Only for minors in minimal mode */}

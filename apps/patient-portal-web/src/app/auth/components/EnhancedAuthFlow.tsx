@@ -14,12 +14,13 @@ import HipaaConsentStep, { type ConsentData } from "./HipaaConsentStep";
 import AccountSelectionStep, { type AccountOption } from "./AccountSelectionStep";
 import VerificationStep from "./VerificationStep";
 import SocialSignInWithEmpi from "./SocialSignInWithEmpi";
+import DuplicateBlockedStep from "./DuplicateBlockedStep";
 import axios from "axios";
 
 const SocialSignInButton = dynamic(() => import("./SocialSignInButton"), { ssr: false });
 
-type AuthMethod = "selector" | "phone" | "email" | "upi" | "social";
-type FlowStep = "method" | "input" | "otp" | "accountSelection" | "verification" | "profile" | "password" | "upiDisplay" | "extendedProfile" | "mfaSetup" | "hipaaConsent" | "done";
+type AuthMethod = "selector" | "phone" | "email" | "upi" | "social" | "signup";
+type FlowStep = "method" | "input" | "otp" | "accountSelection" | "verification" | "profile" | "password" | "upiDisplay" | "extendedProfile" | "mfaSetup" | "hipaaConsent" | "duplicateBlocked" | "done";
 
 export default function EnhancedAuthFlow() {
   const [authMethod, setAuthMethod] = useState<AuthMethod>("selector");
@@ -34,6 +35,7 @@ export default function EnhancedAuthFlow() {
   const [isAddingFamilyMember, setIsAddingFamilyMember] = useState(false);
   const [primaryPatientId, setPrimaryPatientId] = useState<string | null>(null);
   const [isExistingUser, setIsExistingUser] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const savedIsNewUser = sessionStorage.getItem('signup_isNewUser');
@@ -46,7 +48,12 @@ export default function EnhancedAuthFlow() {
 
   const handleMethodSelected = (method: Exclude<AuthMethod, "selector">) => {
     setAuthMethod(method);
-    if (method === "upi") {
+    if (method === "signup") {
+      // Direct registration flow - skip OTP, go straight to profile
+      setIsExistingUser(false);
+      sessionStorage.setItem('signup_isNewUser', 'true');
+      setStep("profile");
+    } else if (method === "upi") {
       setStep("input");
     } else if (method === "phone" || method === "email") {
       setStep("input");
@@ -151,7 +158,37 @@ export default function EnhancedAuthFlow() {
       } catch (error) {
         console.error("Failed to add family member:", error);
       }
-    } else {
+    } 
+    // Direct signup flow (no OTP verification)
+    else if (authMethod === "signup" && !patientId) {
+      try {
+        const response = await axios.post("/api/auth/create-patient-with-empi-check", {
+          profile: profileData,
+        });
+        
+        if (response.data.success) {
+          setPatientId(response.data.patientId);
+          setPatientUpi(response.data.upi || "");
+          setPatientName(`${profileData.firstName} ${profileData.lastName}`);
+          setLinkToken(response.data.linkToken); // Store linkToken for subsequent steps
+          setStep("password");
+        } else if (response.data.duplicateFound) {
+          // Show duplicate blocked UI
+          setError(response.data.message || "An account with similar details already exists");
+          setStep("duplicateBlocked");
+        }
+      } catch (error: any) {
+        console.error("Failed to create patient:", error);
+        if (error.response?.data?.duplicateFound) {
+          setError(error.response.data.message || "An account with similar details already exists. Please sign in.");
+          setStep("duplicateBlocked");
+        } else {
+          setError("Failed to create account. Please try again.");
+        }
+      }
+    }
+    // Existing flow with OTP verification
+    else {
       // Save minimal profile to database
       if (patientId && linkToken) {
         try {
@@ -489,6 +526,17 @@ export default function EnhancedAuthFlow() {
           <HipaaConsentStep
             onNext={handleConsentAccepted}
             patientName={patientName}
+          />
+        )}
+
+        {step === "duplicateBlocked" && (
+          <DuplicateBlockedStep
+            message={error || "An account with similar details already exists"}
+            onGoToSignIn={() => {
+              setAuthMethod("upi");
+              setStep("input");
+              setError(null);
+            }}
           />
         )}
 

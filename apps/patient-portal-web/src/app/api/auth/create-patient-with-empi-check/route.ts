@@ -1,0 +1,204 @@
+import { NextRequest, NextResponse } from "next/server";
+import axios from "axios";
+import { v4 as uuidv4 } from "uuid";
+import { createHmac, randomBytes } from "crypto";
+import { sql } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { patient } from "@/lib/schema";
+
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || "http://localhost:8000";
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { profile } = body;
+
+    if (!profile) {
+      return NextResponse.json(
+        { success: false, message: "Profile data is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate required fields
+    if (!profile.firstName || !profile.lastName || !profile.dateOfBirth || !profile.gender) {
+      return NextResponse.json(
+        { success: false, message: "Missing required profile fields" },
+        { status: 400 }
+      );
+    }
+
+    // Step 1: Call EMPI /empi/match endpoint to check for duplicates
+    try {
+      const empiResponse = await axios.post(`${AUTH_SERVICE_URL}/empi/match`, {
+        firstName: profile.firstName,
+        middleName: profile.middleName || "",
+        lastName: profile.lastName,
+        dateOfBirth: profile.dateOfBirth,
+        phone: profile.mobile || "",
+        addresses: profile.addressLine1 ? [
+          {
+            line1: profile.addressLine1,
+            line2: profile.addressLine2 || "",
+            city: profile.city || "",
+            state: profile.state || "",
+            postalCode: profile.postalCode || "",
+            country: profile.country || "India"
+          }
+        ] : [],
+      });
+
+      const { score, matchedPatient } = empiResponse.data;
+
+      // Hard block if high-confidence match (≥80% similarity)
+      if (score >= 80) {
+        return NextResponse.json(
+          {
+            success: false,
+            duplicateFound: true,
+            message: "An account with similar details already exists. Please sign in using your Hospital ID.",
+            matchedPatient: {
+              name: matchedPatient?.name || "Unknown",
+              dob: matchedPatient?.dateOfBirth || "",
+              score: score,
+            },
+          },
+          { status: 409 }
+        );
+      }
+
+      // Step 2: No duplicate found, create patient record
+      const patientId = uuidv4();
+      
+      // Generate UPI using Auth Service
+      const upiResponse = await axios.post(`${AUTH_SERVICE_URL}/staff/create_patient`, {
+        firstName: profile.firstName,
+        middleName: profile.middleName || null,
+        lastName: profile.lastName,
+        dateOfBirth: profile.dateOfBirth,
+        gender: profile.gender,
+        phone: profile.mobile || null,
+      });
+
+      const generatedUpi = upiResponse.data.upi;
+
+      // Create patient in database
+      const fullName = [profile.title, profile.firstName, profile.middleName, profile.lastName]
+        .filter(Boolean)
+        .join(" ");
+
+      // Build present address JSONB
+      const presentAddress = (profile.addressLine1 || profile.city) ? {
+        line1: profile.addressLine1 || '',
+        line2: profile.addressLine2 || '',
+        city: profile.city || '',
+        state: profile.state || '',
+        postalCode: profile.postalCode || '',
+        country: profile.country || 'India'
+      } : null;
+
+      await db.insert(patient).values({
+        patientId,
+        upi: generatedUpi,
+        title: profile.title || null,
+        firstName: profile.firstName,
+        middleName: profile.middleName || null,
+        lastName: profile.lastName,
+        fullName,
+        dob: new Date(profile.dateOfBirth),
+        gender: profile.gender,
+        phone: profile.mobile || "UNKNOWN", // Temp value, will be updated
+        mobile: profile.mobile || null,
+        email: profile.email || null,
+        patientType: profile.patientType || null,
+        guardianName: profile.guardianName || null,
+        addresses: presentAddress ? JSON.stringify([presentAddress]) : null,
+        status: "active",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      // Step 3: Create linkToken for subsequent auth flow
+      const linkSecret = process.env.LINK_TOKEN_HMAC_SECRET || process.env.OTP_HMAC_SECRET;
+      if (!linkSecret) {
+        console.error('LINK_TOKEN_HMAC_SECRET not configured');
+        return NextResponse.json(
+          { success: false, message: 'Service configuration error' },
+          { status: 500 }
+        );
+      }
+
+      const linkToken = randomBytes(32).toString('hex');
+      const tokenHash = createHmac('sha256', linkSecret)
+        .update(linkToken)
+        .digest('hex');
+
+      // Insert link token (expires in 15 minutes)
+      await db.execute(sql`
+        INSERT INTO link_token (patient_id, token_hash, used, verified, expires_at, created_at)
+        VALUES (
+          ${patientId}::uuid,
+          ${tokenHash},
+          false,
+          false,
+          NOW() + INTERVAL '15 minutes',
+          NOW()
+        )
+      `);
+
+      return NextResponse.json({
+        success: true,
+        patientId,
+        upi: generatedUpi,
+        linkToken,
+        message: "Patient created successfully",
+      });
+
+    } catch (empiError: any) {
+      console.error("EMPI check failed:", empiError);
+      
+      // If EMPI service is down, allow registration to proceed
+      // Create patient without duplicate check
+      const patientId = uuidv4();
+      const tempUpi = `UPI${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+      const fullName = [profile.title, profile.firstName, profile.middleName, profile.lastName]
+        .filter(Boolean)
+        .join(" ");
+
+      await db.insert(patient).values({
+        patientId,
+        upi: tempUpi,
+        title: profile.title || null,
+        firstName: profile.firstName,
+        middleName: profile.middleName || null,
+        lastName: profile.lastName,
+        fullName,
+        dob: new Date(profile.dateOfBirth),
+        gender: profile.gender,
+        phone: profile.mobile || "UNKNOWN",
+        mobile: profile.mobile || null,
+        email: profile.email || null,
+        patientType: profile.patientType || null,
+        guardianName: profile.guardianName || null,
+        status: "active",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return NextResponse.json({
+        success: true,
+        patientId,
+        upi: tempUpi,
+        message: "Patient created successfully (EMPI check skipped)",
+      });
+    }
+
+  } catch (error: any) {
+    console.error("Error creating patient:", error);
+    return NextResponse.json(
+      { success: false, message: error.message || "Failed to create patient" },
+      { status: 500 }
+    );
+  }
+}
