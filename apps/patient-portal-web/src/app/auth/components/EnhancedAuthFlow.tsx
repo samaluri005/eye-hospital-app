@@ -172,18 +172,18 @@ export default function EnhancedAuthFlow() {
           setPatientName(`${profileData.firstName} ${profileData.lastName}`);
           setLinkToken(response.data.linkToken); // Store linkToken for subsequent steps
           setStep("password");
-        } else if (response.data.duplicateFound) {
-          // Show duplicate blocked UI
-          setError(response.data.message || "An account with similar details already exists");
-          setStep("duplicateBlocked");
+        } else {
+          // API returned success: false (shouldn't happen in success case, but handle it)
+          setError(response.data.message || "Failed to create account. Please try again.");
         }
       } catch (error: any) {
         console.error("Failed to create patient:", error);
-        if (error.response?.data?.duplicateFound) {
-          setError(error.response.data.message || "An account with similar details already exists. Please sign in.");
+        // Check for 409 Conflict status (EMPI duplicate detection)
+        if (error.response?.status === 409) {
+          setError(error.response.data.message || "We could not complete your registration at this time. This may be due to matching information in our system. Please contact support for assistance.");
           setStep("duplicateBlocked");
         } else {
-          setError("Failed to create account. Please try again.");
+          setError(error.response?.data?.message || "Failed to create account. Please try again.");
         }
       }
     }
