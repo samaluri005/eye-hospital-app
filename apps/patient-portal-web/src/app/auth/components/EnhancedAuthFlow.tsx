@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import PersistentAuthLayout from "./PersistentAuthLayout";
 import AuthMethodSelector from "./AuthMethodSelector";
 import UpiSignInStep from "./UpiSignInStep";
 import PhoneStep from "./PhoneStep";
@@ -370,16 +371,13 @@ export default function EnhancedAuthFlow() {
   };
 
   return (
-    <>
-      {/* Method Selector - Full Screen */}
+    <PersistentAuthLayout>
       {step === "method" && (
         <AuthMethodSelector onMethodSelected={handleMethodSelected} />
       )}
 
-      {/* All Other Steps - Centered Card */}
       {step !== "method" && (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
+        <div className="w-full">
             {/* UPI Sign-In Flow */}
             {authMethod === "upi" && step === "input" && (
               <UpiSignInStep
@@ -544,20 +542,19 @@ export default function EnhancedAuthFlow() {
           />
         )}
 
-            {/* Back to Method Selector - Show only on input steps */}
-            {step === "input" && authMethod !== "upi" && (
-              <div className="mt-4 text-center">
-                <button
-                  onClick={handleBackToMethod}
-                  className="text-sm text-gray-600 hover:text-gray-900 font-medium"
-                >
-                  ← Back to sign-in options
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Back to Method Selector - Show only on input steps */}
+          {step === "input" && authMethod !== "upi" && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={handleBackToMethod}
+                className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+              >
+                ← Back to sign-in options
+              </button>
+            </div>
+          )}
         </div>
       )}
-    </>
+    </PersistentAuthLayout>
   );
 }
