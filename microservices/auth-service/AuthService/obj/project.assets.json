@@ -1293,7 +1293,7 @@
           }
         }
       },
-      "StackExchange.Redis/2.9.25": {
+      "StackExchange.Redis/2.9.32": {
         "type": "package",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "8.0.0",
@@ -4102,10 +4102,10 @@
         "pipelines.sockets.unofficial.nuspec"
       ]
     },
-    "StackExchange.Redis/2.9.25": {
-      "sha512": "4lcZbdV/S/hzcWeLzfU3Sam7JyNChsizjbJBuYjcwHbpG1T+CGafuOjxem93DnfYfbyn/QbXVjHsGRMoi2hsqQ==",
+    "StackExchange.Redis/2.9.32": {
+      "sha512": "j5Rjbf7gWz5izrn0UWQy9RlQY4cQDPkwJfVqATnVsOa/+zzJrps12LOgacMsDl/Vit2f01cDiDkG/Rst8v2iGw==",
       "type": "package",
-      "path": "stackexchange.redis/2.9.25",
+      "path": "stackexchange.redis/2.9.32",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -4122,7 +4122,7 @@
         "lib/netcoreapp3.1/StackExchange.Redis.xml",
         "lib/netstandard2.0/StackExchange.Redis.dll",
         "lib/netstandard2.0/StackExchange.Redis.xml",
-        "stackexchange.redis.2.9.25.nupkg.sha512",
+        "stackexchange.redis.2.9.32.nupkg.sha512",
         "stackexchange.redis.nuspec"
       ]
     },
