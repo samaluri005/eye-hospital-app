@@ -29,6 +29,14 @@ The project is structured as a monorepo utilizing pnpm workspaces and Turbo for 
 - Custom Tailwind animation for error messages (shake animation).
 - Professional LoadingSpinner component with a healthcare theme.
 - Improved spacing and card-like layouts for better readability.
+- **Registration Flow UX Enhancements (Oct 14, 2025)**:
+  * Removed "Ways to Sign In" bullet list from UPI display step for cleaner design
+  * Extended Profile step now pre-populates with initial profile data (no null values)
+  * Reordered address fields: Postal/Zip Code → City/State → Country → Address Lines (UX improvement for common workflow)
+  * Emergency Contact phone uses InternationalPhoneInput with country code selector
+  * InfoTooltip component for hover tooltips with accessibility support
+  * MFA Setup step includes tooltips: "Why Enable MFA?", "Authenticator App" (with app examples), "SMS OTP" (with description)
+  * MFA SMS setup displays phone number as read-only for users with registered phones, editable input for users without phones
 
 **Technical Implementations:**
 - **Phase 1A Identity Schema (COMPLETED)**: UPI-first approach with 9 new tables (users, credentials, external_identities, proxy_access, verification_evidence, staff_invites, empi_records, merge_tickets, attempt_counters). Argon2id password hashing with automatic bcrypt legacy migration. PostgreSQL extensions enabled (pgcrypto, pg_trgm).
