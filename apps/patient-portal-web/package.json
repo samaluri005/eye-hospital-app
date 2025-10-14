@@ -30,6 +30,7 @@
     "double-metaphone": "^2.0.1",
     "drizzle-kit": "^0.31.5",
     "drizzle-orm": "^0.44.6",
+    "framer-motion": "^12.23.24",
     "ioredis": "^5.8.0",
     "jose": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
