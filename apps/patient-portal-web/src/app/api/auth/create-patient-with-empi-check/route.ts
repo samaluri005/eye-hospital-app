@@ -3,8 +3,8 @@ import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import { createHmac, randomBytes } from "crypto";
 import { sql } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { patient } from "@/lib/schema";
+import { db } from "../../../../../lib/db";
+import { patient, linkToken as linkTokenTable } from "../../../../../lib/schema";
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || "http://localhost:8000";
 
