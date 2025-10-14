@@ -679,8 +679,8 @@ app.MapPost("/auth/exchange", async (HttpContext http, AppDbContext db) =>
     });
 });
 
-// POST /auth/upi-signin - UPI + Password authentication
-app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
+// POST /auth/signin/upi - UPI + Password authentication with JWT response
+app.MapPost("/auth/signin/upi", async (HttpContext http, AppDbContext db, JwtService jwtService) =>
 {
     var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
     if (!body.TryGetValue("upi", out var upi) || string.IsNullOrWhiteSpace(upi))
@@ -738,9 +738,57 @@ app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
     // Only require MFA if user has mfaEnabled AND a credential exists
     bool requireMfa = user.MfaEnabled && mfaCredential != null;
     
+    // If MFA required, return mfaRequired flag with session info
+    if (requireMfa)
+    {
+        // Audit successful password verification (MFA pending)
+        db.AuditLogs.Add(new AuditLog
+        {
+            PatientId = patient.Id,
+            Actor = upi,
+            Action = "upi_signin_mfa_pending",
+            Details = $"{{\"userId\":\"{user.UserId}\",\"mfaRequired\":true}}",
+            Ip = http.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+        
+        return Results.Ok(new
+        {
+            status = "mfa_required",
+            patientId = patient.Id,
+            userId = user.UserId,
+            displayName = user.DisplayName
+        });
+    }
+    
     // Update last login
     user.LastLogin = DateTime.UtcNow;
     await db.SaveChangesAsync();
+    
+    // Generate JWT tokens
+    var accessToken = jwtService.GenerateAccessToken(
+        user.UserId.ToString(),
+        upi,
+        patient.Email ?? user.Email
+    );
+    var refreshToken = jwtService.GenerateRefreshToken();
+    
+    // Store refresh token hash
+    var refreshTokenHash = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(refreshToken)));
+    
+    var linkToken = new LinkToken
+    {
+        PatientId = patient.Id,
+        TokenHash = refreshTokenHash,
+        ExpiresAt = DateTime.UtcNow.AddDays(7),
+        CreatedAt = DateTime.UtcNow
+    };
+    
+    db.LinkTokens.Add(linkToken);
     
     // Audit successful login
     db.AuditLogs.Add(new AuditLog
@@ -748,7 +796,7 @@ app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
         PatientId = patient.Id,
         Actor = upi,
         Action = "upi_signin_success",
-        Details = $"{{\"userId\":\"{user.UserId}\",\"mfaEnabled\":{user.MfaEnabled.ToString().ToLower()},\"mfaRequired\":{requireMfa.ToString().ToLower()}}}",
+        Details = $"{{\"userId\":\"{user.UserId}\",\"mfaEnabled\":false}}",
         Ip = http.Connection.RemoteIpAddress?.ToString(),
         UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
         CreatedAt = DateTime.UtcNow
@@ -757,15 +805,21 @@ app.MapPost("/auth/upi-signin", async (HttpContext http, AppDbContext db) =>
     
     return Results.Ok(new
     {
-        patientId = patient.Id,
-        userId = user.UserId,
-        mfaRequired = requireMfa,
-        displayName = user.DisplayName
+        status = "authenticated",
+        user = new
+        {
+            id = user.UserId,
+            upi = patient.Upi,
+            name = patient.FirstName + " " + patient.LastName,
+            email = patient.Email ?? user.Email
+        },
+        accessToken,
+        refreshToken
     });
 });
 
-// POST /auth/verify-mfa - Verify MFA (uses DOB/PIN step-up authentication)
-app.MapPost("/auth/verify-mfa", async (HttpContext http, AppDbContext db) =>
+// POST /auth/verify-mfa - Verify MFA and return JWT tokens
+app.MapPost("/auth/verify-mfa", async (HttpContext http, AppDbContext db, JwtService jwtService) =>
 {
     var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
     
@@ -815,9 +869,33 @@ app.MapPost("/auth/verify-mfa", async (HttpContext http, AppDbContext db) =>
         return Results.Unauthorized();
     }
     
-    // Update credential last used
+    // Update credential last used and user last login
     credential.LastUsedAt = DateTime.UtcNow;
+    user.LastLogin = DateTime.UtcNow;
     await db.SaveChangesAsync();
+    
+    // Generate JWT tokens
+    var accessToken = jwtService.GenerateAccessToken(
+        user.UserId.ToString(),
+        patient.Upi ?? "",
+        patient.Email ?? user.Email
+    );
+    var refreshToken = jwtService.GenerateRefreshToken();
+    
+    // Store refresh token hash
+    var refreshTokenHash = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(refreshToken)));
+    
+    var linkToken = new LinkToken
+    {
+        PatientId = patient.Id,
+        TokenHash = refreshTokenHash,
+        ExpiresAt = DateTime.UtcNow.AddDays(7),
+        CreatedAt = DateTime.UtcNow
+    };
+    
+    db.LinkTokens.Add(linkToken);
     
     // Audit successful MFA
     db.AuditLogs.Add(new AuditLog
@@ -834,9 +912,367 @@ app.MapPost("/auth/verify-mfa", async (HttpContext http, AppDbContext db) =>
     
     return Results.Ok(new
     {
-        success = true,
-        patientId = patientId,
-        userId = user.UserId
+        status = "authenticated",
+        user = new
+        {
+            id = user.UserId,
+            upi = patient.Upi,
+            name = patient.FirstName + " " + patient.LastName,
+            email = patient.Email ?? user.Email
+        },
+        accessToken,
+        refreshToken
+    });
+});
+
+// POST /auth/signin/phone/request-otp - Request OTP for phone sign-in
+app.MapPost("/auth/signin/phone/request-otp", async (HttpContext http, AppDbContext db) =>
+{
+    var payload = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!payload.TryGetValue("phone", out var phone)) 
+        return Results.BadRequest(new { error = "phone required" });
+    
+    var ip = http.Connection.RemoteIpAddress?.ToString() ?? http.Request.Headers["x-forwarded-for"].FirstOrDefault() ?? "unknown";
+    
+    // Rate limiting
+    if (rateLimiter != null)
+    {
+        var ipCount = await rateLimiter.IncrementAsync($"rl:ip:{ip}", 60);
+        if (ipCount > 60) return Results.StatusCode(429);
+        var pcount = await rateLimiter.IncrementAsync($"rl:phone:{phone}", 15*60);
+        if (pcount > 3) return Results.StatusCode(429);
+    }
+    
+    // Check if patient exists with this phone
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Phone == phone);
+    if (patient == null)
+        return Results.NotFound(new { error = "no_account_found", message = "No account found with this phone number" });
+    
+    var otp = AuthService.Services.OtpHelper.GenerateOtp();
+    var nonce = AuthService.Services.OtpHelper.NewNonce();
+    var hash = AuthService.Services.OtpHelper.ComputeHmac(otpSecret ?? "", otp, nonce);
+    var expiresAt = DateTime.UtcNow.AddMinutes(5);
+    
+    var entry = new OtpAttempt {
+        Phone = phone, 
+        OtpHash = hash, 
+        Nonce = nonce, 
+        ExpiresAt = expiresAt,
+        Attempts = 0, 
+        ResendCount = 1, 
+        Status = "pending", 
+        CreatedAt = DateTime.UtcNow
+    };
+    db.OtpAttempts.Add(entry);
+    await db.SaveChangesAsync();
+    
+    try {
+        if (!string.IsNullOrEmpty(twilioSid) && !string.IsNullOrEmpty(twilioToken) && !string.IsNullOrEmpty(twilioFrom)) {
+            await MessageResource.CreateAsync(
+                body: $"Your verification code is {otp}", 
+                from: new PhoneNumber(twilioFrom), 
+                to: new PhoneNumber(phone)
+            );
+        }
+    } catch (Exception ex) { 
+        Console.WriteLine($"Twilio error: {ex.Message}"); 
+        return Results.StatusCode(500); 
+    }
+    
+    return Results.Ok(new { status = "otp_sent", expiresIn = 300 });
+});
+
+// POST /auth/signin/phone/verify-otp - Verify OTP and return JWT tokens
+app.MapPost("/auth/signin/phone/verify-otp", async (HttpContext http, AppDbContext db, JwtService jwtService) =>
+{
+    var p = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!p.TryGetValue("phone", out var phone) || !p.TryGetValue("otp", out var otp)) 
+        return Results.BadRequest(new { error = "phone and otp required" });
+    
+    var entry = await db.OtpAttempts
+        .Where(x => x.Phone == phone && x.Status == "pending")
+        .OrderByDescending(x => x.CreatedAt)
+        .FirstOrDefaultAsync();
+        
+    if (entry == null) 
+        return Results.BadRequest(new { error = "no_otp_found" });
+    if (DateTime.UtcNow > entry.ExpiresAt) { 
+        entry.Status = "expired"; 
+        await db.SaveChangesAsync(); 
+        return Results.BadRequest(new { error = "otp_expired" }); 
+    }
+    if (entry.Attempts >= 3) { 
+        entry.Status = "failed"; 
+        await db.SaveChangesAsync(); 
+        return Results.BadRequest(new { error = "max_attempts_exceeded", message = "Too many incorrect attempts. Please request a new OTP." }); 
+    }
+    
+    var expected = AuthService.Services.OtpHelper.ComputeHmac(otpSecret ?? "", otp, entry.Nonce ?? "");
+    if (!string.Equals(expected, entry.OtpHash, StringComparison.OrdinalIgnoreCase)) { 
+        entry.Attempts++; 
+        await db.SaveChangesAsync(); 
+        return Results.BadRequest(new { error = "invalid_otp", attemptsLeft = 3 - entry.Attempts }); 
+    }
+    
+    entry.Status = "verified";
+    await db.SaveChangesAsync();
+    
+    // Find patient with this phone
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Phone == phone);
+    if (patient == null)
+        return Results.NotFound(new { error = "patient_not_found" });
+    
+    var user = await db.Users.FirstOrDefaultAsync(u => u.PatientId == patient.Id);
+    if (user == null)
+        return Results.NotFound(new { error = "user_not_found" });
+    
+    // Update last login
+    user.LastLogin = DateTime.UtcNow;
+    await db.SaveChangesAsync();
+    
+    // Generate JWT tokens
+    var accessToken = jwtService.GenerateAccessToken(
+        user.UserId.ToString(),
+        patient.Upi ?? "",
+        patient.Email ?? user.Email
+    );
+    var refreshToken = jwtService.GenerateRefreshToken();
+    
+    // Store refresh token hash
+    var refreshTokenHash = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(refreshToken)));
+    
+    var linkToken = new LinkToken
+    {
+        PatientId = patient.Id,
+        TokenHash = refreshTokenHash,
+        ExpiresAt = DateTime.UtcNow.AddDays(7),
+        CreatedAt = DateTime.UtcNow
+    };
+    
+    db.LinkTokens.Add(linkToken);
+    
+    // Audit log
+    db.AuditLogs.Add(new AuditLog
+    {
+        PatientId = patient.Id,
+        Actor = phone,
+        Action = "phone_signin_success",
+        Details = $"{{\"userId\":\"{user.UserId}\"}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new
+    {
+        status = "authenticated",
+        user = new
+        {
+            id = user.UserId,
+            upi = patient.Upi,
+            name = patient.FirstName + " " + patient.LastName,
+            email = patient.Email ?? user.Email
+        },
+        accessToken,
+        refreshToken
+    });
+});
+
+// POST /auth/signin/email/request-otp - Request OTP for email sign-in
+app.MapPost("/auth/signin/email/request-otp", async (HttpContext http, AppDbContext db) =>
+{
+    var payload = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!payload.TryGetValue("email", out var email)) 
+        return Results.BadRequest(new { error = "email required" });
+    
+    // Check if patient exists with this email
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Email == email);
+    if (patient == null)
+        return Results.NotFound(new { error = "no_account_found", message = "No account found with this email address" });
+    
+    var otp = AuthService.Services.OtpHelper.GenerateOtp();
+    var nonce = AuthService.Services.OtpHelper.NewNonce();
+    var hash = AuthService.Services.OtpHelper.ComputeHmac(otpSecret ?? "", otp, nonce);
+    var expiresAt = DateTime.UtcNow.AddMinutes(5);
+    
+    var entry = new OtpAttempt {
+        Email = email,
+        OtpHash = hash, 
+        Nonce = nonce, 
+        ExpiresAt = expiresAt,
+        Attempts = 0, 
+        ResendCount = 1, 
+        Status = "pending", 
+        CreatedAt = DateTime.UtcNow
+    };
+    db.OtpAttempts.Add(entry);
+    await db.SaveChangesAsync();
+    
+    // TODO: Send email via SendGrid/SMTP
+    // For now, just return success
+    Console.WriteLine($"Email OTP for {email}: {otp}");
+    
+    return Results.Ok(new { status = "otp_sent", expiresIn = 300, debug_otp = otp });
+});
+
+// POST /auth/signin/email/verify-otp - Verify email OTP and return JWT tokens
+app.MapPost("/auth/signin/email/verify-otp", async (HttpContext http, AppDbContext db, JwtService jwtService) =>
+{
+    var p = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!p.TryGetValue("email", out var email) || !p.TryGetValue("otp", out var otp)) 
+        return Results.BadRequest(new { error = "email and otp required" });
+    
+    var entry = await db.OtpAttempts
+        .Where(x => x.Email == email && x.Status == "pending")
+        .OrderByDescending(x => x.CreatedAt)
+        .FirstOrDefaultAsync();
+        
+    if (entry == null) 
+        return Results.BadRequest(new { error = "no_otp_found" });
+    if (DateTime.UtcNow > entry.ExpiresAt) { 
+        entry.Status = "expired"; 
+        await db.SaveChangesAsync(); 
+        return Results.BadRequest(new { error = "otp_expired" }); 
+    }
+    if (entry.Attempts >= 3) { 
+        entry.Status = "failed"; 
+        await db.SaveChangesAsync(); 
+        return Results.BadRequest(new { error = "max_attempts_exceeded" }); 
+    }
+    
+    var expected = AuthService.Services.OtpHelper.ComputeHmac(otpSecret ?? "", otp, entry.Nonce ?? "");
+    if (!string.Equals(expected, entry.OtpHash, StringComparison.OrdinalIgnoreCase)) { 
+        entry.Attempts++; 
+        await db.SaveChangesAsync(); 
+        return Results.BadRequest(new { error = "invalid_otp", attemptsLeft = 3 - entry.Attempts }); 
+    }
+    
+    entry.Status = "verified";
+    await db.SaveChangesAsync();
+    
+    // Find patient with this email
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Email == email);
+    if (patient == null)
+        return Results.NotFound(new { error = "patient_not_found" });
+    
+    var user = await db.Users.FirstOrDefaultAsync(u => u.PatientId == patient.Id);
+    if (user == null)
+        return Results.NotFound(new { error = "user_not_found" });
+    
+    // Update last login
+    user.LastLogin = DateTime.UtcNow;
+    await db.SaveChangesAsync();
+    
+    // Generate JWT tokens
+    var accessToken = jwtService.GenerateAccessToken(
+        user.UserId.ToString(),
+        patient.Upi ?? "",
+        patient.Email ?? user.Email
+    );
+    var refreshToken = jwtService.GenerateRefreshToken();
+    
+    // Store refresh token hash
+    var refreshTokenHash = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(refreshToken)));
+    
+    var linkToken = new LinkToken
+    {
+        PatientId = patient.Id,
+        TokenHash = refreshTokenHash,
+        ExpiresAt = DateTime.UtcNow.AddDays(7),
+        CreatedAt = DateTime.UtcNow
+    };
+    
+    db.LinkTokens.Add(linkToken);
+    
+    // Audit log
+    db.AuditLogs.Add(new AuditLog
+    {
+        PatientId = patient.Id,
+        Actor = email,
+        Action = "email_signin_success",
+        Details = $"{{\"userId\":\"{user.UserId}\"}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new
+    {
+        status = "authenticated",
+        user = new
+        {
+            id = user.UserId,
+            upi = patient.Upi,
+            name = patient.FirstName + " " + patient.LastName,
+            email = patient.Email ?? user.Email
+        },
+        accessToken,
+        refreshToken
+    });
+});
+
+// POST /auth/token/refresh - Refresh access token using refresh token
+app.MapPost("/auth/token/refresh", async (HttpContext http, AppDbContext db, JwtService jwtService) =>
+{
+    var body = await http.Request.ReadFromJsonAsync<Dictionary<string,string>>() ?? new();
+    if (!body.TryGetValue("refreshToken", out var refreshToken) || string.IsNullOrWhiteSpace(refreshToken))
+        return Results.BadRequest(new { error = "refreshToken required" });
+    
+    // Hash the refresh token to find in database
+    var refreshTokenHash = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(refreshToken)));
+    
+    // Find the link token
+    var linkToken = await db.LinkTokens
+        .FirstOrDefaultAsync(lt => lt.TokenHash == refreshTokenHash && lt.ExpiresAt > DateTime.UtcNow);
+    
+    if (linkToken == null)
+        return Results.Json(new { error = "invalid_token", message = "Refresh token is invalid or expired" }, statusCode: 401);
+    
+    // Get patient and user
+    var patient = await db.Patients.FirstOrDefaultAsync(p => p.Id == linkToken.PatientId);
+    if (patient == null)
+        return Results.NotFound(new { error = "patient_not_found" });
+    
+    var user = await db.Users.FirstOrDefaultAsync(u => u.PatientId == patient.Id);
+    if (user == null)
+        return Results.NotFound(new { error = "user_not_found" });
+    
+    // Check if user is locked
+    if (user.IsLocked)
+        return Results.StatusCode(423);
+    
+    // Generate new access token (refresh token stays the same)
+    var newAccessToken = jwtService.GenerateAccessToken(
+        user.UserId.ToString(),
+        patient.Upi ?? "",
+        patient.Email ?? user.Email
+    );
+    
+    // Audit log
+    db.AuditLogs.Add(new AuditLog
+    {
+        PatientId = patient.Id,
+        Actor = user.UserId.ToString(),
+        Action = "token_refresh",
+        Details = $"{{\"userId\":\"{user.UserId}\"}}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(new
+    {
+        accessToken = newAccessToken,
+        refreshToken = refreshToken
     });
 });
 
