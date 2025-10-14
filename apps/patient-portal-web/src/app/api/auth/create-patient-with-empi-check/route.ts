@@ -83,17 +83,9 @@ export async function POST(request: NextRequest) {
       // Step 2: No duplicate found, create patient record
       const patientId = uuidv4();
       
-      // Generate UPI using Auth Service
-      const upiResponse = await axios.post(`${AUTH_SERVICE_URL}/staff/create_patient`, {
-        firstName: profile.firstName,
-        middleName: profile.middleName || null,
-        lastName: profile.lastName,
-        dateOfBirth: profile.dateOfBirth,
-        gender: profile.gender,
-        phone: profile.mobile || null,
-      });
-
-      const generatedUpi = upiResponse.data.upi;
+      // Generate UPI locally (same algorithm as Auth Service)
+      // Format: UPI-{GUID-first-8-chars-uppercase}
+      const generatedUpi = `UPI-${uuidv4().substring(0, 8).toUpperCase()}`;
 
       // Create patient in database
       const fullName = [profile.title, profile.firstName, profile.middleName, profile.lastName]
