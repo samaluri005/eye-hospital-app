@@ -138,9 +138,9 @@ app.UseSwaggerUI();
 // Enable CORS
 app.UseCors();
 
-// Authentication/Authorization middleware commented out (not needed for OTP endpoints)
-// app.UseAuthentication();
-// app.UseAuthorization();
+// Enable JWT Authentication and Authorization
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Simple health
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
@@ -1365,19 +1365,16 @@ app.MapPost("/auth/register", async (HttpContext http, AppDbContext db, JwtServi
     // Block if duplicate score >= 80
     if (empiResponse.score >= 80)
     {
-        // Log HIPAA audit for duplicate attempt (no PHI in response)
-        db.HipaaAuditLogs.Add(new HipaaAuditLog
+        // Log audit for duplicate attempt (no PHI in response)
+        db.AuditLogs.Add(new AuditLog
         {
             PatientId = null,
-            ActorType = "system",
-            ActorId = null,
+            Actor = "system",
             Action = "registration_blocked_duplicate",
-            ResourceType = "patient",
-            ResourceId = null,
-            Meta = System.Text.Json.JsonDocument.Parse($"{{\"empiScore\":{empiResponse.score}}}"),
+            Details = $"{{\"empiScore\":{empiResponse.score}}}",
             Ip = http.Connection.RemoteIpAddress?.ToString(),
             UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
-            Timestamp = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
         
@@ -1398,14 +1395,12 @@ app.MapPost("/auth/register", async (HttpContext http, AppDbContext db, JwtServi
         FirstName = firstName,
         LastName = lastName,
         MiddleName = profileData.ContainsKey("middleName") ? profileData["middleName"]?.ToString() : null,
-        Title = profileData.ContainsKey("title") ? profileData["title"]?.ToString() : null,
         Gender = profileData.ContainsKey("gender") ? profileData["gender"]?.ToString() : null,
         DateOfBirth = !string.IsNullOrWhiteSpace(dob) ? DateTime.Parse(dob) : null,
-        Phone = phone,
-        Mobile = phone,
+        Phone = phone ?? "",
         Email = profileData.ContainsKey("email") ? profileData["email"]?.ToString() : null,
-        GuardianName = profileData.ContainsKey("guardianName") ? profileData["guardianName"]?.ToString() : null,
-        PatientType = profileData.ContainsKey("patientType") ? profileData["patientType"]?.ToString() : "general",
+        GovtIdType = profileData.ContainsKey("govtIdType") ? profileData["govtIdType"]?.ToString() : null,
+        GovtIdNumber = profileData.ContainsKey("govtIdNumber") ? profileData["govtIdNumber"]?.ToString() : null,
         EmpiScore = empiResponse.score,
         EmpiStatus = empiResponse.score >= 50 ? "flagged_for_review" : "verified",
         VerifiedMethod = "self_registration",
@@ -1418,71 +1413,68 @@ app.MapPost("/auth/register", async (HttpContext http, AppDbContext db, JwtServi
     // Create user record
     var user = new User
     {
-        Id = Guid.NewGuid(),
-        Upi = upi,
+        UserId = Guid.NewGuid(),
+        PatientId = patient.Id,
         Email = patient.Email,
-        Phone = phone,
+        PhoneNormalized = phone,
         MfaEnabled = false,
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow
+        CreatedAt = DateTime.UtcNow
     };
     
     db.Users.Add(user);
     
     // Hash password using Argon2id
-    var passwordHelper = new PasswordHelper(builder.Configuration);
-    var passwordHash = await passwordHelper.HashPasswordAsync(password);
+    var pepper = Environment.GetEnvironmentVariable("ARGON2_PEPPER") ?? "";
+    var passwordHash = await PasswordHelper.HashPasswordAsync(password, pepper);
     
     // Create credential record
     var credential = new Credential
     {
-        Id = Guid.NewGuid(),
-        UserId = user.Id,
+        CredentialId = Guid.NewGuid(),
+        UserId = user.UserId,
         CredentialType = "password",
         PasswordHash = passwordHash,
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow
+        CreatedAt = DateTime.UtcNow
     };
     
     db.Credentials.Add(credential);
     
-    // HIPAA Audit Log
-    db.HipaaAuditLogs.Add(new HipaaAuditLog
+    // Audit Log
+    db.AuditLogs.Add(new AuditLog
     {
         PatientId = patient.Id,
-        ActorType = "patient",
-        ActorId = user.Id,
+        Actor = "system",
         Action = "patient_registered",
-        ResourceType = "patient",
-        ResourceId = patient.Id,
-        Meta = System.Text.Json.JsonDocument.Parse($"{{\"empiScore\":{empiResponse.score},\"method\":\"self_registration\"}}"),
+        Details = $"{{\"empiScore\":{empiResponse.score},\"method\":\"self_registration\"}}",
         Ip = http.Connection.RemoteIpAddress?.ToString(),
         UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
-        Timestamp = DateTime.UtcNow
+        CreatedAt = DateTime.UtcNow
     });
     
     await db.SaveChangesAsync();
     
     // Generate JWT tokens
     var accessToken = jwtService.GenerateAccessToken(
-        user.Id,
+        user.UserId,
         upi,
         patient.Email
     );
     var refreshToken = jwtService.GenerateRefreshToken();
     
-    // Create session
-    var session = new PatientSession
+    // Store refresh token hash in link_token table for now
+    var refreshTokenHash = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(refreshToken)));
+    
+    var linkToken = new LinkToken
     {
-        Id = Guid.NewGuid(),
         PatientId = patient.Id,
-        SessionToken = System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes(refreshToken)).ToHexString(),
+        TokenHash = refreshTokenHash,
         ExpiresAt = DateTime.UtcNow.AddDays(7),
         CreatedAt = DateTime.UtcNow
     };
     
-    db.PatientSessions.Add(session);
+    db.LinkTokens.Add(linkToken);
     await db.SaveChangesAsync();
     
     return Results.Ok(new
@@ -1495,7 +1487,7 @@ app.MapPost("/auth/register", async (HttpContext http, AppDbContext db, JwtServi
         expiresIn = 7200, // 2 hours in seconds
         user = new
         {
-            id = user.Id,
+            id = user.UserId,
             upi,
             email = patient.Email,
             firstName = patient.FirstName,
