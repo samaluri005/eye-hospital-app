@@ -1015,6 +1015,35 @@ app.MapPost("/empi/match", async (HttpContext http, AppDbContext db) =>
     else
         overallDecision = "allow";
     
+    // HIPAA Audit Logging - Log all EMPI decisions (REQUIRED for compliance)
+    var topMatch = sortedMatches.Count > 0 ? sortedMatches[0] as dynamic : null;
+    db.AuditLogs.Add(new AuditLog
+    {
+        PatientId = topMatch != null ? (Guid)topMatch.patientId : Guid.Empty,
+        Actor = "system",
+        Action = "empi_match",
+        Details = $@"{{
+            ""decision"":""{overallDecision}"",
+            ""highestScore"":{highestScore},
+            ""matchCount"":{sortedMatches.Count},
+            ""searchCriteria"":{{
+                ""firstName"":""{firstName}"",
+                ""lastName"":""{lastName}"",
+                ""dob"":""{dob}"",
+                ""gender"":""{gender}"",
+                ""phone"":""{phone}"",
+                ""email"":""{email}"",
+                ""govtIdType"":""{govtIdType}"",
+                ""govtIdNumber"":""{(string.IsNullOrEmpty(govtIdNumber) ? "" : "***REDACTED***")}""
+            }},
+            ""topMatchReason"":""{(topMatch != null ? topMatch.matchReason : "")}""
+        }}",
+        Ip = http.Connection.RemoteIpAddress?.ToString(),
+        UserAgent = http.Request.Headers["User-Agent"].FirstOrDefault(),
+        CreatedAt = DateTime.UtcNow
+    });
+    await db.SaveChangesAsync();
+    
     return Results.Ok(new
     {
         matches = sortedMatches,

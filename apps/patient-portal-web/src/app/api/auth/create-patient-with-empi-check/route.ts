@@ -47,20 +47,27 @@ export async function POST(request: NextRequest) {
       // Hard block if high-confidence match (≥80% similarity) or government ID match
       if (decision === 'block') {
         const topMatch = matches && matches.length > 0 ? matches[0] : null;
+        
+        // SECURITY: Do NOT expose PHI (UPI, name, DOB) or account existence to browser
+        // Log match details server-side only for audit/compliance
+        console.log('EMPI duplicate blocked:', {
+          score: highestScore,
+          matchReason: topMatch?.matchReason,
+          matchedUPI: topMatch?.upi,
+          requestData: {
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            dob: profile.dateOfBirth,
+            govtIdType: profile.govtIdType || 'none'
+          }
+        });
+        
+        // Generic message that does NOT confirm account existence or specific match reason
+        // SECURITY: Do NOT include duplicateFound flag (leaks account existence)
         return NextResponse.json(
           {
             success: false,
-            duplicateFound: true,
-            message: topMatch?.matchReason?.includes('Government ID') 
-              ? "This Government ID is already registered. Please sign in using your Hospital ID."
-              : "An account with similar details already exists. Please sign in using your Hospital ID.",
-            matchedPatient: topMatch ? {
-              upi: topMatch.upi,
-              name: `${topMatch.firstName || ''} ${topMatch.lastName || ''}`.trim() || "Unknown",
-              dob: topMatch.dob || "",
-              score: topMatch.score,
-              reason: topMatch.matchReason
-            } : null,
+            message: "We could not complete your registration at this time. This may be due to matching information in our system. Please contact support for assistance.",
           },
           { status: 409 }
         );
@@ -167,20 +174,8 @@ export async function POST(request: NextRequest) {
     } catch (empiError: any) {
       console.error("EMPI check failed:", empiError);
       
-      // Check if it's a duplicate phone constraint error from Auth Service
-      if (empiError.response?.data?.includes?.('duplicate key value violates unique constraint "patient_phone_key"') ||
-          empiError.response?.data?.includes?.('already exists')) {
-        return NextResponse.json(
-          {
-            success: false,
-            duplicateFound: true,
-            message: "An account with this phone number already exists. Please sign in using your Hospital ID.",
-          },
-          { status: 409 }
-        );
-      }
-      
-      // For other EMPI errors, return a generic error without creating patient
+      // SECURITY: Do NOT leak account existence information
+      // Return generic error without revealing if phone/email exists
       return NextResponse.json(
         { 
           success: false, 
@@ -193,21 +188,10 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error creating patient:", error);
     
-    // Check if it's a duplicate phone constraint error from database
-    if (error.message?.includes('duplicate key value violates unique constraint "patient_phone_key"') ||
-        error.constraint === 'patient_phone_key') {
-      return NextResponse.json(
-        {
-          success: false,
-          duplicateFound: true,
-          message: "An account with this phone number already exists. Please sign in using your Hospital ID.",
-        },
-        { status: 409 }
-      );
-    }
-    
+    // SECURITY: Do NOT leak account existence via constraint errors
+    // Log detailed error server-side but return generic message to client
     return NextResponse.json(
-      { success: false, message: error.message || "Failed to create patient" },
+      { success: false, message: "Unable to create patient account. Please try again or contact support." },
       { status: 500 }
     );
   }

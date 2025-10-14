@@ -59,17 +59,23 @@ The project is structured as a monorepo utilizing pnpm workspaces and Turbo for 
   - **Social Sign-In**: OAuth integration with EMPI matching (Google/Microsoft/Apple → EMPI match → Account Selection if multiple → DOB/PIN verification → Dashboard)
   - **UPI Masking**: Last 4 characters visible (UPI123456 → ****3456) for account selection and verification screens
   - **Unified Auth Landing**: Homepage displays both "Sign In" and "Sign Up" buttons, AuthMethodSelector component with 4 sign-in options, EnhancedAuthFlow router managing all authentication paths
-  - **Simplified Registration Flow (Oct 14, 2025)**: Direct signup with EMPI duplicate detection and progressive profiling:
+  - **Simplified Registration Flow with CDC-Compliant EMPI (Oct 14, 2025)**: Direct signup with weighted probabilistic duplicate detection:
     * Landing Page: Shows "Existing Patients" (UPI sign-in) and "New Patient Registration" (single button, no OTP options)
     * Step 1: Profile Step - Minimal mode with Title, First/Middle/Last Name, DOB (with age display), Gender, Guardian (for minors), Patient Type, Mobile Number
-    * Step 2: EMPI Duplicate Detection - Backend calls Auth Service /empi/match with name/DOB/mobile; hard blocks if similarity score ≥80% with DuplicateBlockedStep UI
+    * Step 2: CDC-Compliant EMPI Duplicate Detection with Weighted Scoring:
+      - Government ID Match: 100 points (instant duplicate block if exact match)
+      - Demographics: First Name (25pts) + Last Name (25pts) + DOB (30pts) + Gender (10pts) = 90pts max
+      - Contact Info (Supporting Evidence): Phone (7pts) + Email (5pts) + Address (3pts) = 15pts max
+      - Decision Thresholds: Score ≥80 = Block (high confidence duplicate), 50-79 = Flag for manual review (medium confidence), <50 = Allow (different person)
+      - Security: No PHI exposure in responses; all match details logged server-side only for HIPAA compliance
+      - Database Schema: Phone/email unique constraints removed (families share contacts); govt_id_type+govt_id_number have composite unique index
     * Step 3: Password Setup (PasswordSetupStep with strength meter, Argon2id hashing)
     * Step 4: UPI Display (YourIdStep shows generated Hospital ID)
-    * Step 5: Extended Profile (Optional: Blood Group, Source of Patient with referral, addresses, occupation, marital status - extended mode of ProfileStep)
+    * Step 5: Extended Profile (Optional: Government ID (Aadhaar/Passport/Voter ID/Driving License/PAN), Blood Group, Source of Patient with referral, addresses, occupation, marital status)
     * Step 6: MFA Setup (Optional: TOTP Authenticator App or SMS OTP using MfaSetupStep, TOTP secret stored in credentials table)
     * Step 7: HIPAA Consent (Required: Privacy Notice, Electronic Communications; Optional: Research Participation - HipaaConsentStep with patient_consents table)
     * Step 8: Dashboard Redirect
-    * Security: LinkToken (32-byte hex, HMAC SHA256, 15min expiry) generated during patient creation, required for all downstream steps
+    * Security: LinkToken (32-byte hex, HMAC SHA256, 15min expiry) generated during patient creation, required for all downstream steps; comprehensive EMPI audit logging with redacted govt ID numbers
   - **Backend API Endpoints (Auth Service)**:
     * POST /auth/upi-signin - UPI + password validation with Argon2id, MFA check
     * POST /auth/verify-mfa - PIN-based MFA verification using Argon2id
