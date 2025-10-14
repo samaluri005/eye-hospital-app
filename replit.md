@@ -23,6 +23,15 @@ The project utilizes a monorepo structure with pnpm workspaces and Turbo for dep
 - PostgreSQL, managed with Drizzle ORM. The schema includes tables for CDC de-duplication, government ID verification, session management, HIPAA audit logging, consent management, family/emergency access, and healthcare operations (doctors, appointments, medical records, billing). The patient table is enhanced with CDC-compliant fields for identity management and EMPI.
 
 **UI/UX Decisions:**
+- **World-Class Login Screen (Oct 14, 2025)**: Split-screen design inspired by Mayo Clinic/Cleveland Clinic simplicity and Stripe/Linear modern aesthetics:
+  * LEFT: Persistent doctor image with floating animation (3s ease infinite), gradient background, decorative circles
+  * RIGHT: Clean login form with Hospital ID + Password fields, show/hide toggle, Forgot ID/Password links
+  * Framer Motion animations: input focus (scale 1.01), button hover/tap, 300ms transitions
+  * Integrated MFA flow: 4-digit PIN entry appears inline when required, with back navigation
+  * Dual New Patient options: "Create New Account" button + "Register Now" text link
+  * Copyright footer with Terms/Privacy links
+  * Responsive: stacked mobile, side-by-side desktop (50/50)
+  * Accessibility: prefers-reduced-motion support, ARIA labels
 - Modern OTP input design with individual digit boxes, auto-advance, and keyboard navigation.
 - Visual states for input fields using Tailwind CSS.
 - Gradient header icons and verify buttons.
