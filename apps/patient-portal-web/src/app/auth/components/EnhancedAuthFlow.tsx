@@ -511,6 +511,7 @@ export default function EnhancedAuthFlow() {
             onNext={handleExtendedProfileComplete}
             onSkip={handleExtendedProfileSkip}
             mode="extended"
+            initialData={profile || undefined}
           />
         )}
 

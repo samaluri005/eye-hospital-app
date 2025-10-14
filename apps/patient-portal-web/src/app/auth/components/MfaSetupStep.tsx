@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import InfoTooltip from "./InfoTooltip";
 
 export type MfaMethod = "totp" | "sms";
 
@@ -134,9 +135,12 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
             <div>
-              <h4 className="text-purple-800 font-semibold mb-1">Why Enable MFA?</h4>
+              <h4 className="text-purple-800 font-semibold mb-1 inline-flex items-center">
+                Why Enable MFA?
+                <InfoTooltip text="Two-factor authentication adds an extra layer of security to your account, ensuring only you can access your sensitive medical information." />
+              </h4>
               <p className="text-purple-700 text-sm leading-relaxed">
-                Two-factor authentication adds an extra layer of security to your account, ensuring only you can access your sensitive medical information.
+                Adds extra security to protect your medical records.
               </p>
             </div>
           </div>
@@ -155,9 +159,12 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone }: Props) {
                 </svg>
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-gray-900 mb-1">Authenticator App (Recommended)</h4>
+                <h4 className="font-semibold text-gray-900 mb-1 inline-flex items-center">
+                  Authenticator App (Recommended)
+                  <InfoTooltip text="Use an app like Google Authenticator or Microsoft Authenticator to generate secure codes." />
+                </h4>
                 <p className="text-sm text-gray-600">
-                  Use an app like Google Authenticator or Microsoft Authenticator to generate secure codes
+                  Generate time-based codes with your authenticator app
                 </p>
               </div>
               <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,9 +184,12 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone }: Props) {
                 </svg>
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-gray-900 mb-1">SMS Text Message</h4>
+                <h4 className="font-semibold text-gray-900 mb-1 inline-flex items-center">
+                  SMS OTP
+                  <InfoTooltip text="Receive verification codes via text message to your phone" />
+                </h4>
                 <p className="text-sm text-gray-600">
-                  Receive verification codes via text message to your phone
+                  Get one-time passwords sent to your mobile phone
                 </p>
               </div>
               <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -314,17 +324,28 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone }: Props) {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Phone Number
           </label>
-          <input
-            type="tel"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={smsPhone}
-            onChange={(e) => setSmsPhone(e.target.value)}
-            placeholder="+1 (555) 123-4567"
-          />
-          {userPhone && (
-            <p className="text-sm text-gray-500 mt-2">
-              Using your registered phone number
-            </p>
+          {userPhone ? (
+            <>
+              <div className="bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 mb-2">
+                <p className="text-gray-900 font-medium">{smsPhone}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Codes will be sent to this registered number
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <input
+                type="tel"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={smsPhone}
+                onChange={(e) => setSmsPhone(e.target.value)}
+                placeholder="+1 (555) 123-4567"
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                Enter the phone number to receive verification codes
+              </p>
+            </>
           )}
         </div>
 

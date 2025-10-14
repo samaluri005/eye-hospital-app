@@ -45,6 +45,7 @@ type Props = {
   onSkip: () => void;
   isAddingFamilyMember?: boolean;
   mode?: "minimal" | "extended"; // minimal: only name + DOB, extended: all fields
+  initialData?: ProfileData; // Pre-populate form with existing data
 };
 
 const FAMILY_RELATIONSHIPS = [
@@ -59,46 +60,46 @@ const FAMILY_RELATIONSHIPS = [
   { value: 'other', label: 'Other Family Member' },
 ];
 
-export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = false, mode = "extended" }: Props) {
+export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = false, mode = "extended", initialData }: Props) {
   const isMinimalMode = mode === "minimal";
-  const [title, setTitle] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [middleName, setMiddleName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [nameSuffix, setNameSuffix] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [gender, setGender] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [email, setEmail] = useState("");
-  const [patientType, setPatientType] = useState("");
-  const [guardianName, setGuardianName] = useState("");
-  const [relationship, setRelationship] = useState("");
-  const [govtIdType, setGovtIdType] = useState("");
-  const [govtIdNumber, setGovtIdNumber] = useState("");
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [firstName, setFirstName] = useState(initialData?.firstName || "");
+  const [middleName, setMiddleName] = useState(initialData?.middleName || "");
+  const [lastName, setLastName] = useState(initialData?.lastName || "");
+  const [nameSuffix, setNameSuffix] = useState(initialData?.nameSuffix || "");
+  const [dateOfBirth, setDateOfBirth] = useState(initialData?.dateOfBirth || "");
+  const [gender, setGender] = useState(initialData?.gender || "");
+  const [mobile, setMobile] = useState(initialData?.mobile || "");
+  const [email, setEmail] = useState(initialData?.email || "");
+  const [patientType, setPatientType] = useState(initialData?.patientType || "");
+  const [guardianName, setGuardianName] = useState(initialData?.guardianName || "");
+  const [relationship, setRelationship] = useState(initialData?.relationship || "");
+  const [govtIdType, setGovtIdType] = useState(initialData?.govtIdType || "");
+  const [govtIdNumber, setGovtIdNumber] = useState(initialData?.govtIdNumber || "");
   
-  const [addressLine1, setAddressLine1] = useState("");
-  const [addressLine2, setAddressLine2] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [postalCode, setPostalCode] = useState("");
-  const [country, setCountry] = useState("India");
+  const [addressLine1, setAddressLine1] = useState(initialData?.addressLine1 || "");
+  const [addressLine2, setAddressLine2] = useState(initialData?.addressLine2 || "");
+  const [city, setCity] = useState(initialData?.city || "");
+  const [state, setState] = useState(initialData?.state || "");
+  const [postalCode, setPostalCode] = useState(initialData?.postalCode || "");
+  const [country, setCountry] = useState(initialData?.country || "India");
   
-  const [emergencyContact, setEmergencyContact] = useState("");
-  const [emergencyPhone, setEmergencyPhone] = useState("");
+  const [emergencyContact, setEmergencyContact] = useState(initialData?.emergencyContact || "");
+  const [emergencyPhone, setEmergencyPhone] = useState(initialData?.emergencyPhone || "");
   
-  const [bloodGroup, setBloodGroup] = useState("");
-  const [sourceOfPatient, setSourceOfPatient] = useState("");
-  const [referralName, setReferralName] = useState("");
-  const [referralPhone, setReferralPhone] = useState("");
-  const [occupation, setOccupation] = useState("");
-  const [maritalStatus, setMaritalStatus] = useState("");
-  const [spouseName, setSpouseName] = useState("");
-  const [permanentAddressLine1, setPermanentAddressLine1] = useState("");
-  const [permanentAddressLine2, setPermanentAddressLine2] = useState("");
-  const [permanentCity, setPermanentCity] = useState("");
-  const [permanentState, setPermanentState] = useState("");
-  const [permanentPostalCode, setPermanentPostalCode] = useState("");
-  const [permanentCountry, setPermanentCountry] = useState("India");
+  const [bloodGroup, setBloodGroup] = useState(initialData?.bloodGroup || "");
+  const [sourceOfPatient, setSourceOfPatient] = useState(initialData?.sourceOfPatient || "");
+  const [referralName, setReferralName] = useState(initialData?.referralName || "");
+  const [referralPhone, setReferralPhone] = useState(initialData?.referralPhone || "");
+  const [occupation, setOccupation] = useState(initialData?.occupation || "");
+  const [maritalStatus, setMaritalStatus] = useState(initialData?.maritalStatus || "");
+  const [spouseName, setSpouseName] = useState(initialData?.spouseName || "");
+  const [permanentAddressLine1, setPermanentAddressLine1] = useState(initialData?.permanentAddressLine1 || "");
+  const [permanentAddressLine2, setPermanentAddressLine2] = useState(initialData?.permanentAddressLine2 || "");
+  const [permanentCity, setPermanentCity] = useState(initialData?.permanentCity || "");
+  const [permanentState, setPermanentState] = useState(initialData?.permanentState || "");
+  const [permanentPostalCode, setPermanentPostalCode] = useState(initialData?.permanentPostalCode || "");
+  const [permanentCountry, setPermanentCountry] = useState(initialData?.permanentCountry || "India");
   const [sameAsPresentAddress, setSameAsPresentAddress] = useState(false);
   
   const [showOptional, setShowOptional] = useState(false);
@@ -529,24 +530,13 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               </h4>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Postal/Zip Code</label>
                 <input 
                   type="text"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                  value={addressLine1} 
-                  onChange={(e)=>setAddressLine1(e.target.value)}
-                  placeholder="Street address, P.O. Box"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2</label>
-                <input 
-                  type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                  value={addressLine2} 
-                  onChange={(e)=>setAddressLine2(e.target.value)}
-                  placeholder="Apartment, suite, unit, etc."
+                  value={postalCode} 
+                  onChange={(e)=>setPostalCode(e.target.value)}
+                  placeholder="Enter PIN/ZIP code"
                 />
               </div>
 
@@ -574,17 +564,6 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
-                  <input 
-                    type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                    value={postalCode} 
-                    onChange={(e)=>setPostalCode(e.target.value)}
-                    placeholder="PIN/ZIP"
-                  />
-                </div>
-
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
                   <select 
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
@@ -599,10 +578,32 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                   </select>
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
+                <input 
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={addressLine1} 
+                  onChange={(e)=>setAddressLine1(e.target.value)}
+                  placeholder="Street address, P.O. Box"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2 (Optional)</label>
+                <input 
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={addressLine2} 
+                  onChange={(e)=>setAddressLine2(e.target.value)}
+                  placeholder="Apartment, suite, unit, etc."
+                />
+              </div>
             </div>
 
             {/* Medical & Personal Information Section */}
-            <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+            <div className="border border-gray-200 rounded-lg p-4 space-y-5">
               <h4 className="font-semibold text-gray-900 flex items-center">
                 <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -610,51 +611,54 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                 Medical & Personal Details (Optional)
               </h4>
 
+              {/* Government ID Section */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Government ID Type
+                      <span className="ml-2 text-xs text-gray-500">(helps prevent duplicates)</span>
+                    </label>
+                    <select 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                      value={govtIdType} 
+                      onChange={(e)=>setGovtIdType(e.target.value)}
+                    >
+                      <option value="">Select ID Type</option>
+                      <option value="aadhaar">Aadhaar Card</option>
+                      <option value="passport">Passport</option>
+                      <option value="voter_id">Voter ID</option>
+                      <option value="driving_license">Driving License</option>
+                      <option value="pan_card">PAN Card</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Government ID Number
+                      {govtIdType && (
+                        <span className="ml-2 text-xs text-blue-600">
+                          ({govtIdType === 'aadhaar' ? 'XXXX XXXX XXXX' : 
+                            govtIdType === 'passport' ? 'A1234567' : 
+                            govtIdType === 'pan_card' ? 'ABCDE1234F' : 
+                            'Enter ID number'})
+                        </span>
+                      )}
+                    </label>
+                    <input 
+                      type="text"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                      value={govtIdNumber} 
+                      onChange={(e)=>setGovtIdNumber(e.target.value)}
+                      placeholder={govtIdType ? "Enter ID number" : "Select ID type first"}
+                      disabled={!govtIdType}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Medical & Personal Info Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Government ID Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Government ID Type
-                    <span className="ml-2 text-xs text-gray-500">(Optional - helps prevent duplicates)</span>
-                  </label>
-                  <select 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                    value={govtIdType} 
-                    onChange={(e)=>setGovtIdType(e.target.value)}
-                  >
-                    <option value="">Select ID Type</option>
-                    <option value="aadhaar">Aadhaar Card</option>
-                    <option value="passport">Passport</option>
-                    <option value="voter_id">Voter ID</option>
-                    <option value="driving_license">Driving License</option>
-                    <option value="pan_card">PAN Card</option>
-                  </select>
-                </div>
-
-                {/* Government ID Number */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Government ID Number
-                    {govtIdType && (
-                      <span className="ml-2 text-xs text-blue-600">
-                        ({govtIdType === 'aadhaar' ? 'XXXX XXXX XXXX' : 
-                          govtIdType === 'passport' ? 'A1234567' : 
-                          govtIdType === 'pan_card' ? 'ABCDE1234F' : 
-                          'Enter ID number'})
-                      </span>
-                    )}
-                  </label>
-                  <input 
-                    type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                    value={govtIdNumber} 
-                    onChange={(e)=>setGovtIdNumber(e.target.value)}
-                    placeholder={govtIdType ? "Enter ID number" : "Select ID type first"}
-                    disabled={!govtIdType}
-                  />
-                </div>
-
-                {/* Blood Group */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Blood Group</label>
                   <select 
@@ -674,7 +678,6 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                   </select>
                 </div>
 
-                {/* Occupation */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Occupation</label>
                   <input 
@@ -685,10 +688,7 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                     placeholder="e.g., Teacher, Engineer, Retired"
                   />
                 </div>
-              </div>
 
-              {/* Marital Status */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Marital Status</label>
                   <select 
@@ -704,7 +704,6 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                   </select>
                 </div>
 
-                {/* Spouse Name - Conditional */}
                 {maritalStatus === "Married" && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Spouse Name</label>
@@ -719,48 +718,49 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                 )}
               </div>
 
-              {/* Source of Patient */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Source of Patient</label>
-                <select 
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                  value={sourceOfPatient} 
-                  onChange={(e)=>setSourceOfPatient(e.target.value)}
-                >
-                  <option value="">Select Source</option>
-                  <option value="General">General Walk-in</option>
-                  <option value="Referral">Referral</option>
-                </select>
-              </div>
+              {/* Source of Patient Section */}
+              <div className="space-y-4 pt-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Source of Patient</label>
+                  <select 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                    value={sourceOfPatient} 
+                    onChange={(e)=>setSourceOfPatient(e.target.value)}
+                  >
+                    <option value="">Select Source</option>
+                    <option value="General">General Walk-in</option>
+                    <option value="Referral">Referral</option>
+                  </select>
+                </div>
 
-              {/* Referral Details - Conditional */}
-              {sourceOfPatient === "Referral" && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
-                  <h5 className="font-medium text-blue-900">Referral Information</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-blue-900 mb-2">Referral Name</label>
-                      <input 
-                        type="text"
-                        className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                        value={referralName} 
-                        onChange={(e)=>setReferralName(e.target.value)}
-                        placeholder="Name of referring doctor/person"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-blue-900 mb-2">Referral Phone</label>
-                      <input 
-                        type="tel"
-                        className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                        value={referralPhone} 
-                        onChange={(e)=>setReferralPhone(e.target.value)}
-                        placeholder="+91 98765 43210"
-                      />
+                {sourceOfPatient === "Referral" && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                    <h5 className="font-medium text-blue-900">Referral Information</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-blue-900 mb-2">Referral Name</label>
+                        <input 
+                          type="text"
+                          className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                          value={referralName} 
+                          onChange={(e)=>setReferralName(e.target.value)}
+                          placeholder="Name of referring doctor/person"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-blue-900 mb-2">Referral Phone</label>
+                        <input 
+                          type="tel"
+                          className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                          value={referralPhone} 
+                          onChange={(e)=>setReferralPhone(e.target.value)}
+                          placeholder="+91 98765 43210"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Permanent Address Section */}
@@ -796,24 +796,13 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               {!sameAsPresentAddress && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Postal/Zip Code</label>
                     <input 
                       type="text"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                      value={permanentAddressLine1} 
-                      onChange={(e)=>setPermanentAddressLine1(e.target.value)}
-                      placeholder="Street address, P.O. Box"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2</label>
-                    <input 
-                      type="text"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                      value={permanentAddressLine2} 
-                      onChange={(e)=>setPermanentAddressLine2(e.target.value)}
-                      placeholder="Apartment, suite, unit, etc."
+                      value={permanentPostalCode} 
+                      onChange={(e)=>setPermanentPostalCode(e.target.value)}
+                      placeholder="Enter PIN/ZIP code"
                     />
                   </div>
 
@@ -839,32 +828,43 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                         placeholder="State"
                       />
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
-                      <input 
-                        type="text"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                        value={permanentPostalCode} 
-                        onChange={(e)=>setPermanentPostalCode(e.target.value)}
-                        placeholder="PIN/ZIP"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                    <select 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                      value={permanentCountry} 
+                      onChange={(e)=>setPermanentCountry(e.target.value)}
+                    >
+                      <option value="India">India</option>
+                      <option value="United States">United States</option>
+                      <option value="United Kingdom">United Kingdom</option>
+                      <option value="Canada">Canada</option>
+                      <option value="Australia">Australia</option>
+                    </select>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                      <select 
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                        value={permanentCountry} 
-                        onChange={(e)=>setPermanentCountry(e.target.value)}
-                      >
-                        <option value="India">India</option>
-                        <option value="United States">United States</option>
-                        <option value="United Kingdom">United Kingdom</option>
-                        <option value="Canada">Canada</option>
-                        <option value="Australia">Australia</option>
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
+                    <input 
+                      type="text"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                      value={permanentAddressLine1} 
+                      onChange={(e)=>setPermanentAddressLine1(e.target.value)}
+                      placeholder="Street address, P.O. Box"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2 (Optional)</label>
+                    <input 
+                      type="text"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                      value={permanentAddressLine2} 
+                      onChange={(e)=>setPermanentAddressLine2(e.target.value)}
+                      placeholder="Apartment, suite, unit, etc."
+                    />
                   </div>
                 </>
               )}
@@ -892,12 +892,9 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Contact Phone</label>
-                <input 
-                  type="tel"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                  value={emergencyPhone} 
-                  onChange={(e)=>setEmergencyPhone(e.target.value)}
-                  placeholder="+1 (555) 123-4567"
+                <InternationalPhoneInput
+                  value={emergencyPhone}
+                  onChange={setEmergencyPhone}
                 />
               </div>
             </div>
