@@ -769,7 +769,7 @@ app.MapPost("/auth/signin/upi", async (HttpContext http, AppDbContext db, JwtSer
     
     // Generate JWT tokens
     var accessToken = jwtService.GenerateAccessToken(
-        user.UserId.ToString(),
+        user.UserId,
         upi,
         patient.Email ?? user.Email
     );
@@ -876,7 +876,7 @@ app.MapPost("/auth/verify-mfa", async (HttpContext http, AppDbContext db, JwtSer
     
     // Generate JWT tokens
     var accessToken = jwtService.GenerateAccessToken(
-        user.UserId.ToString(),
+        user.UserId,
         patient.Upi ?? "",
         patient.Email ?? user.Email
     );
@@ -1032,7 +1032,7 @@ app.MapPost("/auth/signin/phone/verify-otp", async (HttpContext http, AppDbConte
     
     // Generate JWT tokens
     var accessToken = jwtService.GenerateAccessToken(
-        user.UserId.ToString(),
+        user.UserId,
         patient.Upi ?? "",
         patient.Email ?? user.Email
     );
@@ -1168,7 +1168,7 @@ app.MapPost("/auth/signin/email/verify-otp", async (HttpContext http, AppDbConte
     
     // Generate JWT tokens
     var accessToken = jwtService.GenerateAccessToken(
-        user.UserId.ToString(),
+        user.UserId,
         patient.Upi ?? "",
         patient.Email ?? user.Email
     );
@@ -1251,7 +1251,7 @@ app.MapPost("/auth/token/refresh", async (HttpContext http, AppDbContext db, Jwt
     
     // Generate new access token (refresh token stays the same)
     var newAccessToken = jwtService.GenerateAccessToken(
-        user.UserId.ToString(),
+        user.UserId,
         patient.Upi ?? "",
         patient.Email ?? user.Email
     );
