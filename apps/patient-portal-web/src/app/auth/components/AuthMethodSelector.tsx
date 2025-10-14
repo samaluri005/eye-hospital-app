@@ -101,16 +101,13 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
       <div className="space-y-8">
         {/* Logo and Header */}
         <div className="space-y-2">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center justify-center gap-3 mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">EyeCare Hospital</h1>
-              <p className="text-xs text-gray-600">Patient Portal</p>
-            </div>
+            <h1 className="text-xl font-bold text-gray-900">EyeCare Hospital</h1>
           </div>
           
           <h2 className="text-2xl font-bold text-gray-900">Two-Factor Authentication</h2>
@@ -175,17 +172,14 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
     <div className="space-y-8">
       {/* Logo and Header */}
       <div className="space-y-2">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center justify-center gap-3 mb-4">
           <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
             <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">EyeCare Hospital</h1>
-            <p className="text-xs text-gray-600">Patient Portal</p>
-          </div>
+          <h1 className="text-xl font-bold text-gray-900">EyeCare Hospital</h1>
         </div>
         
         <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
@@ -284,39 +278,21 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
         </div>
       </div>
 
-      {/* New Patient Registration Options */}
-      <div className="space-y-3">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ duration: 0.15 }}
-          onClick={() => onMethodSelected("signup")}
-          className="w-full py-3 px-6 bg-white border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 font-semibold rounded-lg transition-all duration-200"
-        >
-          Create New Account
-        </motion.button>
-        
-        <p className="text-center text-sm text-gray-600">
-          First time here?{" "}
-          <button
-            onClick={() => onMethodSelected("signup")}
-            className="text-emerald-600 hover:text-emerald-700 font-semibold hover:underline"
-          >
-            Register Now
-          </button>
-        </p>
-      </div>
+      {/* New Patient Registration */}
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ duration: 0.15 }}
+        onClick={() => onMethodSelected("signup")}
+        className="w-full py-3 px-6 bg-white border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 font-semibold rounded-lg transition-all duration-200"
+      >
+        Create New Account
+      </motion.button>
 
       {/* Copyright Footer */}
       <div className="pt-6 border-t border-gray-200">
-        <p className="text-center text-xs text-gray-500">
+        <p className="text-center text-xs text-gray-900 font-semibold">
           © 2025 EyeCare Hospital. All rights reserved
-        </p>
-        <p className="text-center text-xs text-gray-500 mt-2">
-          By continuing, you agree to our{" "}
-          <a href="#" className="text-emerald-600 hover:underline">Terms of Service</a>
-          {" "}and{" "}
-          <a href="#" className="text-emerald-600 hover:underline">Privacy Policy</a>
         </p>
       </div>
     </div>

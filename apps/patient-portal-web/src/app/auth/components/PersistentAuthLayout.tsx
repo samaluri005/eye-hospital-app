@@ -41,7 +41,7 @@ export default function PersistentAuthLayout({ children }: Props) {
             className="w-full max-w-md"
           >
             <motion.img
-              src="/doctor-eyecare.png"
+              src="/doctor-hd.png"
               alt="EyeCare Doctor"
               className="w-full h-auto object-contain drop-shadow-2xl"
               initial={{ opacity: 0, scale: 0.9 }}
