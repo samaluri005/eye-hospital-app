@@ -15,6 +15,9 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaPin, setMfaPin] = useState("");
+  const [tempToken, setTempToken] = useState<string | null>(null);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +43,9 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
       });
 
       if (response.data.mfaRequired) {
-        // Handle MFA flow - redirect to MFA step
-        window.location.href = "/dashboard"; // Temporary - should handle MFA properly
+        setMfaRequired(true);
+        setTempToken(response.data.tempToken);
       } else if (response.data.sessionToken || response.data.accessToken) {
-        // Success - redirect to dashboard
         window.location.href = "/dashboard";
       } else {
         setError("Unexpected response from server");
@@ -63,6 +65,111 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
       setLoading(false);
     }
   };
+
+  const handleMfaVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!mfaPin || mfaPin.length !== 4) {
+      setError("Please enter your 4-digit PIN");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await axios.post("/api/auth/verify-mfa", {
+        tempToken,
+        pin: mfaPin,
+      });
+
+      if (response.data.sessionToken || response.data.accessToken) {
+        window.location.href = "/dashboard";
+      } else {
+        setError("MFA verification failed");
+      }
+    } catch (e: any) {
+      const errorMsg = e?.response?.data?.message || e?.response?.data?.error || e.message || "MFA verification failed";
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (mfaRequired) {
+    return (
+      <div className="space-y-8">
+        {/* Logo and Header */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">EyeCare Hospital</h1>
+              <p className="text-xs text-gray-600">Patient Portal</p>
+            </div>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-gray-900">Two-Factor Authentication</h2>
+          <p className="text-gray-600">Enter your 4-digit security PIN to continue</p>
+        </div>
+
+        {/* MFA Form */}
+        <form onSubmit={handleMfaVerify} className="space-y-5">
+          <div>
+            <label htmlFor="mfaPin" className="block text-sm font-semibold text-gray-700 mb-2">
+              Security PIN
+            </label>
+            <motion.input
+              whileFocus={{ scale: 1.01, borderColor: "#10b981" }}
+              transition={{ duration: 0.2 }}
+              type="password"
+              id="mfaPin"
+              value={mfaPin}
+              onChange={(e) => setMfaPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="Enter 4-digit PIN"
+              maxLength={4}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 transition-colors text-center text-2xl tracking-widest"
+              required
+            />
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
+          <motion.button
+            whileHover={{ scale: loading ? 1 : 1.02 }}
+            whileTap={{ scale: loading ? 1 : 0.98 }}
+            transition={{ duration: 0.15 }}
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Verifying..." : "Verify PIN"}
+          </motion.button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMfaRequired(false);
+              setMfaPin("");
+              setTempToken(null);
+              setError(null);
+            }}
+            className="w-full text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            ← Back to Sign In
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
