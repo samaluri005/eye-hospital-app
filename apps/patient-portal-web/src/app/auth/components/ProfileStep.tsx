@@ -466,53 +466,46 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
 
   return (
     <div className="space-y-6">
-      {/* Header - Clean and Minimal (NO BRANDING) */}
-      <div className="text-center">
-        {/* Progress Indicator */}
-        {isMinimalMode && (
-          <div className="mb-6">
-            <div className="flex items-center justify-center space-x-2">
-              <div className="flex items-center">
-                <div className={`w-8 h-8 ${currentStep >= 1 ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'} rounded-full flex items-center justify-center text-sm font-semibold`}>
-                  1
-                </div>
-                <div className={`ml-2 text-sm font-medium ${currentStep >= 1 ? 'text-gray-900' : 'text-gray-500'}`}>Profile</div>
-              </div>
-              <div className={`w-16 h-0.5 ${currentStep >= 2 ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
-              <div className="flex items-center">
-                <div className={`w-8 h-8 ${currentStep >= 2 ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'} rounded-full flex items-center justify-center text-sm font-semibold`}>
-                  2
-                </div>
-                <div className={`ml-2 text-sm font-medium ${currentStep >= 2 ? 'text-gray-900' : 'text-gray-500'}`}>Verification</div>
-              </div>
-              <div className="w-16 h-0.5 bg-gray-300"></div>
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
-                  3
-                </div>
-                <div className="ml-2 text-sm font-medium text-gray-500">Complete</div>
-              </div>
+      {/* Progress Indicator - Minimal Mode Only */}
+      {isMinimalMode && (
+        <div className="flex items-center justify-center space-x-2 mb-8">
+          <div className="flex items-center">
+            <div className={`w-8 h-8 ${currentStep >= 1 ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'} rounded-full flex items-center justify-center text-sm font-semibold`}>
+              1
             </div>
+            <div className={`ml-2 text-sm font-medium ${currentStep >= 1 ? 'text-gray-900' : 'text-gray-500'}`}>Profile</div>
           </div>
-        )}
+          <div className={`w-16 h-0.5 ${currentStep >= 2 ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
+          <div className="flex items-center">
+            <div className={`w-8 h-8 ${currentStep >= 2 ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'} rounded-full flex items-center justify-center text-sm font-semibold`}>
+              2
+            </div>
+            <div className={`ml-2 text-sm font-medium ${currentStep >= 2 ? 'text-gray-900' : 'text-gray-500'}`}>Verification</div>
+          </div>
+          <div className="w-16 h-0.5 bg-gray-300"></div>
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
+              3
+            </div>
+            <div className="ml-2 text-sm font-medium text-gray-500">Complete</div>
+          </div>
+        </div>
+      )}
 
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">
-          {isAddingFamilyMember 
-            ? "Add Family Member" 
-            : isMinimalMode 
-              ? (currentStep === 1 ? "Create Your Profile" : "Contact & Security")
-              : "Complete Your Profile"
-          }
-        </h3>
-        <p className="text-gray-600 text-sm">
-          {isAddingFamilyMember 
-            ? "Please provide information for the family member you're adding"
-            : isMinimalMode
-              ? (currentStep === 1 ? "Let's get started with your basic information" : "Add contact details and secure your account")
+      {/* Header - Extended Mode Only */}
+      {!isMinimalMode && (
+        <div className="text-center">
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">
+            {isAddingFamilyMember ? "Add Family Member" : "Complete Your Profile"}
+          </h3>
+          <p className="text-gray-600 text-sm">
+            {isAddingFamilyMember 
+              ? "Please provide information for the family member you're adding"
               : "Help us serve you better with additional details (optional)"
-          }
-        </p>
-      </div>
+            }
+          </p>
+        </div>
+      )}
 
       {/* Error Message */}
       <AnimatePresence>
@@ -553,9 +546,10 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               Personal Information <span className="text-red-500 ml-1">*</span>
             </h4>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Title Dropdown - Compact */}
-              <div>
+            {/* Title and First Name on same row */}
+            <div className="grid grid-cols-12 gap-4">
+              {/* Title Dropdown - Small fixed width */}
+              <div className="col-span-3">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Title
                 </label>
@@ -564,7 +558,7 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                   value={title} 
                   onChange={(e)=>setTitle(e.target.value)}
                 >
-                  <option value="">Select Title</option>
+                  <option value="">Select</option>
                   <option value="Mr">Mr.</option>
                   <option value="Mrs">Mrs.</option>
                   <option value="Miss">Miss</option>
@@ -575,7 +569,8 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                 </select>
               </div>
             
-              <div className={title ? "" : "md:col-span-2"}>
+              {/* First Name - Takes remaining space */}
+              <div className="col-span-9">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   First Name <span className="text-red-500">*</span>
                 </label>
@@ -597,6 +592,9 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                   )}
                 </div>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -1109,31 +1107,21 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-between pt-4 border-t">
-        {isMinimalMode ? (
-          currentStep === 2 ? (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="button"
-              onClick={handleBack}
-              className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              ← Back
-            </motion.button>
-          ) : (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="button"
-              onClick={onSkip}
-              className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              ← Back to Sign-In
-            </motion.button>
-          )
-        ) : (
+      {/* Action Buttons - Right Aligned */}
+      <div className="flex items-center justify-end gap-3 pt-4 border-t">
+        {isMinimalMode && currentStep === 2 && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            onClick={handleBack}
+            className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            ← Back
+          </motion.button>
+        )}
+        
+        {!isMinimalMode && (
           <button
             type="button"
             onClick={onSkip}
