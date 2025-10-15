@@ -96,12 +96,15 @@ The project utilizes a monorepo structure with pnpm workspaces and Turbo for dep
 - **Registration Flow Fix (Oct 15, 2025 - Critical)**:
   * **CORRECTED**: Patient creation now happens ONLY after Step 2 (Contact & Security with password + consents)
   * Step 1: Personal Info → EMPI check via /api/auth/empi-check (duplicate detection ONLY, NO database record)
-  * Step 2: Contact & Security → Create patient via /api/auth/create-patient-with-empi-check → Display Health ID
+  * Step 2: Contact & Security → Create patient via /api/auth/create-patient-with-empi-check
   * Removed redundant EMPI check from create-patient endpoint (already done in Step 1)
   * Added "Back to Sign-In" button in Step 1, "Back" button in Step 2 for proper navigation
   * Form data persists when navigating between steps until page refresh
   * "Skip" buttons remain only for optional steps (Extended Profile, MFA Setup)
-  * Complete flow: Step 1 (EMPI check, no DB) → Step 2 (create patient) → YourIdStep (show Health ID) → Extended Profile (optional) → MFA (optional) → Welcome → Dashboard
+  * **Flow Streamlined**: Removed duplicate YourIdStep, now shows Health ID + name once in WelcomeStep
+  * **MFA Always Shows**: MFA Setup always appears after Extended Profile (whether completed or skipped)
+  * **Session Creation Fixed**: Session created before dashboard redirect to prevent "complete account setup" error
+  * Complete flow: Step 1 (EMPI check, no DB) → Step 2 (create patient) → Extended Profile (opt) → MFA Setup (opt) → Welcome (Health ID + name) → Create Session → Dashboard
 
 **Pending Work (Backend API Updates Required):**
 1. **Recovery Flows**: Forgot Health ID and Forgot Password flows (deferred - requires backend APIs)
