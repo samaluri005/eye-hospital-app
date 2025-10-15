@@ -138,10 +138,10 @@ export default function PersistentAuthLayout({ children }: Props) {
         />
       </div>
 
-      {/* Right Side - Dynamic Content */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-12 bg-white relative">
+      {/* Right Side - Dynamic Content with Scroll Container */}
+      <div className="w-full lg:w-1/2 flex items-start justify-center bg-white relative overflow-y-auto">
         <motion.div
-          className="w-full max-w-md"
+          className="w-full max-w-md py-20 px-8 lg:px-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
