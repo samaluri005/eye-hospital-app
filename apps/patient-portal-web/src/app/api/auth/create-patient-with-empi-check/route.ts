@@ -3,7 +3,8 @@ import { v4 as uuidv4 } from "uuid";
 import { createHmac, randomBytes } from "crypto";
 import { sql } from "drizzle-orm";
 import { db } from "../../../../../lib/db";
-import { patient, linkToken as linkTokenTable } from "../../../../../lib/schema";
+import { patient, linkToken as linkTokenTable, hipaaAuditLog } from "../../../../../lib/schema";
+import { hash } from '@node-rs/argon2';
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,7 +74,58 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
     });
 
-    // Step 2: Create linkToken for subsequent auth flow
+    // Step 2: Create user account and password credentials if password provided
+    if (profile.password) {
+      // Create user record
+      const newUserRecords = await db.execute(sql`
+        INSERT INTO users (patient_id, created_at)
+        VALUES (${patientId}::uuid, NOW())
+        RETURNING user_id
+      `);
+      const userId = (newUserRecords.rows[0] as any).user_id;
+
+      // Get pepper from environment
+      const pepper = process.env.ARGON2_PEPPER;
+      if (!pepper) {
+        console.error('ARGON2_PEPPER not configured');
+        return NextResponse.json(
+          { success: false, message: 'Service configuration error' },
+          { status: 500 }
+        );
+      }
+
+      // Hash password with Argon2id
+      const passwordWithPepper = profile.password + pepper;
+      const passwordHash = await hash(passwordWithPepper, {
+        memoryCost: 19456,
+        timeCost: 2,
+        parallelism: 1,
+      });
+
+      // Store password credentials
+      await db.execute(sql`
+        INSERT INTO credentials (user_id, credential_type, password_hash, created_at)
+        VALUES (${userId}::uuid, 'password', ${passwordHash}, NOW())
+      `);
+
+      // Log password creation
+      const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
+                      request.headers.get('x-real-ip') || 'unknown';
+      const userAgent = request.headers.get('user-agent') || 'unknown';
+
+      await db.insert(hipaaAuditLog).values({
+        patientId,
+        action: 'account_created',
+        actorId: patientId,
+        actorType: 'patient',
+        ipAddress: clientIp,
+        userAgent,
+        accessedData: { event: 'patient_account_created_with_password', upi: generatedUpi },
+        hipaaComplianceNote: 'Patient account created during registration with password credentials',
+      });
+    }
+
+    // Step 3: Create linkToken for subsequent auth flow
     const linkSecret = process.env.LINK_TOKEN_HMAC_SECRET || process.env.OTP_HMAC_SECRET;
     if (!linkSecret) {
       console.error('LINK_TOKEN_HMAC_SECRET not configured');
