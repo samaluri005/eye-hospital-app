@@ -508,7 +508,15 @@ export default function EnhancedAuthFlow() {
         {step === "profile" && (
           <ProfileStep
             onNext={handleProfileComplete}
-            onSkip={() => setStep("verification")}
+            onSkip={() => {
+              // For direct signup (minimal mode), go back to sign-in selector
+              // For extended profile or family member, go to verification
+              if (!isExistingUser && authMethod === "signup") {
+                handleBackToMethod();
+              } else {
+                setStep("verification");
+              }
+            }}
             isAddingFamilyMember={isAddingFamilyMember}
             mode={!isExistingUser ? "minimal" : "extended"}
           />

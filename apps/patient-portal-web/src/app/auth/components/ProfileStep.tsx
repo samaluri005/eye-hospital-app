@@ -1111,23 +1111,35 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between pt-4 border-t">
-        {isMinimalMode && currentStep === 2 ? (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="button"
-            onClick={handleBack}
-            className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            ← Back
-          </motion.button>
+        {isMinimalMode ? (
+          currentStep === 2 ? (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={handleBack}
+              className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              ← Back
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={onSkip}
+              className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              ← Back to Sign-In
+            </motion.button>
+          )
         ) : (
           <button
             type="button"
             onClick={onSkip}
             className="text-sm text-gray-500 hover:text-gray-700 underline"
           >
-            {isMinimalMode ? "Skip for now" : "Skip optional fields"}
+            Skip optional fields
           </button>
         )}
         
