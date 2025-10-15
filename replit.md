@@ -81,6 +81,17 @@ The project utilizes a monorepo structure with pnpm workspaces and Turbo for dep
   * Updated to 6-digit verification codes compatible with TOTP/SMS/Email
   * Dynamic UI labels based on mfaMethod (shows "from authenticator app", "sent to phone", or "sent to email")
   * Frontend sends {code, method} to /api/auth/verify-mfa (requires backend update - see Pending Work)
+- **WelcomeStep Component (Oct 15, 2025)**:
+  * Professional post-registration welcome screen with animated success icon
+  * Displays patient name and Health ID in gradient card
+  * Shows "What's Next?" onboarding information
+  * Security assurance message and dashboard navigation
+  * Integrated into EnhancedAuthFlow with proper routing for direct signup vs OTP flows
+  * Direct signup users (with consents in Step 2) see WelcomeStep instead of redundant HIPAA consent
+- **Bug Fixes (Oct 15, 2025)**:
+  * Fixed ProfileStep runtime error: Added missing `loading` state and `axios` import
+  * Removed extraneous "Required for patients under 18 years" text from guardian relationship field
+  * Cleaned up UI for better user experience
 
 **Pending Work (Backend API Updates Required):**
 1. **Recovery Flows**: Forgot Health ID and Forgot Password flows (deferred - requires backend APIs)
@@ -90,9 +101,8 @@ The project utilizes a monorepo structure with pnpm workspaces and Turbo for dep
    - Create forgot-health-id and forgot-password endpoints
    - Add consent storage in registration flow
    - Update TOTP setup/verification endpoints
-3. **Welcome Step**: Create WelcomeStep component for post-registration flow
-4. **Cleanup**: Remove deprecated Phone/Email/Social sign-in methods from routing
-5. **End-to-End Testing**: Test complete flow with all scenarios (minor, adult, MFA options)
+3. **Cleanup**: Remove deprecated Phone/Email/Social sign-in methods from routing
+4. **End-to-End Testing**: Test complete flow with all scenarios (minor, adult, MFA options)
 
 **Technical Implementations:**
 - **Identity Schema**: UPI-first approach with dedicated tables for users, credentials, external identities, proxy access, and verification evidence. Argon2id password hashing is used.

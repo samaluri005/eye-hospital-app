@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
 import InternationalPhoneInput from "./InternationalPhoneInput";
 import InfoTooltip from "./InfoTooltip";
 import ConsentModal from "./ConsentModal";
@@ -145,6 +146,7 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
   
   const [showOptional, setShowOptional] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -702,7 +704,6 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                     ))}
                   </select>
                 </div>
-                <p className="text-xs text-amber-700">Required for patients under 18 years</p>
               </motion.div>
             )}
           </motion.div>
