@@ -509,7 +509,7 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
         <>
           {/* Progress Indicator for Extended Profile */}
           {!isAddingFamilyMember && (
-            <div className="flex items-center justify-center space-x-2 mb-6">
+            <div className="flex items-center justify-center space-x-2 mb-8">
               <div className="flex items-center">
                 <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
                   1
