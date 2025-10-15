@@ -1,0 +1,830 @@
+Build this as my initial prototype
+
+Copy-paste this component to /components/ui folder:
+```tsx
+multi-step-form.tsx
+// components/ui/multi-step-form.tsx
+import * as React from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { X } from "lucide-react";
+
+const multiStepFormVariants = cva(
+  "flex flex-col",
+  {
+    variants: {
+      size: {
+        default: "md:w-[700px]",
+        sm: "md:w-[550px]",
+        lg: "md:w-[850px]",
+      },
+    },
+    defaultVariants: {
+      size: "default",
+    },
+  }
+);
+
+interface MultiStepFormProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof multiStepFormVariants> {
+  currentStep: number;
+  totalSteps: number;
+  title: string;
+  description: string;
+  onBack: () => void;
+  onNext: () => void;
+  onClose?: () => void;
+  backButtonText?: string;
+  nextButtonText?: string;
+  footerContent?: React.ReactNode;
+}
+
+const MultiStepForm = React.forwardRef<HTMLDivElement, MultiStepFormProps>(
+  ({
+    className,
+    size,
+    currentStep,
+    totalSteps,
+    title,
+    description,
+    onBack,
+    onNext,
+    onClose,
+    backButtonText = "Back",
+    nextButtonText = "Next Step",
+    footerContent,
+    children,
+    ...props
+  }, ref) => {
+    const progress = Math.round((currentStep / totalSteps) * 100);
+
+    const variants = {
+      hidden: { opacity: 0, x: 100 },
+      enter: { opacity: 1, x: 0 },
+      exit: { opacity: 0, x: -100 },
+    };
+
+    return (
+      <Card ref={ref} className={cn(multiStepFormVariants({ size }), className)} {...props}>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <CardTitle>{title}</CardTitle>
+            {onClose && (
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <CardDescription>{description}</CardDescription>
+          <div className="flex items-center gap-4 pt-2">
+            <Progress value={progress} className="w-full" />
+            <p className="text-sm text-muted-foreground whitespace-nowrap">
+              {currentStep}/{totalSteps} completed
+            </p>
+          </div>
+        </CardHeader>
+
+        <CardContent className="min-h-[300px] overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              variants={variants}
+              initial="hidden"
+              animate="enter"
+              exit="exit"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </CardContent>
+
+        <CardFooter className="flex justify-between">
+          <div>{footerContent}</div>
+          <div className="flex gap-2">
+            {currentStep > 1 && (
+              <Button variant="outline" onClick={onBack}>
+                {backButtonText}
+              </Button>
+            )}
+            <Button onClick={onNext}>
+              {nextButtonText}
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
+    );
+  }
+);
+
+MultiStepForm.displayName = "MultiStepForm";
+
+export { MultiStepForm };
+
+demo.tsx
+// demo.tsx
+"use client";
+
+import * as React from "react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowUpRight,
+  Globe,
+  Info,
+} from "lucide-react";
+
+import { MultiStepForm } from "@/components/ui/multi-step-form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+const TooltipIcon = ({ text }: { text: string }) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{text}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
+
+const VignettePurchaseFormDemo = () => {
+  // Demo state for a 3-step form, currently on step 2
+  const [currentStep, setCurrentStep] = React.useState(2);
+  const totalSteps = 3;
+
+  const handleNext = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-background p-4">
+      <MultiStepForm
+        currentStep={currentStep}
+        totalSteps={totalSteps}
+        title="Find Vignette"
+        description="Make your Vignet purchase easily by completing the necessary steps."
+        onBack={handleBack}
+        onNext={handleNext}
+        onClose={() => alert("Close button clicked!")}
+        footerContent={
+          <a href="#" className="flex items-center gap-1 text-sm text-primary hover:underline">
+            Need Help? <ArrowUpRight className="h-4 w-4" />
+          </a>
+        }
+      >
+        {/* Render content based on the current step */}
+        {currentStep === 2 && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Country Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="country">In which country is your vehicle registered</Label>
+                  <TooltipIcon text="Select the country where your vehicle is officially registered." />
+                </div>
+                <Select>
+                  <SelectTrigger id="country">
+                    <Globe className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Select a country..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="us">United States</SelectItem>
+                    <SelectItem value="de">Germany</SelectItem>
+                    <SelectItem value="fr">France</SelectItem>
+                    <SelectItem value="gb">United Kingdom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Start Date */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="start-date">Start Date</Label>
+                  <TooltipIcon text="The date your vignette should become valid." />
+                </div>
+                <Input id="start-date" placeholder="DD / MM / YYYY" />
+              </div>
+
+              {/* Registration Number */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="reg-number">Registration Number</Label>
+                   <TooltipIcon text="Enter your vehicle's registration number exactly as it appears on your documents." />
+                </div>
+                <Input id="reg-number" placeholder="Enter Registration Number" />
+              </div>
+
+              {/* Confirm Registration Number */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="confirm-reg-number">Enter registration number again</Label>
+                   <TooltipIcon text="Please re-enter the registration number to avoid any mistakes." />
+                </div>
+                <Input id="confirm-reg-number" placeholder="Confirm number" />
+              </div>
+            </div>
+
+            {/* Alert Message */}
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Please make sure to select the start date before proceeding to the next step.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+      </MultiStepForm>
+    </div>
+  );
+};
+
+export default VignettePurchaseFormDemo;
+```
+
+Copy-paste these files for dependencies:
+```tsx
+serafimcloud/alert
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
+
+const alertVariants = cva("relative rounded-lg border", {
+  variants: {
+    variant: {
+      default: "border-border bg-background",
+      warning: "border-amber-500/50 text-amber-600",
+      error: "border-red-500/50 text-red-600",
+      success: "border-emerald-500/50",
+      info: "border-blue-500/50 text-blue-600",
+    },
+    size: {
+      sm: "px-4 py-3",
+      lg: "p-4",
+    },
+    isNotification: {
+      true: "z-[100] max-w-[400px] bg-background shadow-lg shadow-black/5",
+      false: "",
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+    size: "sm",
+    isNotification: false,
+  },
+})
+
+interface AlertProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof alertVariants> {
+  icon?: React.ReactNode
+  action?: React.ReactNode
+  layout?: "row" | "complex"
+}
+
+const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
+  (
+    {
+      className,
+      variant,
+      size,
+      isNotification,
+      icon,
+      action,
+      layout = "row",
+      children,
+      ...props
+    },
+    ref,
+  ) => (
+    <div
+      ref={ref}
+      role="alert"
+      className={cn(
+        alertVariants({ variant, size, isNotification }),
+        className,
+      )}
+      {...props}
+    >
+      {layout === "row" ? (
+        // Однострочный вариант
+        <div className="flex items-center gap-2">
+          <div className="grow flex items-center">
+            {icon && <span className="me-3 inline-flex">{icon}</span>}
+            {children}
+          </div>
+          {action && <div className="flex items-center shrink-0">{action}</div>}
+        </div>
+      ) : (
+        // Многострочный вариант
+        <div className="flex gap-2">
+          {icon && children ? (
+            <div className="flex grow gap-3">
+              <span className="mt-0.5 shrink-0">{icon}</span>
+              <div className="grow">{children}</div>
+            </div>
+          ) : (
+            <div className="grow">
+              {icon && <span className="me-3 inline-flex">{icon}</span>}
+              {children}
+            </div>
+          )}
+          {action && <div className="shrink-0">{action}</div>}
+        </div>
+      )}
+    </div>
+  ),
+)
+Alert.displayName = "Alert"
+
+const AlertTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h5 ref={ref} className={cn("text-sm font-medium", className)} {...props} />
+))
+AlertTitle.displayName = "AlertTitle"
+
+const AlertDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+AlertDescription.displayName = "AlertDescription"
+
+const AlertContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("space-y-1", className)} {...props} />
+))
+AlertContent.displayName = "AlertContent"
+
+export { Alert, AlertTitle, AlertDescription, AlertContent }
+
+```
+```tsx
+shadcn/button
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  },
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  },
+)
+Button.displayName = "Button"
+
+export { Button, buttonVariants }
+
+```
+```tsx
+originui/label
+"use client";
+
+import * as React from "react";
+
+import { cn } from "@/lib/utils";
+
+const Label = React.forwardRef<HTMLLabelElement, React.LabelHTMLAttributes<HTMLLabelElement>>(
+  ({ className, ...props }, ref) => (
+    <label
+      ref={ref}
+      className={cn(
+        "text-sm font-medium leading-4 text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
+Label.displayName = "Label";
+
+export { Label };
+
+```
+```tsx
+originui/input
+import { cn } from "@/lib/utils";
+import * as React from "react";
+
+const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        className={cn(
+          "flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm shadow-black/5 transition-shadow placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50",
+          type === "search" &&
+            "[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none [&::-webkit-search-results-button]:appearance-none [&::-webkit-search-results-decoration]:appearance-none",
+          type === "file" &&
+            "p-0 pr-3 italic text-muted-foreground/70 file:me-3 file:h-full file:border-0 file:border-r file:border-solid file:border-input file:bg-transparent file:px-3 file:text-sm file:font-medium file:not-italic file:text-foreground",
+          className,
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  },
+);
+Input.displayName = "Input";
+
+export { Input };
+
+```
+```tsx
+originui/select
+"use client";
+
+import * as SelectPrimitive from "@radix-ui/react-select";
+import * as React from "react";
+
+import { cn } from "@/lib/utils";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "@radix-ui/react-icons";
+
+const Select = SelectPrimitive.Root;
+
+const SelectGroup = SelectPrimitive.Group;
+
+const SelectValue = SelectPrimitive.Value;
+
+const SelectTrigger = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
+>(({ className, children, ...props }, ref) => (
+  <SelectPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-3 py-2 text-start text-sm text-foreground shadow-sm shadow-black/5 focus:border-ring focus:outline-none focus:ring-[3px] focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground/70 [&>span]:min-w-0",
+      className,
+    )}
+    {...props}
+  >
+    {children}
+    <SelectPrimitive.Icon asChild>
+      <ChevronDownIcon size={16} strokeWidth={2} className="shrink-0 text-muted-foreground/80" />
+    </SelectPrimitive.Icon>
+  </SelectPrimitive.Trigger>
+));
+SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
+
+const SelectScrollUpButton = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.ScrollUpButton
+    ref={ref}
+    className={cn("flex cursor-default items-center justify-center py-1", className)}
+    {...props}
+  >
+    <ChevronUpIcon size={16} strokeWidth={2} />
+  </SelectPrimitive.ScrollUpButton>
+));
+SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
+
+const SelectScrollDownButton = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.ScrollDownButton>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.ScrollDownButton
+    ref={ref}
+    className={cn("flex cursor-default items-center justify-center py-1", className)}
+    {...props}
+  >
+    <ChevronDownIcon size={16} strokeWidth={2} />
+  </SelectPrimitive.ScrollDownButton>
+));
+SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName;
+
+const SelectContent = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+>(({ className, children, position = "popper", ...props }, ref) => (
+  <SelectPrimitive.Portal>
+    <SelectPrimitive.Content
+      ref={ref}
+      className={cn(
+        "relative z-50 max-h-[min(24rem,var(--radix-select-content-available-height))] min-w-[8rem] overflow-hidden rounded-lg border border-input bg-popover text-popover-foreground shadow-lg shadow-black/5 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 [&_[role=group]]:py-1",
+        position === "popper" &&
+          "w-full min-w-[var(--radix-select-trigger-width)] data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+        className,
+      )}
+      position={position}
+      {...props}
+    >
+      <SelectScrollUpButton />
+      <SelectPrimitive.Viewport
+        className={cn("p-1", position === "popper" && "h-[var(--radix-select-trigger-height)]")}
+      >
+        {children}
+      </SelectPrimitive.Viewport>
+      <SelectScrollDownButton />
+    </SelectPrimitive.Content>
+  </SelectPrimitive.Portal>
+));
+SelectContent.displayName = SelectPrimitive.Content.displayName;
+
+const SelectLabel = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Label>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Label
+    ref={ref}
+    className={cn("py-1.5 pe-2 ps-8 text-xs font-medium text-muted-foreground", className)}
+    {...props}
+  />
+));
+SelectLabel.displayName = SelectPrimitive.Label.displayName;
+
+const SelectItem = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Item>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
+>(({ className, children, ...props }, ref) => (
+  <SelectPrimitive.Item
+    ref={ref}
+    className={cn(
+      "relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pe-2 ps-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      className,
+    )}
+    {...props}
+  >
+    <span className="absolute start-2 flex size-3.5 items-center justify-center">
+      <SelectPrimitive.ItemIndicator>
+        <CheckIcon size={16} strokeWidth={2} />
+      </SelectPrimitive.ItemIndicator>
+    </span>
+
+    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+  </SelectPrimitive.Item>
+));
+SelectItem.displayName = SelectPrimitive.Item.displayName;
+
+const SelectSeparator = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Separator>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Separator
+    ref={ref}
+    className={cn("-mx-1 my-1 h-px bg-border", className)}
+    {...props}
+  />
+));
+SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
+
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+};
+
+```
+```tsx
+originui/tooltip
+"use client";
+
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import * as React from "react";
+
+import { cn } from "@/lib/utils";
+
+const TooltipProvider = TooltipPrimitive.Provider;
+
+const Tooltip = TooltipPrimitive.Root;
+
+const TooltipTrigger = TooltipPrimitive.Trigger;
+
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content> & {
+    showArrow?: boolean;
+  }
+>(({ className, sideOffset = 4, showArrow = false, ...props }, ref) => (
+  <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn(
+        "relative z-50 max-w-[280px] rounded-lg border border-border bg-popover px-3 py-1.5 text-sm text-popover-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        className,
+      )}
+      {...props}
+    >
+      {props.children}
+      {showArrow && (
+        <TooltipPrimitive.Arrow className="-my-px fill-popover drop-shadow-[0_1px_0_hsl(var(--border))]" />
+      )}
+    </TooltipPrimitive.Content>
+  </TooltipPrimitive.Portal>
+));
+TooltipContent.displayName = TooltipPrimitive.Content.displayName;
+
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };
+
+```
+```tsx
+shadcn/card
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      className,
+    )}
+    {...props}
+  />
+))
+Card.displayName = "Card"
+
+const CardHeader = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    {...props}
+  />
+))
+CardHeader.displayName = "CardHeader"
+
+const CardTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={cn(
+      "text-2xl font-semibold leading-none tracking-tight",
+      className,
+    )}
+    {...props}
+  />
+))
+CardTitle.displayName = "CardTitle"
+
+const CardDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+CardDescription.displayName = "CardDescription"
+
+const CardContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+))
+CardContent.displayName = "CardContent"
+
+const CardFooter = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex items-center p-6 pt-0", className)}
+    {...props}
+  />
+))
+CardFooter.displayName = "CardFooter"
+
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
+
+```
+```tsx
+shadcn/progress
+"use client"
+
+import * as React from "react"
+import * as ProgressPrimitive from "@radix-ui/react-progress"
+
+import { cn } from "@/lib/utils"
+
+const Progress = React.forwardRef<
+  React.ElementRef<typeof ProgressPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
+>(({ className, value, ...props }, ref) => (
+  <ProgressPrimitive.Root
+    ref={ref}
+    className={cn(
+      "relative h-4 w-full overflow-hidden rounded-full bg-secondary",
+      className,
+    )}
+    {...props}
+  >
+    <ProgressPrimitive.Indicator
+      className="h-full w-full flex-1 bg-primary transition-all"
+      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+    />
+  </ProgressPrimitive.Root>
+))
+Progress.displayName = ProgressPrimitive.Root.displayName
+
+export { Progress }
+
+```
+
+Install these NPM dependencies:
+```bash
+lucide-react, framer-motion, class-variance-authority, @radix-ui/react-slot, @radix-ui/react-icons, @radix-ui/react-select, @radix-ui/react-tooltip, @radix-ui/react-progress
+```
