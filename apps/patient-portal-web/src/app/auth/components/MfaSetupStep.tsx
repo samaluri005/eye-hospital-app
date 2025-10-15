@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import InfoTooltip from "./InfoTooltip";
+import ProgressBar from "./ProgressBar";
 
 export type MfaMethod = "totp" | "sms" | "email";
 
@@ -30,46 +31,6 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Progress Indicator Component - shown on all MFA screens
-  // Shows 5 steps: Profile → Verification → Complete Profile → MFA Setup → Complete
-  const ProgressIndicator = () => (
-    <div className="flex items-center justify-center space-x-1.5 mb-8">
-      <div className="flex items-center">
-        <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#2ecc71' }}>
-          1
-        </div>
-        <div className="ml-1.5 text-xs font-medium text-gray-900">Profile</div>
-      </div>
-      <div className="w-10 h-0.5" style={{ backgroundColor: '#2ecc71' }}></div>
-      <div className="flex items-center">
-        <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#2ecc71' }}>
-          2
-        </div>
-        <div className="ml-1.5 text-xs font-medium text-gray-900">Verification</div>
-      </div>
-      <div className="w-10 h-0.5" style={{ backgroundColor: '#2ecc71' }}></div>
-      <div className="flex items-center">
-        <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#2ecc71' }}>
-          3
-        </div>
-        <div className="ml-1.5 text-xs font-medium text-gray-900">Complete Profile</div>
-      </div>
-      <div className="w-10 h-0.5" style={{ backgroundColor: '#2ecc71' }}></div>
-      <div className="flex items-center">
-        <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#0066cc' }}>
-          4
-        </div>
-        <div className="ml-1.5 text-xs font-medium text-gray-900">MFA Setup</div>
-      </div>
-      <div className="w-10 h-0.5 bg-gray-300"></div>
-      <div className="flex items-center">
-        <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-xs font-semibold">
-          5
-        </div>
-        <div className="ml-1.5 text-xs font-medium text-gray-500">Complete</div>
-      </div>
-    </div>
-  );
 
   useEffect(() => {
     if (selectedMethod === "totp") {
@@ -184,7 +145,7 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   if (!selectedMethod) {
     return (
       <div className="space-y-6">
-        <ProgressIndicator />
+        <ProgressBar currentStep={4} totalSteps={5} />
 
         {/* Header */}
         <div className="text-center">
@@ -317,7 +278,7 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   if (selectedMethod === "totp") {
     return (
       <div className="space-y-6">
-        <ProgressIndicator />
+        <ProgressBar currentStep={4} totalSteps={5} />
 
         {/* Header with Back Button */}
         <div className="text-center">
@@ -393,7 +354,7 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   if (selectedMethod === "sms") {
     return (
       <div className="space-y-6">
-        <ProgressIndicator />
+        <ProgressBar currentStep={4} totalSteps={5} />
 
         {/* Header with Back Button */}
         <div className="text-center">
@@ -468,7 +429,7 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   if (selectedMethod === "email") {
     return (
       <div className="space-y-6">
-        <ProgressIndicator />
+        <ProgressBar currentStep={4} totalSteps={5} />
 
         {/* Header with Back Button */}
         <div className="text-center">
