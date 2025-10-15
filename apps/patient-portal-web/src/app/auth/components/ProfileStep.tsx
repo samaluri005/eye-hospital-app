@@ -480,7 +480,7 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
   return (
     <div className="space-y-6">
       {/* Progress Bar - Minimal Mode Only */}
-      {isMinimalMode && <ProgressBar currentStep={currentStep} totalSteps={3} />}
+      {isMinimalMode && <ProgressBar currentStep={currentStep} totalSteps={5} />}
 
       {/* Header - Extended Mode Only */}
       {!isMinimalMode && (
@@ -604,13 +604,13 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Date of Birth <span className="text-red-500">*</span>
+                  <span className="text-xs text-gray-500 font-normal ml-2">(DD / MM / YYYY)</span>
                 </label>
                 <input 
                   type="date"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                   value={dateOfBirth} 
                   onChange={(e)=>setDateOfBirth(e.target.value)}
-                  placeholder="DD / MM / YYYY"
                   required
                 />
                 {age && (
@@ -1043,8 +1043,8 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Date of Birth <span className="text-red-500">*</span></label>
-                <input type="date" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={dateOfBirth} onChange={(e)=>setDateOfBirth(e.target.value)} placeholder="DD / MM / YYYY" required />
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Date of Birth <span className="text-red-500">*</span><span className="text-xs text-gray-500 font-normal ml-2">(DD / MM / YYYY)</span></label>
+                <input type="date" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={dateOfBirth} onChange={(e)=>setDateOfBirth(e.target.value)} required />
                 {age && <p className="text-xs text-gray-500 mt-1">Age: {age.years} years, {age.months} months</p>}
               </div>
 
