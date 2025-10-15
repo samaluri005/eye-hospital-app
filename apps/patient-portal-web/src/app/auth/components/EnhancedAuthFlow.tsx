@@ -173,7 +173,8 @@ export default function EnhancedAuthFlow() {
           setPatientUpi(response.data.upi || "");
           setPatientName(`${profileData.firstName} ${profileData.lastName}`);
           setLinkToken(response.data.linkToken); // Store linkToken for subsequent steps
-          setStep("password");
+          // Password already collected in ProfileStep Step 2, skip PasswordSetupStep
+          setStep("upiDisplay");
         } else {
           // API returned success: false (shouldn't happen in success case, but handle it)
           setError(response.data.message || "Failed to create account. Please try again.");

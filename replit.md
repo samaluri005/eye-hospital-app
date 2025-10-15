@@ -91,6 +91,7 @@ The project utilizes a monorepo structure with pnpm workspaces and Turbo for dep
 - **Bug Fixes (Oct 15, 2025)**:
   * Fixed ProfileStep runtime error: Added missing `loading` state and `axios` import
   * Removed extraneous "Required for patients under 18 years" text from guardian relationship field
+  * Fixed flow routing: Direct signup now skips redundant PasswordSetupStep since password is collected in ProfileStep Step 2
   * Cleaned up UI for better user experience
 
 **Pending Work (Backend API Updates Required):**
