@@ -173,8 +173,8 @@ export default function EnhancedAuthFlow() {
           setPatientUpi(response.data.upi || "");
           setPatientName(`${profileData.firstName} ${profileData.lastName}`);
           setLinkToken(response.data.linkToken); // Store linkToken for subsequent steps
-          // Password already collected in ProfileStep Step 2, skip PasswordSetupStep
-          setStep("upiDisplay");
+          // Password already collected in ProfileStep Step 2, go directly to Extended Profile
+          setStep("extendedProfile");
         } else {
           // API returned success: false (shouldn't happen in success case, but handle it)
           setError(response.data.message || "Failed to create account. Please try again.");
@@ -370,10 +370,35 @@ export default function EnhancedAuthFlow() {
     window.location.href = "/dashboard";
   };
 
-  const handleWelcomeContinue = () => {
-    // Clear signup flag and redirect to dashboard
-    sessionStorage.removeItem('signup_isNewUser');
-    window.location.href = "/dashboard";
+  const handleWelcomeContinue = async () => {
+    // Create session before redirecting to dashboard
+    if (patientId && linkToken) {
+      try {
+        const response = await axios.post("/api/auth/create-session", {
+          patientId,
+          linkToken,
+        });
+
+        if (response.data.success) {
+          sessionStorage.removeItem('signup_isNewUser');
+          window.location.href = "/dashboard";
+        } else {
+          console.error("Failed to create session:", response.data);
+          // Still redirect to allow user to sign in manually
+          sessionStorage.removeItem('signup_isNewUser');
+          window.location.href = "/dashboard";
+        }
+      } catch (error) {
+        console.error("Failed to create session:", error);
+        // Still redirect to allow user to sign in manually
+        sessionStorage.removeItem('signup_isNewUser');
+        window.location.href = "/dashboard";
+      }
+    } else {
+      // No patientId/linkToken, redirect anyway
+      sessionStorage.removeItem('signup_isNewUser');
+      window.location.href = "/dashboard";
+    }
   };
 
   const handleUpiSignInSuccess = (sessionToken: string) => {
