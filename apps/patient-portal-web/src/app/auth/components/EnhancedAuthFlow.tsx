@@ -16,12 +16,13 @@ import AccountSelectionStep, { type AccountOption } from "./AccountSelectionStep
 import VerificationStep from "./VerificationStep";
 import SocialSignInWithEmpi from "./SocialSignInWithEmpi";
 import DuplicateBlockedStep from "./DuplicateBlockedStep";
+import WelcomeStep from "./WelcomeStep";
 import axios from "axios";
 
 const SocialSignInButton = dynamic(() => import("./SocialSignInButton"), { ssr: false });
 
 type AuthMethod = "selector" | "phone" | "email" | "upi" | "social" | "signup";
-type FlowStep = "method" | "input" | "otp" | "accountSelection" | "verification" | "profile" | "password" | "upiDisplay" | "extendedProfile" | "mfaSetup" | "hipaaConsent" | "duplicateBlocked" | "done";
+type FlowStep = "method" | "input" | "otp" | "accountSelection" | "verification" | "profile" | "password" | "upiDisplay" | "extendedProfile" | "mfaSetup" | "hipaaConsent" | "welcome" | "duplicateBlocked" | "done";
 
 export default function EnhancedAuthFlow() {
   const [authMethod, setAuthMethod] = useState<AuthMethod>("selector");
@@ -292,8 +293,12 @@ export default function EnhancedAuthFlow() {
   };
 
   const handleUpiDisplaySkip = () => {
-    // User wants to skip Extended Profile and MFA - go straight to HIPAA Consent
-    setStep("hipaaConsent");
+    // Direct signup flow already collected consents, show welcome instead of HIPAA consent
+    if (authMethod === "signup") {
+      setStep("welcome");
+    } else {
+      setStep("hipaaConsent");
+    }
   };
 
   const handleExtendedProfileComplete = async (profileData: ProfileData) => {
@@ -330,12 +335,21 @@ export default function EnhancedAuthFlow() {
         console.error("Failed to setup MFA:", error);
       }
     }
-    setStep("hipaaConsent");
+    // Direct signup flow already collected consents, show welcome instead of HIPAA consent
+    if (authMethod === "signup") {
+      setStep("welcome");
+    } else {
+      setStep("hipaaConsent");
+    }
   };
 
   const handleMfaSetupSkip = () => {
-    // Skip MFA setup, go to HIPAA consent
-    setStep("hipaaConsent");
+    // Direct signup flow already collected consents, show welcome instead of HIPAA consent
+    if (authMethod === "signup") {
+      setStep("welcome");
+    } else {
+      setStep("hipaaConsent");
+    }
   };
 
   const handleConsentAccepted = async (consentData: ConsentData) => {
@@ -351,6 +365,12 @@ export default function EnhancedAuthFlow() {
         console.error("Failed to save consent:", error);
       }
     }
+    sessionStorage.removeItem('signup_isNewUser');
+    window.location.href = "/dashboard";
+  };
+
+  const handleWelcomeContinue = () => {
+    // Clear signup flag and redirect to dashboard
     sessionStorage.removeItem('signup_isNewUser');
     window.location.href = "/dashboard";
   };
@@ -520,7 +540,8 @@ export default function EnhancedAuthFlow() {
           <MfaSetupStep
             onNext={handleMfaSetupComplete}
             onSkip={handleMfaSetupSkip}
-            userPhone={contactInfo}
+            userPhone={profile?.mobile || contactInfo}
+            userEmail={profile?.email}
           />
         )}
 
@@ -528,6 +549,14 @@ export default function EnhancedAuthFlow() {
           <HipaaConsentStep
             onNext={handleConsentAccepted}
             patientName={patientName}
+          />
+        )}
+
+        {step === "welcome" && (
+          <WelcomeStep
+            patientName={patientName}
+            healthId={patientUpi}
+            onContinue={handleWelcomeContinue}
           />
         )}
 
