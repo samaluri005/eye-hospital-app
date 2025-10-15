@@ -31,25 +31,33 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   const [error, setError] = useState<string | null>(null);
 
   // Progress Indicator Component - shown on all MFA screens
+  // Shows 4 steps when MFA is selected: Profile → Verification → MFA Setup → Complete
   const ProgressIndicator = () => (
-    <div className="flex items-center justify-center space-x-2 mb-6">
+    <div className="flex items-center justify-center space-x-2 mb-8">
       <div className="flex items-center">
         <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
           1
         </div>
         <div className="ml-2 text-sm font-medium text-gray-900">Profile</div>
       </div>
-      <div className="w-16 h-0.5 bg-emerald-500"></div>
+      <div className="w-12 h-0.5 bg-emerald-500"></div>
       <div className="flex items-center">
         <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
           2
         </div>
         <div className="ml-2 text-sm font-medium text-gray-900">Verification</div>
       </div>
-      <div className="w-16 h-0.5 bg-gray-300"></div>
+      <div className="w-12 h-0.5 bg-emerald-500"></div>
+      <div className="flex items-center">
+        <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+          3
+        </div>
+        <div className="ml-2 text-sm font-medium text-gray-900">MFA Setup</div>
+      </div>
+      <div className="w-12 h-0.5 bg-gray-300"></div>
       <div className="flex items-center">
         <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
-          3
+          4
         </div>
         <div className="ml-2 text-sm font-medium text-gray-500">Complete</div>
       </div>
@@ -304,11 +312,11 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
       <div className="space-y-6">
         <ProgressIndicator />
 
-        {/* Header */}
+        {/* Header with Back Button */}
         <div className="text-center">
           <button
             onClick={() => setSelectedMethod(null)}
-            className="mb-4 text-gray-600 hover:text-gray-900 flex items-center mx-auto"
+            className="text-gray-600 hover:text-gray-900 flex items-center mx-auto mb-6"
           >
             <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -380,11 +388,11 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
       <div className="space-y-6">
         <ProgressIndicator />
 
-        {/* Header */}
+        {/* Header with Back Button */}
         <div className="text-center">
           <button
             onClick={() => setSelectedMethod(null)}
-            className="mb-4 text-gray-600 hover:text-gray-900 flex items-center mx-auto"
+            className="text-gray-600 hover:text-gray-900 flex items-center mx-auto mb-6"
           >
             <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -455,11 +463,11 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
       <div className="space-y-6">
         <ProgressIndicator />
 
-        {/* Header */}
+        {/* Header with Back Button */}
         <div className="text-center">
           <button
             onClick={() => setSelectedMethod(null)}
-            className="mb-4 text-gray-600 hover:text-gray-900 flex items-center mx-auto"
+            className="text-gray-600 hover:text-gray-900 flex items-center mx-auto mb-6"
           >
             <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
