@@ -62,32 +62,35 @@ export default function PersistentAuthLayout({ children }: Props) {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentImageIndex}
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ 
-                opacity: 1, 
-                scale: 1, 
-                y: [0, -20, 0],
-              }}
-              exit={{ opacity: 0, scale: 0.9, y: -20 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
               transition={{
-                opacity: { duration: 0.7 },
-                scale: { duration: 0.7 },
-                y: {
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }
+                duration: 0.7,
+                ease: "easeInOut"
               }}
               className="w-full max-w-md"
             >
-              <Image
-                src={doctorImages[currentImageIndex]}
-                alt="Eye Care Professional"
-                width={500}
-                height={600}
-                priority={currentImageIndex === 0}
-                className="w-full h-auto object-contain drop-shadow-2xl rounded-2xl"
-              />
+              {/* Floating animation wrapper - separate from carousel transitions */}
+              <motion.div
+                animate={{
+                  y: [0, -20, 0],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <Image
+                  src={doctorImages[currentImageIndex]}
+                  alt="Eye Care Professional"
+                  width={500}
+                  height={600}
+                  priority={currentImageIndex === 0}
+                  className="w-full h-auto object-contain drop-shadow-2xl rounded-2xl"
+                />
+              </motion.div>
             </motion.div>
           </AnimatePresence>
         </div>
