@@ -1450,7 +1450,21 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
 
       {/* Action Buttons */}
       <div className="pt-4 border-t">
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-between gap-3">
+          {/* Back to Sign-In - Step 1 Only */}
+          {isMinimalMode && currentStep === 1 && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={onSkip}
+              className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Back to Sign-In
+            </motion.button>
+          )}
+
+          {/* Back Button - Step 2 */}
           {isMinimalMode && currentStep === 2 && (
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -1459,10 +1473,11 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               onClick={handleBack}
               className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              ← Back
+              Back
             </motion.button>
           )}
           
+          {/* Skip for now - Extended Mode Only */}
           {!isMinimalMode && (
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -1475,6 +1490,7 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
             </motion.button>
           )}
           
+          {/* Next/Continue Button */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -1482,22 +1498,9 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
             onClick={handleNext}
             className="px-6 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
           >
-            {isMinimalMode && currentStep === 1 ? "Next →" : (isAddingFamilyMember ? "Add Family Member" : "Continue")}
+            {isMinimalMode && currentStep === 1 ? "Next" : (isAddingFamilyMember ? "Add Family Member" : "Continue")}
           </motion.button>
         </div>
-        
-        {/* Back to Sign-In Link - Step 1 Only */}
-        {isMinimalMode && currentStep === 1 && (
-          <div className="text-center mt-3">
-            <button
-              type="button"
-              onClick={onSkip}
-              className="text-sm text-gray-600 hover:text-emerald-600 transition-colors"
-            >
-              ← Back to Sign-In
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Consent Modal */}

@@ -615,7 +615,7 @@ export default function EnhancedAuthFlow() {
                 onClick={handleBackToMethod}
                 className="text-sm text-gray-600 hover:text-gray-900 font-medium"
               >
-                ← Back to sign-in options
+                Back to sign-in options
               </button>
             </div>
           )}

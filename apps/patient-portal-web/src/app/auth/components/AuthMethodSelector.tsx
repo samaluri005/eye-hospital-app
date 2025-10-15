@@ -166,7 +166,7 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
             }}
             className="w-full text-sm text-gray-600 hover:text-gray-900 transition-colors"
           >
-            ← Back to Sign In
+            Back to Sign In
           </button>
         </form>
       </div>

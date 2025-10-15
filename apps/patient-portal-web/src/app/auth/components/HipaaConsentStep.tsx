@@ -98,7 +98,7 @@ export default function HipaaConsentStep({ onNext, patientName }: Props) {
               </p>
               
               <p className="text-blue-600">
-                <a href="#" className="underline hover:text-blue-800">Read full Privacy Notice →</a>
+                <a href="#" className="underline hover:text-blue-800">Read full Privacy Notice</a>
               </p>
             </div>
           </div>
