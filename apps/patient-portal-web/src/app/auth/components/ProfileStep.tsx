@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import InternationalPhoneInput from "./InternationalPhoneInput";
 
 export type ProfileData = {
@@ -12,6 +13,7 @@ export type ProfileData = {
   gender?: string;
   mobile?: string;
   email?: string;
+  password?: string;
   patientType?: string;
   guardianName?: string;
   govtIdType?: string; // Government ID type
@@ -71,6 +73,9 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
   const [gender, setGender] = useState(initialData?.gender || "");
   const [mobile, setMobile] = useState(initialData?.mobile || "");
   const [email, setEmail] = useState(initialData?.email || "");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [patientType, setPatientType] = useState(initialData?.patientType || "");
   const [guardianName, setGuardianName] = useState(initialData?.guardianName || "");
   const [relationship, setRelationship] = useState(initialData?.relationship || "");
@@ -104,6 +109,12 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
   
   const [showOptional, setShowOptional] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Field validation states
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldValid, setFieldValid] = useState<Record<string, boolean>>({});
 
   // Calculate age from date of birth
   const calculateAge = (dob: string) => {
@@ -132,6 +143,64 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
   const age = calculateAge(dateOfBirth);
   const isMinor = age ? age.years < 18 : false;
 
+  // Password strength calculation
+  const calculatePasswordStrength = (pwd: string): number => {
+    let strength = 0;
+    if (pwd.length >= 8) strength++;
+    if (pwd.length >= 12) strength++;
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
+    if (/[0-9]/.test(pwd)) strength++;
+    if (/[^a-zA-Z0-9]/.test(pwd)) strength++;
+    return strength;
+  };
+
+  const passwordStrength = calculatePasswordStrength(password);
+
+  // Real-time email validation
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Handle field blur validation
+  const handleFieldBlur = (field: string, value: string) => {
+    const errors = { ...fieldErrors };
+    const valid = { ...fieldValid };
+
+    switch (field) {
+      case 'email':
+        if (isMinimalMode && value && !validateEmail(value)) {
+          errors.email = 'Please enter a valid email address';
+          valid.email = false;
+        } else if (value && validateEmail(value)) {
+          delete errors.email;
+          valid.email = true;
+        }
+        break;
+      case 'password':
+        if (isMinimalMode && value && value.length < 8) {
+          errors.password = 'Password must be at least 8 characters';
+          valid.password = false;
+        } else if (value && value.length >= 8) {
+          delete errors.password;
+          valid.password = true;
+        }
+        break;
+      case 'confirmPassword':
+        if (isMinimalMode && value && value !== password) {
+          errors.confirmPassword = 'Passwords do not match';
+          valid.confirmPassword = false;
+        } else if (value && value === password) {
+          delete errors.confirmPassword;
+          valid.confirmPassword = true;
+        }
+        break;
+    }
+
+    setFieldErrors(errors);
+    setFieldValid(valid);
+  };
+
   const handleSubmit = () => {
     setError(null);
     
@@ -146,6 +215,30 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
     }
     if (!dateOfBirth) {
       setError("Date of birth is required");
+      return;
+    }
+    
+    // Validate email in minimal mode
+    if (isMinimalMode && email && !validateEmail(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    // Validate password in minimal mode
+    if (isMinimalMode && password && password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    // Validate password match
+    if (isMinimalMode && password && password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    // Validate terms acceptance
+    if (isMinimalMode && !acceptTerms) {
+      setError("You must accept the terms and privacy policy");
       return;
     }
     
@@ -175,19 +268,20 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
       setError("Please enter a valid date of birth");
       return;
     }
-
+    
     const profileData: ProfileData = {
       title: title || undefined,
       firstName: firstName.trim(),
       middleName: middleName.trim() || undefined,
       lastName: lastName.trim(),
-      nameSuffix: nameSuffix.trim() || undefined,
+      nameSuffix: nameSuffix || undefined,
       dateOfBirth,
       gender: gender || undefined,
       mobile: mobile.trim() || undefined,
       email: email.trim() || undefined,
+      password: password || undefined,
       patientType: patientType || undefined,
-      guardianName: isMinor ? guardianName.trim() || undefined : undefined,
+      guardianName: guardianName.trim() || undefined,
       govtIdType: govtIdType || undefined,
       govtIdNumber: govtIdNumber.trim() || undefined,
       bloodGroup: bloodGroup || undefined,
@@ -219,14 +313,37 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header - Clean and Minimal */}
       <div className="text-center">
-        <div className="w-16 h-16 bg-emerald-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-2">
+        {/* Progress Indicator */}
+        {isMinimalMode && (
+          <div className="mb-6">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                  1
+                </div>
+                <div className="ml-2 text-sm font-medium text-gray-900">Profile</div>
+              </div>
+              <div className="w-16 h-0.5 bg-gray-300"></div>
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                  2
+                </div>
+                <div className="ml-2 text-sm font-medium text-gray-500">Verification</div>
+              </div>
+              <div className="w-16 h-0.5 bg-gray-300"></div>
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                  3
+                </div>
+                <div className="ml-2 text-sm font-medium text-gray-500">Complete</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">
           {isAddingFamilyMember 
             ? "Add Family Member" 
             : isMinimalMode 
@@ -234,7 +351,7 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               : "Complete Your Profile"
           }
         </h3>
-        <p className="text-gray-600">
+        <p className="text-gray-600 text-sm">
           {isAddingFamilyMember 
             ? "Please provide information for the family member you're adding"
             : isMinimalMode
@@ -246,76 +363,89 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-50 border border-red-200 rounded-lg p-4"
+        >
           <div className="flex items-start space-x-3">
             <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <h4 className="text-red-800 font-medium">Error</h4>
+              <h4 className="text-red-800 font-medium text-sm">Error</h4>
               <p className="text-red-700 text-sm mt-1">{error}</p>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Form Fields */}
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Personal Information Section */}
-        <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-          <h4 className="font-semibold text-gray-900 flex items-center">
+        <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+          <h4 className="font-semibold text-gray-900 flex items-center text-sm">
             <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            Personal Information *
+            Personal Information <span className="text-red-500 ml-1">*</span>
           </h4>
           
-          {/* Title Dropdown */}
-          {isMinimalMode && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Title
-              </label>
-              <select 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                value={title} 
-                onChange={(e)=>setTitle(e.target.value)}
-              >
-                <option value="">Select Title</option>
-                <option value="Mr">Mr.</option>
-                <option value="Mrs">Mrs.</option>
-                <option value="Miss">Miss</option>
-                <option value="Ms">Ms.</option>
-                <option value="Dr">Dr.</option>
-                <option value="Master">Master</option>
-                <option value="Baby">Baby</option>
-              </select>
-            </div>
-          )}
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            {/* Title Dropdown - Compact */}
+            {isMinimalMode && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Title
+                </label>
+                <select 
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={title} 
+                  onChange={(e)=>setTitle(e.target.value)}
+                >
+                  <option value="">Select Title</option>
+                  <option value="Mr">Mr.</option>
+                  <option value="Mrs">Mrs.</option>
+                  <option value="Miss">Miss</option>
+                  <option value="Ms">Ms.</option>
+                  <option value="Dr">Dr.</option>
+                  <option value="Master">Master</option>
+                  <option value="Baby">Baby</option>
+                </select>
+              </div>
+            )}
+          
+            <div className={isMinimalMode && title ? "" : "md:col-span-2"}>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 First Name <span className="text-red-500">*</span>
               </label>
-              <input 
-                type="text"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                value={firstName} 
-                onChange={(e)=>setFirstName(e.target.value)}
-                placeholder="Enter first name"
-                required
-              />
+              <div className="relative">
+                <input 
+                  type="text"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pr-10" 
+                  value={firstName} 
+                  onChange={(e)=>setFirstName(e.target.value)}
+                  placeholder="Enter first name"
+                  required
+                />
+                {firstName && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+              </div>
             </div>
 
             {!isMinimalMode && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Middle Name
                 </label>
                 <input 
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                   value={middleName} 
                   onChange={(e)=>setMiddleName(e.target.value)}
                   placeholder="Optional"
@@ -324,26 +454,35 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Last Name <span className="text-red-500">*</span>
               </label>
-              <input 
-                type="text"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                value={lastName} 
-                onChange={(e)=>setLastName(e.target.value)}
-                placeholder="Enter last name"
-                required
-              />
+              <div className="relative">
+                <input 
+                  type="text"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pr-10" 
+                  value={lastName} 
+                  onChange={(e)=>setLastName(e.target.value)}
+                  placeholder="Enter last name"
+                  required
+                />
+                {lastName && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+              </div>
             </div>
 
             {!isMinimalMode && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Name Suffix
                 </label>
                 <select 
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                   value={nameSuffix} 
                   onChange={(e)=>setNameSuffix(e.target.value)}
                 >
@@ -358,46 +497,40 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
             )}
           </div>
 
-          {/* Mobile Number - Minimal Mode */}
-          {isMinimalMode && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mobile Number
-                <span className="text-gray-500 text-xs ml-1">(Recommended for appointment reminders)</span>
-              </label>
-              <InternationalPhoneInput
-                value={mobile}
-                onChange={setMobile}
-              />
-            </div>
-          )}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Date of Birth - Modern */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Date of Birth <span className="text-red-500">*</span>
               </label>
-              <input 
-                type="date"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                value={dateOfBirth} 
-                onChange={(e)=>setDateOfBirth(e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-                required
-              />
+              <div className="relative">
+                <input 
+                  type="date"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={dateOfBirth} 
+                  onChange={(e)=>setDateOfBirth(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                  required
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
               {age && (
-                <p className="text-sm text-emerald-600 mt-1">
-                  Age: {age.years} years, {age.months} months, {age.days} days
+                <p className="text-xs text-emerald-600 mt-1.5">
+                  Age: {age.years} years, {age.months} months
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Gender {isMinimalMode && <span className="text-red-500">*</span>}
               </label>
               <select 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                 value={gender} 
                 onChange={(e)=>setGender(e.target.value)}
                 required={isMinimalMode}
@@ -410,16 +543,188 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
             </div>
           </div>
 
+          {/* Mobile Number - Minimal Mode */}
+          {isMinimalMode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Mobile Number
+                <span className="text-gray-500 text-xs ml-1">(Recommended for appointment reminders)</span>
+              </label>
+              <InternationalPhoneInput
+                value={mobile}
+                onChange={setMobile}
+              />
+            </div>
+          )}
+
+          {/* Email - Minimal Mode */}
+          {isMinimalMode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Email Address <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input 
+                  type="email"
+                  className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 pr-10 ${
+                    fieldErrors.email 
+                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                      : fieldValid.email 
+                        ? 'border-emerald-300 focus:ring-emerald-500 focus:border-emerald-500'
+                        : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'
+                  }`}
+                  value={email} 
+                  onChange={(e)=>setEmail(e.target.value)}
+                  onBlur={(e)=>handleFieldBlur('email', e.target.value)}
+                  placeholder="your.email@example.com"
+                  required
+                />
+                {fieldValid.email && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              {fieldErrors.email && (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.email}</p>
+              )}
+            </div>
+          )}
+
+          {/* Password - Minimal Mode */}
+          {isMinimalMode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 pr-10 ${
+                    fieldErrors.password 
+                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                      : fieldValid.password 
+                        ? 'border-emerald-300 focus:ring-emerald-500 focus:border-emerald-500'
+                        : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'
+                  }`}
+                  value={password} 
+                  onChange={(e)=>setPassword(e.target.value)}
+                  onBlur={(e)=>handleFieldBlur('password', e.target.value)}
+                  placeholder="Create a strong password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {password && (
+                <div className="mt-2">
+                  <div className="flex items-center space-x-1">
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <div
+                        key={level}
+                        className={`h-1 flex-1 rounded-full transition-colors ${
+                          passwordStrength >= level
+                            ? passwordStrength <= 2
+                              ? 'bg-red-500'
+                              : passwordStrength <= 3
+                              ? 'bg-yellow-500'
+                              : 'bg-emerald-500'
+                            : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {passwordStrength <= 2 && 'Weak password'}
+                    {passwordStrength === 3 && 'Fair password'}
+                    {passwordStrength >= 4 && 'Strong password'}
+                  </p>
+                </div>
+              )}
+              {fieldErrors.password && (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.password}</p>
+              )}
+            </div>
+          )}
+
+          {/* Confirm Password - Minimal Mode */}
+          {isMinimalMode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Confirm Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input 
+                  type={showConfirmPassword ? "text" : "password"}
+                  className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 pr-10 ${
+                    fieldErrors.confirmPassword 
+                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                      : fieldValid.confirmPassword 
+                        ? 'border-emerald-300 focus:ring-emerald-500 focus:border-emerald-500'
+                        : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'
+                  }`}
+                  value={confirmPassword} 
+                  onChange={(e)=>setConfirmPassword(e.target.value)}
+                  onBlur={(e)=>handleFieldBlur('confirmPassword', e.target.value)}
+                  placeholder="Re-enter your password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showConfirmPassword ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+                {fieldValid.confirmPassword && (
+                  <div className="absolute right-10 top-1/2 -translate-y-1/2">
+                    <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              {fieldErrors.confirmPassword && (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.confirmPassword}</p>
+              )}
+            </div>
+          )}
+
           {/* Guardian Name - Only for minors in minimal mode */}
           {isMinimalMode && isMinor && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <label className="block text-sm font-medium text-amber-900 mb-2">
+              <label className="block text-sm font-medium text-amber-900 mb-1.5">
                 Guardian Name <span className="text-red-500">*</span>
                 <span className="text-xs text-amber-700 block mt-1">Required for patients under 18 years</span>
               </label>
               <input 
                 type="text"
-                className="w-full px-4 py-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500" 
+                className="w-full px-3 py-2.5 text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500" 
                 value={guardianName} 
                 onChange={(e)=>setGuardianName(e.target.value)}
                 placeholder="Full name of parent or legal guardian"
@@ -431,238 +736,159 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
           {/* Patient Type - Minimal Mode */}
           {isMinimalMode && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Patient Type
               </label>
               <select 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                 value={patientType} 
                 onChange={(e)=>setPatientType(e.target.value)}
               >
                 <option value="">Select Patient Type</option>
                 <option value="General">General</option>
                 <option value="Insurer">Insurer</option>
-                <option value="Camp">Camp</option>
-                <option value="Arogya Badratha">Arogya Badratha</option>
-                <option value="Arogyasree">Arogyasree</option>
-                <option value="CGHS">CGHS (Central Government Health Scheme)</option>
-                <option value="ECHS">ECHS (Ex-Servicemen Contributory Health Scheme)</option>
-                <option value="Railway">Railway</option>
-                <option value="Other">Other</option>
+                <option value="Corporate">Corporate</option>
+                <option value="Senior Citizen">Senior Citizen</option>
+                <option value="Student">Student</option>
               </select>
-            </div>
-          )}
-
-          {/* Family Relationship Field */}
-          {isAddingFamilyMember && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Relationship to Primary Account Holder <span className="text-red-500">*</span>
-              </label>
-              <select 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                value={relationship} 
-                onChange={(e)=>setRelationship(e.target.value)}
-                required
-              >
-                <option value="">Select Relationship</option>
-                {FAMILY_RELATIONSHIPS.map((rel) => (
-                  <option key={rel.value} value={rel.value}>
-                    {rel.label}
-                  </option>
-                ))}
-              </select>
-              <p className="text-sm text-gray-500 mt-1">
-                This helps us manage linked family accounts sharing the same phone number
-              </p>
-            </div>
-          )}
-
-          {/* Email Field (optional for regular users, shown for family members) */}
-          {!isMinimalMode && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email {isAddingFamilyMember && "(Optional for notifications)"}
-              </label>
-              <input 
-                type="email"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                value={email} 
-                onChange={(e)=>setEmail(e.target.value)}
-                placeholder="email@example.com"
-              />
             </div>
           )}
         </div>
 
-        {/* Optional Information Toggle */}
+        {/* Terms and Privacy - Minimal Mode */}
+        {isMinimalMode && (
+          <div className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              className="mt-1 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+            />
+            <label htmlFor="terms" className="text-sm text-gray-700">
+              I accept the{' '}
+              <a href="#" className="text-emerald-600 hover:text-emerald-700 font-medium hover:underline">
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a href="#" className="text-emerald-600 hover:text-emerald-700 font-medium hover:underline">
+                Privacy Policy
+              </a>
+              <span className="text-red-500 ml-1">*</span>
+            </label>
+          </div>
+        )}
+
+        {/* Relationship - Family Members */}
+        {isAddingFamilyMember && (
+          <div className="border border-gray-200 rounded-lg p-5">
+            <h4 className="font-semibold text-gray-900 flex items-center mb-4 text-sm">
+              <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Family Relationship <span className="text-red-500 ml-1">*</span>
+            </h4>
+            <select 
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+              value={relationship} 
+              onChange={(e)=>setRelationship(e.target.value)}
+              required
+            >
+              <option value="">Select Relationship</option>
+              {FAMILY_RELATIONSHIPS.map(rel => (
+                <option key={rel.value} value={rel.value}>{rel.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Extended Mode Fields */}
         {!isMinimalMode && (
           <>
-            <button
-              type="button"
-              onClick={() => setShowOptional(!showOptional)}
-              className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
-            >
-              <span className="font-medium text-gray-900">
-                {showOptional ? 'Hide' : 'Show'} Optional Information
-              </span>
-              <svg
-                className={`w-5 h-5 text-gray-600 transition-transform ${showOptional ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          {/* Contact Information */}
+          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+            <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+              <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
-            </button>
+              Contact Information
+            </h4>
 
-            {/* Optional Fields */}
-            {showOptional && (
-          <div className="space-y-6">
-            {/* Address Section */}
-            <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-              <h4 className="font-semibold text-gray-900 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Address (Optional)
-              </h4>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Postal/Zip Code</label>
-                <input 
-                  type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                  value={postalCode} 
-                  onChange={(e)=>setPostalCode(e.target.value)}
-                  placeholder="Enter PIN/ZIP code"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                  <input 
-                    type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                    value={city} 
-                    onChange={(e)=>setCity(e.target.value)}
-                    placeholder="City"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">State/Province</label>
-                  <input 
-                    type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                    value={state} 
-                    onChange={(e)=>setState(e.target.value)}
-                    placeholder="State"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                  <select 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                    value={country} 
-                    onChange={(e)=>setCountry(e.target.value)}
-                  >
-                    <option value="India">India</option>
-                    <option value="United States">United States</option>
-                    <option value="United Kingdom">United Kingdom</option>
-                    <option value="Canada">Canada</option>
-                    <option value="Australia">Australia</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
-                <input 
-                  type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                  value={addressLine1} 
-                  onChange={(e)=>setAddressLine1(e.target.value)}
-                  placeholder="Street address, P.O. Box"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2 (Optional)</label>
-                <input 
-                  type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                  value={addressLine2} 
-                  onChange={(e)=>setAddressLine2(e.target.value)}
-                  placeholder="Apartment, suite, unit, etc."
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Mobile Number</label>
+              <InternationalPhoneInput
+                value={mobile}
+                onChange={setMobile}
+              />
             </div>
 
-            {/* Medical & Personal Information Section */}
-            <div className="border border-gray-200 rounded-lg p-4 space-y-5">
-              <h4 className="font-semibold text-gray-900 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Medical & Personal Details (Optional)
-              </h4>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+              <input 
+                type="email"
+                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                value={email} 
+                onChange={(e)=>setEmail(e.target.value)}
+                placeholder="your.email@example.com"
+              />
+            </div>
+          </div>
 
-              {/* Government ID Section */}
-              <div className="space-y-4">
+          {/* Additional Information - Collapsible */}
+          {showOptional ? (
+            <>
+              {/* Government ID */}
+              <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+                <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                  </svg>
+                  Government ID (Optional)
+                </h4>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Government ID Type
-                      <span className="ml-2 text-xs text-gray-500">(helps prevent duplicates)</span>
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">ID Type</label>
                     <select 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                      className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                       value={govtIdType} 
                       onChange={(e)=>setGovtIdType(e.target.value)}
                     >
                       <option value="">Select ID Type</option>
-                      <option value="aadhaar">Aadhaar Card</option>
-                      <option value="passport">Passport</option>
-                      <option value="voter_id">Voter ID</option>
-                      <option value="driving_license">Driving License</option>
-                      <option value="pan_card">PAN Card</option>
+                      <option value="Aadhaar">Aadhaar Card</option>
+                      <option value="PAN">PAN Card</option>
+                      <option value="Passport">Passport</option>
+                      <option value="DrivingLicense">Driving License</option>
+                      <option value="VoterID">Voter ID</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Government ID Number
-                      {govtIdType && (
-                        <span className="ml-2 text-xs text-blue-600">
-                          ({govtIdType === 'aadhaar' ? 'XXXX XXXX XXXX' : 
-                            govtIdType === 'passport' ? 'A1234567' : 
-                            govtIdType === 'pan_card' ? 'ABCDE1234F' : 
-                            'Enter ID number'})
-                        </span>
-                      )}
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">ID Number</label>
                     <input 
                       type="text"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                      className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                       value={govtIdNumber} 
                       onChange={(e)=>setGovtIdNumber(e.target.value)}
-                      placeholder={govtIdType ? "Enter ID number" : "Select ID type first"}
-                      disabled={!govtIdType}
+                      placeholder="Enter ID number"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Medical & Personal Info Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Medical Information */}
+              <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+                <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+                  <svg className="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  Medical Information (Optional)
+                </h4>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Blood Group</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Blood Group</label>
                   <select 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                     value={bloodGroup} 
                     onChange={(e)=>setBloodGroup(e.target.value)}
                   >
@@ -671,208 +897,96 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                     <option value="A-">A-</option>
                     <option value="B+">B+</option>
                     <option value="B-">B-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
                     <option value="AB+">AB+</option>
                     <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
                   </select>
                 </div>
+              </div>
 
+            {/* Present Address */}
+            <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+              <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+                <svg className="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Present Address (Optional)
+              </h4>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 1</label>
+                <input 
+                  type="text"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={addressLine1} 
+                  onChange={(e)=>setAddressLine1(e.target.value)}
+                  placeholder="Street address, P.O. box"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 2</label>
+                <input 
+                  type="text"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={addressLine2} 
+                  onChange={(e)=>setAddressLine2(e.target.value)}
+                  placeholder="Apartment, suite, unit, building, floor, etc."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Occupation</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
                   <input 
                     type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                    value={occupation} 
-                    onChange={(e)=>setOccupation(e.target.value)}
-                    placeholder="e.g., Teacher, Engineer, Retired"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                    value={city} 
+                    onChange={(e)=>setCity(e.target.value)}
+                    placeholder="City"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Marital Status</label>
-                  <select 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                    value={maritalStatus} 
-                    onChange={(e)=>setMaritalStatus(e.target.value)}
-                  >
-                    <option value="">Select Status</option>
-                    <option value="Single">Single</option>
-                    <option value="Married">Married</option>
-                    <option value="Divorced">Divorced</option>
-                    <option value="Widowed">Widowed</option>
-                  </select>
-                </div>
-
-                {maritalStatus === "Married" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Spouse Name</label>
-                    <input 
-                      type="text"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                      value={spouseName} 
-                      onChange={(e)=>setSpouseName(e.target.value)}
-                      placeholder="Full name of spouse"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Source of Patient Section */}
-              <div className="space-y-4 pt-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Source of Patient</label>
-                  <select 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                    value={sourceOfPatient} 
-                    onChange={(e)=>setSourceOfPatient(e.target.value)}
-                  >
-                    <option value="">Select Source</option>
-                    <option value="General">General Walk-in</option>
-                    <option value="Referral">Referral</option>
-                  </select>
-                </div>
-
-                {sourceOfPatient === "Referral" && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
-                    <h5 className="font-medium text-blue-900">Referral Information</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-blue-900 mb-2">Referral Name</label>
-                        <input 
-                          type="text"
-                          className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                          value={referralName} 
-                          onChange={(e)=>setReferralName(e.target.value)}
-                          placeholder="Name of referring doctor/person"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-blue-900 mb-2">Referral Phone</label>
-                        <input 
-                          type="tel"
-                          className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                          value={referralPhone} 
-                          onChange={(e)=>setReferralPhone(e.target.value)}
-                          placeholder="+91 98765 43210"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Permanent Address Section */}
-            <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-semibold text-gray-900 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                  Permanent Address (Optional)
-                </h4>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={sameAsPresentAddress}
-                    onChange={(e) => {
-                      setSameAsPresentAddress(e.target.checked);
-                      if (e.target.checked) {
-                        setPermanentAddressLine1(addressLine1);
-                        setPermanentAddressLine2(addressLine2);
-                        setPermanentCity(city);
-                        setPermanentState(state);
-                        setPermanentPostalCode(postalCode);
-                        setPermanentCountry(country);
-                      }
-                    }}
-                    className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
+                  <input 
+                    type="text"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                    value={state} 
+                    onChange={(e)=>setState(e.target.value)}
+                    placeholder="State"
                   />
-                  <span className="text-sm text-gray-700">Same as Present</span>
-                </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Postal Code</label>
+                  <input 
+                    type="text"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                    value={postalCode} 
+                    onChange={(e)=>setPostalCode(e.target.value)}
+                    placeholder="ZIP / Postal code"
+                  />
+                </div>
               </div>
 
-              {!sameAsPresentAddress && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Postal/Zip Code</label>
-                    <input 
-                      type="text"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                      value={permanentPostalCode} 
-                      onChange={(e)=>setPermanentPostalCode(e.target.value)}
-                      placeholder="Enter PIN/ZIP code"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                      <input 
-                        type="text"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                        value={permanentCity} 
-                        onChange={(e)=>setPermanentCity(e.target.value)}
-                        placeholder="City"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">State/Province</label>
-                      <input 
-                        type="text"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                        value={permanentState} 
-                        onChange={(e)=>setPermanentState(e.target.value)}
-                        placeholder="State"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                    <select 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                      value={permanentCountry} 
-                      onChange={(e)=>setPermanentCountry(e.target.value)}
-                    >
-                      <option value="India">India</option>
-                      <option value="United States">United States</option>
-                      <option value="United Kingdom">United Kingdom</option>
-                      <option value="Canada">Canada</option>
-                      <option value="Australia">Australia</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
-                    <input 
-                      type="text"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                      value={permanentAddressLine1} 
-                      onChange={(e)=>setPermanentAddressLine1(e.target.value)}
-                      placeholder="Street address, P.O. Box"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2 (Optional)</label>
-                    <input 
-                      type="text"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                      value={permanentAddressLine2} 
-                      onChange={(e)=>setPermanentAddressLine2(e.target.value)}
-                      placeholder="Apartment, suite, unit, etc."
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
+                <input 
+                  type="text"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={country} 
+                  onChange={(e)=>setCountry(e.target.value)}
+                  placeholder="Country"
+                />
+              </div>
             </div>
 
-            {/* Emergency Contact Section */}
-            <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-              <h4 className="font-semibold text-gray-900 flex items-center">
+            {/* Emergency Contact */}
+            <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+              <h4 className="font-semibold text-gray-900 flex items-center text-sm">
                 <svg className="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
@@ -880,10 +994,10 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               </h4>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Contact Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Name</label>
                 <input 
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                   value={emergencyContact} 
                   onChange={(e)=>setEmergencyContact(e.target.value)}
                   placeholder="Full name of emergency contact"
@@ -891,31 +1005,44 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Contact Phone</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Phone</label>
                 <InternationalPhoneInput
                   value={emergencyPhone}
                   onChange={setEmergencyPhone}
                 />
               </div>
             </div>
-          </div>
+          </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowOptional(true)}
+                className="w-full py-3 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-emerald-500 hover:text-emerald-600 transition-colors text-sm font-medium flex items-center justify-center space-x-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span>Add Optional Information</span>
+              </button>
             )}
           </>
         )}
       </div>
 
       {/* Action Buttons */}
-      <div className="space-y-3">
-        <button 
+      <div className="space-y-3 pt-2">
+        <motion.button 
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
           type="button"
-          className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 w-full flex items-center justify-center space-x-2"
+          className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 w-full flex items-center justify-center space-x-2 shadow-sm"
           onClick={handleSubmit}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span>{isMinimalMode ? "Continue" : "Save Profile"}</span>
-        </button>
+        </motion.button>
         
         {!isMinimalMode && (
           <button 
@@ -927,10 +1054,6 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
           </button>
         )}
       </div>
-
-      <p className="text-xs text-gray-500 text-center">
-        * Required fields for identity verification and CDC de-duplication compliance
-      </p>
     </div>
   );
 }
