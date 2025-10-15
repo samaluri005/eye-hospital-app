@@ -25,9 +25,11 @@ The project utilizes a monorepo structure with pnpm workspaces and Turbo for dep
 **UI/UX Decisions:**
 - **World-Class Login Screen**: Features a split-screen design with an animated carousel on the left (doctor images, auto-rotating, floating animation) and a clean login form on the right (Hospital ID + Password, MFA flow, "Create New Account" option).
 - **Modern Registration Form**: Offers a clean, essential signup experience with a 3-step progress indicator (Profile → Verification → Complete). Includes modern date pickers, real-time validation, consent checkboxes, guardian fields for minors, and professional tooltips.
+- **Extended Profile (Optional)**: Comprehensive patient data collection including Blood Group, Government ID (Type + Number), Occupation, Marital Status (with conditional Spouse Name), Present/Permanent Addresses (with "Same as Present" checkbox), Emergency Contact (Name + Phone with international format), and Source of Patient (with conditional Referral fields for Name + Phone).
 - **MFA Setup**: Supports Authenticator App (TOTP), SMS OTP, and Email OTP, with progressive setup flows and method-specific UI.
 - **Welcome Screen**: A professional post-registration welcome screen displaying patient name and Health ID, along with onboarding information and security assurance.
 - **UI Simplification**: Sequential top-to-bottom field layout (Title → First Name → Last Name → DOB → Gender), compact spacing, fixed double calendar icon issue, and "Back to Sign-In" link for easy navigation.
+- **Performance Optimized**: All authentication flows use fast client-side navigation (router.push) instead of slow full-page reloads, providing instant page transitions with useTransition for non-blocking UI updates.
 
 **Technical Implementations:**
 - **Identity Schema**: UPI-first approach with dedicated tables for users, credentials, and verification evidence, using Argon2id for password hashing.
