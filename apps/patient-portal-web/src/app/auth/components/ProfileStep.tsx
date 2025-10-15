@@ -91,6 +91,18 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
   // Progressive step state for minimal mode
   const [currentStep, setCurrentStep] = useState(1); // 1 = Personal Info, 2 = Contact & Security
   
+  // Accordion state for extended mode
+  const [openSections, setOpenSections] = useState({
+    personalDetails: true, // First section open by default
+    presentAddress: false,
+    permanentAddress: false,
+    emergencyContact: false,
+  });
+  
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+  
   const [title, setTitle] = useState(initialData?.title || "");
   const [firstName, setFirstName] = useState(initialData?.firstName || "");
   const [middleName, setMiddleName] = useState(initialData?.middleName || "");
@@ -511,6 +523,8 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
       <AnimatePresence>
         {error && (
           <motion.div
+            role="alert"
+            aria-live="polite"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -854,7 +868,7 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                 >
                   {showConfirmPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                     </svg>
                   ) : (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1082,232 +1096,353 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
             </div>
           </div>
 
-          {/* Additional Personal Details */}
-          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
-            <h4 className="font-semibold text-gray-900 flex items-center text-sm">
-              <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          {/* Additional Personal Details - Accordion */}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggleSection('personalDetails')}
+              className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+                <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Personal Details
+              </h4>
+              <svg 
+                className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${openSections.personalDetails ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              Additional Details
-            </h4>
+            </button>
+            
+            <AnimatePresence>
+              {openSections.personalDetails && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="px-5 pb-5 space-y-4 border-t border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Blood Group</label>
+                        <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={bloodGroup} onChange={(e)=>setBloodGroup(e.target.value)}>
+                          <option value="">Select Blood Group</option>
+                          <option value="A+">A+</option>
+                          <option value="A-">A-</option>
+                          <option value="B+">B+</option>
+                          <option value="B-">B-</option>
+                          <option value="AB+">AB+</option>
+                          <option value="AB-">AB-</option>
+                          <option value="O+">O+</option>
+                          <option value="O-">O-</option>
+                        </select>
+                      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Blood Group</label>
-                <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={bloodGroup} onChange={(e)=>setBloodGroup(e.target.value)}>
-                  <option value="">Select Blood Group</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                </select>
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Occupation</label>
+                        <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={occupation} onChange={(e)=>setOccupation(e.target.value)} placeholder="Your occupation" />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Occupation</label>
-                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={occupation} onChange={(e)=>setOccupation(e.target.value)} placeholder="Your occupation" />
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Government ID Type</label>
+                        <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={govtIdType} onChange={(e)=>setGovtIdType(e.target.value)}>
+                          <option value="">Select ID Type</option>
+                          <option value="Aadhaar">Aadhaar Card</option>
+                          <option value="PAN">PAN Card</option>
+                          <option value="Passport">Passport</option>
+                          <option value="Driving License">Driving License</option>
+                          <option value="Voter ID">Voter ID</option>
+                        </select>
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Government ID Type</label>
-                <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={govtIdType} onChange={(e)=>setGovtIdType(e.target.value)}>
-                  <option value="">Select ID Type</option>
-                  <option value="Aadhaar">Aadhaar Card</option>
-                  <option value="PAN">PAN Card</option>
-                  <option value="Passport">Passport</option>
-                  <option value="Driving License">Driving License</option>
-                  <option value="Voter ID">Voter ID</option>
-                </select>
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Government ID Number</label>
+                        <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={govtIdNumber} onChange={(e)=>setGovtIdNumber(e.target.value)} placeholder="ID number" />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Government ID Number</label>
-                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={govtIdNumber} onChange={(e)=>setGovtIdNumber(e.target.value)} placeholder="ID number" />
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Marital Status</label>
+                        <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={maritalStatus} onChange={(e)=>setMaritalStatus(e.target.value)}>
+                          <option value="">Select Status</option>
+                          <option value="Single">Single</option>
+                          <option value="Married">Married</option>
+                          <option value="Divorced">Divorced</option>
+                          <option value="Widowed">Widowed</option>
+                        </select>
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Marital Status</label>
-                <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={maritalStatus} onChange={(e)=>setMaritalStatus(e.target.value)}>
-                  <option value="">Select Status</option>
-                  <option value="Single">Single</option>
-                  <option value="Married">Married</option>
-                  <option value="Divorced">Divorced</option>
-                  <option value="Widowed">Widowed</option>
-                </select>
-              </div>
-
-              {maritalStatus === "Married" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Spouse Name</label>
-                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={spouseName} onChange={(e)=>setSpouseName(e.target.value)} placeholder="Enter spouse name" />
-                </div>
+                      {maritalStatus === "Married" && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Spouse Name</label>
+                          <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={spouseName} onChange={(e)=>setSpouseName(e.target.value)} placeholder="Enter spouse name" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
           </div>
 
-          {/* Present Address */}
-          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
-            <h4 className="font-semibold text-gray-900 flex items-center text-sm">
-              <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          {/* Present Address - Accordion */}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggleSection('presentAddress')}
+              className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+                <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                Present Address
+              </h4>
+              <svg 
+                className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${openSections.presentAddress ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              Present Address
-            </h4>
+            </button>
+            
+            <AnimatePresence>
+              {openSections.presentAddress && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="px-5 pb-5 space-y-4 border-t border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 1</label>
+                        <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={addressLine1} onChange={(e)=>setAddressLine1(e.target.value)} placeholder="House/Flat No., Street" />
+                      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 1</label>
-                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={addressLine1} onChange={(e)=>setAddressLine1(e.target.value)} placeholder="House/Flat No., Street" />
-              </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 2</label>
+                        <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={addressLine2} onChange={(e)=>setAddressLine2(e.target.value)} placeholder="Area, Landmark" />
+                      </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 2</label>
-                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={addressLine2} onChange={(e)=>setAddressLine2(e.target.value)} placeholder="Area, Landmark" />
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                        <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={city} onChange={(e)=>setCity(e.target.value)} placeholder="City" />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
-                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={city} onChange={(e)=>setCity(e.target.value)} placeholder="City" />
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
+                        <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={state} onChange={(e)=>setState(e.target.value)} placeholder="State" />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
-                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={state} onChange={(e)=>setState(e.target.value)} placeholder="State" />
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Postal Code</label>
+                        <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={postalCode} onChange={(e)=>setPostalCode(e.target.value)} placeholder="Postal code" />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Postal Code</label>
-                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={postalCode} onChange={(e)=>setPostalCode(e.target.value)} placeholder="Postal code" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
-                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={country} onChange={(e)=>setCountry(e.target.value)} placeholder="Country" />
-              </div>
-            </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
+                        <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={country} onChange={(e)=>setCountry(e.target.value)} placeholder="Country" />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Permanent Address */}
-          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
-            <div className="flex items-center justify-between">
+          {/* Permanent Address - Accordion */}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggleSection('permanentAddress')}
+              className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
               <h4 className="font-semibold text-gray-900 flex items-center text-sm">
                 <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
                 Permanent Address
               </h4>
-              <label className="flex items-center text-sm text-gray-600 cursor-pointer">
-                <input type="checkbox" className="mr-2 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" checked={sameAsPresentAddress} onChange={(e)=>{
-                  setSameAsPresentAddress(e.target.checked);
-                  if (e.target.checked) {
-                    setPermanentAddressLine1(addressLine1);
-                    setPermanentAddressLine2(addressLine2);
-                    setPermanentCity(city);
-                    setPermanentState(state);
-                    setPermanentPostalCode(postalCode);
-                    setPermanentCountry(country);
-                  }
-                }} />
-                Same as Present Address
-              </label>
-            </div>
+              <svg 
+                className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${openSections.permanentAddress ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            <AnimatePresence>
+              {openSections.permanentAddress && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="px-5 pb-5 space-y-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <label className="flex items-center text-sm text-gray-600 cursor-pointer">
+                        <input type="checkbox" className="mr-2 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" checked={sameAsPresentAddress} onChange={(e)=>{
+                          setSameAsPresentAddress(e.target.checked);
+                          if (e.target.checked) {
+                            setPermanentAddressLine1(addressLine1);
+                            setPermanentAddressLine2(addressLine2);
+                            setPermanentCity(city);
+                            setPermanentState(state);
+                            setPermanentPostalCode(postalCode);
+                            setPermanentCountry(country);
+                          }
+                        }} />
+                        Same as Present Address
+                      </label>
+                    </div>
 
-            {!sameAsPresentAddress && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 1</label>
-                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentAddressLine1} onChange={(e)=>setPermanentAddressLine1(e.target.value)} placeholder="House/Flat No., Street" />
-                </div>
+                    {!sameAsPresentAddress && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 1</label>
+                          <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentAddressLine1} onChange={(e)=>setPermanentAddressLine1(e.target.value)} placeholder="House/Flat No., Street" />
+                        </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 2</label>
-                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentAddressLine2} onChange={(e)=>setPermanentAddressLine2(e.target.value)} placeholder="Area, Landmark" />
-                </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 2</label>
+                          <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentAddressLine2} onChange={(e)=>setPermanentAddressLine2(e.target.value)} placeholder="Area, Landmark" />
+                        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
-                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentCity} onChange={(e)=>setPermanentCity(e.target.value)} placeholder="City" />
-                </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                          <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentCity} onChange={(e)=>setPermanentCity(e.target.value)} placeholder="City" />
+                        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
-                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentState} onChange={(e)=>setPermanentState(e.target.value)} placeholder="State" />
-                </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
+                          <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentState} onChange={(e)=>setPermanentState(e.target.value)} placeholder="State" />
+                        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Postal Code</label>
-                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentPostalCode} onChange={(e)=>setPermanentPostalCode(e.target.value)} placeholder="Postal code" />
-                </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Postal Code</label>
+                          <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentPostalCode} onChange={(e)=>setPermanentPostalCode(e.target.value)} placeholder="Postal code" />
+                        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
-                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentCountry} onChange={(e)=>setPermanentCountry(e.target.value)} placeholder="Country" />
-                </div>
-              </div>
-            )}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
+                          <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentCountry} onChange={(e)=>setPermanentCountry(e.target.value)} placeholder="Country" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Emergency Contact */}
-          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
-            <h4 className="font-semibold text-gray-900 flex items-center text-sm">
-              <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          {/* Emergency Contact & How did you hear about us - Accordion */}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggleSection('emergencyContact')}
+              className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+                <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Emergency Contact & How did you hear about us
+              </h4>
+              <svg 
+                className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${openSections.emergencyContact ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              Emergency Contact
-            </h4>
+            </button>
+            
+            <AnimatePresence>
+              {openSections.emergencyContact && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="px-5 pb-5 space-y-6 border-t border-gray-200">
+                    {/* Emergency Contact Section */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-gray-900 text-sm flex items-center">
+                        <svg className="w-4 h-4 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Emergency Contact
+                      </h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Name</label>
+                          <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={emergencyContact} onChange={(e)=>setEmergencyContact(e.target.value)} placeholder="Emergency contact name" />
+                        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Name</label>
-                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={emergencyContact} onChange={(e)=>setEmergencyContact(e.target.value)} placeholder="Emergency contact name" />
-              </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Phone</label>
+                          <InternationalPhoneInput value={emergencyPhone} onChange={setEmergencyPhone} />
+                        </div>
+                      </div>
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Phone</label>
-                <InternationalPhoneInput value={emergencyPhone} onChange={setEmergencyPhone} />
-              </div>
-            </div>
-          </div>
+                    {/* Source of Patient Section */}
+                    <div className="space-y-4 pt-4 border-t border-gray-100">
+                      <h5 className="font-medium text-gray-900 text-sm flex items-center">
+                        <svg className="w-4 h-4 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        How did you hear about us?
+                      </h5>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Source</label>
+                        <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={sourceOfPatient} onChange={(e)=>setSourceOfPatient(e.target.value)}>
+                          <option value="">Select Source</option>
+                          <option value="Walk-in">Walk-in</option>
+                          <option value="Referral">Referral</option>
+                          <option value="Doctor">Doctor Referral</option>
+                          <option value="Insurance">Insurance</option>
+                          <option value="Online">Online Search</option>
+                          <option value="Advertisement">Advertisement</option>
+                        </select>
+                      </div>
 
-          {/* Source of Patient */}
-          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
-            <h4 className="font-semibold text-gray-900 flex items-center text-sm">
-              <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              How did you hear about us?
-            </h4>
+                      {(sourceOfPatient === "Referral" || sourceOfPatient === "Doctor") && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                              {sourceOfPatient === "Doctor" ? "Doctor Name" : "Referral Name"}
+                            </label>
+                            <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={referralName} onChange={(e)=>setReferralName(e.target.value)} placeholder={sourceOfPatient === "Doctor" ? "Name of referring doctor" : "Name of person who referred"} />
+                          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Source</label>
-              <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={sourceOfPatient} onChange={(e)=>setSourceOfPatient(e.target.value)}>
-                <option value="">Select Source</option>
-                <option value="Walk-in">Walk-in</option>
-                <option value="Referral">Referral</option>
-                <option value="Doctor">Doctor Referral</option>
-                <option value="Insurance">Insurance</option>
-                <option value="Online">Online Search</option>
-                <option value="Advertisement">Advertisement</option>
-              </select>
-            </div>
-
-            {sourceOfPatient === "Referral" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Referral Name</label>
-                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={referralName} onChange={(e)=>setReferralName(e.target.value)} placeholder="Name of person who referred" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Referral Phone</label>
-                  <InternationalPhoneInput value={referralPhone} onChange={setReferralPhone} />
-                </div>
-              </div>
-            )}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                              {sourceOfPatient === "Doctor" ? "Doctor Phone" : "Referral Phone"}
+                            </label>
+                            <InternationalPhoneInput value={referralPhone} onChange={setReferralPhone} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           </>
         )}
@@ -1329,13 +1464,15 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
           )}
           
           {!isMinimalMode && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               type="button"
               onClick={onSkip}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
+              className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              Skip optional fields
-            </button>
+              Skip for now
+            </motion.button>
           )}
           
           <motion.button

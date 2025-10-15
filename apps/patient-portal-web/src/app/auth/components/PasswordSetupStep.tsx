@@ -191,7 +191,7 @@ export default function PasswordSetupStep({ onPasswordSet, onBack }: PasswordSet
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4" role="alert" aria-live="polite">
             <p className="text-red-800 text-sm font-medium">{error}</p>
           </div>
         )}

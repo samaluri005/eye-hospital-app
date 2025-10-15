@@ -1,6 +1,8 @@
 "use client";
-import React from "react";
+import React, { useState, useTransition } from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 
 type Props = {
   patientName: string;
@@ -9,6 +11,23 @@ type Props = {
 };
 
 export default function WelcomeStep({ patientName, healthId, onContinue }: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsLoggingOut(true);
+    try {
+      await axios.post("/api/auth/logout");
+      startTransition(() => router.push("/auth"));
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Still redirect even if logout fails
+      startTransition(() => router.push("/auth"));
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
   return (
     <div className="space-y-8">
       {/* Success Icon */}
@@ -98,17 +117,35 @@ export default function WelcomeStep({ patientName, healthId, onContinue }: Props
       </motion.div>
 
       {/* Continue Button */}
-      <motion.button
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={onContinue}
-        className="w-full py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
-      >
-        Go to Dashboard
-      </motion.button>
+      <div className="space-y-3">
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onContinue}
+          className="w-full py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+        >
+          Go to Dashboard
+        </motion.button>
+
+        {/* Sign Out Link */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="text-center"
+        >
+          <button
+            onClick={handleSignOut}
+            disabled={isLoggingOut}
+            className="text-sm text-gray-600 hover:text-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoggingOut ? "Signing out..." : "Sign Out"}
+          </button>
+        </motion.div>
+      </div>
 
       {/* Security Note */}
       <motion.p

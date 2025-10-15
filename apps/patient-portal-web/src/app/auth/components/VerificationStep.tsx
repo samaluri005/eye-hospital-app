@@ -224,7 +224,7 @@ export default function VerificationStep({
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4" role="alert" aria-live="polite">
             <div className="flex items-start">
               <svg
                 className="w-5 h-5 text-red-600 mt-0.5 mr-2"
