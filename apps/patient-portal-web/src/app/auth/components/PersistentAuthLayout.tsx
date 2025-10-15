@@ -1,13 +1,31 @@
 "use client";
-import React, { ReactNode } from "react";
-import { motion } from "framer-motion";
+import React, { ReactNode, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
 type Props = {
   children: ReactNode;
 };
 
+const doctorImages = [
+  "/professional_eye_doc_a055069b.jpg",
+  "/professional_eye_doc_6dcff35b.jpg",
+  "/professional_eye_doc_21f2206e.jpg",
+  "/professional_eye_doc_acee3b2e.jpg",
+  "/professional_eye_doc_7f10f64f.jpg",
+];
+
 export default function PersistentAuthLayout({ children }: Props) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % doctorImages.length);
+    }, 5000); // Change image every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row relative">
       {/* Top Right Branding - Fixed Position */}
@@ -18,10 +36,10 @@ export default function PersistentAuthLayout({ children }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-gray-900">EyeCare Hospital</h1>
+        <h1 className="text-xl font-bold text-gray-900">Eye Care</h1>
       </div>
 
-      {/* Left Side - Animated Doctor Image (Persistent) */}
+      {/* Left Side - Animated Doctor Carousel (Persistent) */}
       <div className="w-full lg:w-1/2 relative bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600 overflow-hidden">
         {/* Animated gradient background */}
         <motion.div
@@ -39,28 +57,55 @@ export default function PersistentAuthLayout({ children }: Props) {
           }}
         />
 
-        {/* Floating doctor image */}
+        {/* Carousel - Doctor images with smooth transitions */}
         <div className="relative z-10 h-64 lg:h-full flex items-center justify-center p-8">
-          <motion.div
-            animate={{
-              y: [0, -20, 0],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            className="w-full max-w-md"
-          >
-            <Image
-              src="/doctor-hd.png"
-              alt="EyeCare Doctor"
-              width={500}
-              height={600}
-              priority
-              className="w-full h-auto object-contain drop-shadow-2xl"
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentImageIndex}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1, 
+                y: [0, -20, 0],
+              }}
+              exit={{ opacity: 0, scale: 0.9, y: -20 }}
+              transition={{
+                opacity: { duration: 0.7 },
+                scale: { duration: 0.7 },
+                y: {
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }
+              }}
+              className="w-full max-w-md"
+            >
+              <Image
+                src={doctorImages[currentImageIndex]}
+                alt="Eye Care Professional"
+                width={500}
+                height={600}
+                priority={currentImageIndex === 0}
+                className="w-full h-auto object-contain drop-shadow-2xl rounded-2xl"
+              />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Carousel Indicators */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+          {doctorImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentImageIndex(index)}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                index === currentImageIndex 
+                  ? 'bg-white w-8' 
+                  : 'bg-white/40 hover:bg-white/60'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
             />
-          </motion.div>
+          ))}
         </div>
 
         {/* Decorative floating circles */}
@@ -105,7 +150,7 @@ export default function PersistentAuthLayout({ children }: Props) {
       {/* Bottom Copyright - Fixed Position on Right Side */}
       <div className="absolute bottom-6 right-0 lg:right-6 z-50 lg:w-1/2 w-full">
         <p className="text-center text-xs text-gray-900 font-semibold">
-          © 2025 EyeCare Hospital. All rights reserved
+          © 2025 Eye Care. All rights reserved
         </p>
       </div>
 
