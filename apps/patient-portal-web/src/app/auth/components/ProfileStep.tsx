@@ -546,98 +546,75 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               Personal Information <span className="text-red-500 ml-1">*</span>
             </h4>
             
-            {/* Title and First Name on same row */}
-            <div className="grid grid-cols-12 gap-4">
-              {/* Title Dropdown - Small fixed width */}
-              <div className="col-span-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Title
-                </label>
-                <select 
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                  value={title} 
-                  onChange={(e)=>setTitle(e.target.value)}
-                >
-                  <option value="">Select</option>
-                  <option value="Mr">Mr.</option>
-                  <option value="Mrs">Mrs.</option>
-                  <option value="Miss">Miss</option>
-                  <option value="Ms">Ms.</option>
-                  <option value="Dr">Dr.</option>
-                  <option value="Master">Master</option>
-                  <option value="Baby">Baby</option>
-                </select>
+            {/* Sequential vertical layout */}
+            <div className="space-y-3">
+              {/* Title */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Title
+                  </label>
+                  <select 
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                    value={title} 
+                    onChange={(e)=>setTitle(e.target.value)}
+                  >
+                    <option value="">Select Title</option>
+                    <option value="Mr">Mr.</option>
+                    <option value="Mrs">Mrs.</option>
+                    <option value="Miss">Miss</option>
+                    <option value="Ms">Ms.</option>
+                    <option value="Dr">Dr.</option>
+                    <option value="Master">Master</option>
+                    <option value="Baby">Baby</option>
+                  </select>
+                </div>
+                <div></div>
               </div>
-            
-              {/* First Name - Takes remaining space */}
-              <div className="col-span-9">
+
+              {/* First Name */}
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   First Name <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <input 
-                    type="text"
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pr-10" 
-                    value={firstName} 
-                    onChange={(e)=>setFirstName(e.target.value)}
-                    placeholder="Enter first name"
-                    required
-                  />
-                  {firstName && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
+                <input 
+                  type="text"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={firstName} 
+                  onChange={(e)=>setFirstName(e.target.value)}
+                  placeholder="Enter first name"
+                  required
+                />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
+              {/* Last Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Last Name <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <input 
-                    type="text"
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pr-10" 
-                    value={lastName} 
-                    onChange={(e)=>setLastName(e.target.value)}
-                    placeholder="Enter last name"
-                    required
-                  />
-                  {lastName && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
+                <input 
+                  type="text"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={lastName} 
+                  onChange={(e)=>setLastName(e.target.value)}
+                  placeholder="Enter last name"
+                  required
+                />
               </div>
 
+              {/* Date of Birth */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Date of Birth <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <input 
-                    type="date"
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pr-10" 
-                    value={dateOfBirth} 
-                    onChange={(e)=>setDateOfBirth(e.target.value)}
-                    placeholder="dd-mm-yyyy"
-                    required
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                </div>
+                <input 
+                  type="date"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  value={dateOfBirth} 
+                  onChange={(e)=>setDateOfBirth(e.target.value)}
+                  placeholder="dd-mm-yyyy"
+                  required
+                />
                 {age && (
                   <p className="text-xs text-gray-500 mt-1">
                     Age: {age.years} years, {age.months} months
@@ -645,12 +622,13 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                 )}
               </div>
 
+              {/* Gender */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Gender <span className="text-red-500">*</span>
                 </label>
                 <select 
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                   value={gender} 
                   onChange={(e)=>setGender(e.target.value)}
                   required
@@ -1107,39 +1085,54 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
         )}
       </div>
 
-      {/* Action Buttons - Right Aligned */}
-      <div className="flex items-center justify-end gap-3 pt-4 border-t">
-        {isMinimalMode && currentStep === 2 && (
+      {/* Action Buttons */}
+      <div className="pt-4 border-t">
+        <div className="flex items-center justify-end gap-3">
+          {isMinimalMode && currentStep === 2 && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={handleBack}
+              className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              ← Back
+            </motion.button>
+          )}
+          
+          {!isMinimalMode && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
+              Skip optional fields
+            </button>
+          )}
+          
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="button"
-            onClick={handleBack}
-            className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            onClick={handleNext}
+            className="px-6 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
           >
-            ← Back
+            {isMinimalMode && currentStep === 1 ? "Next →" : (isAddingFamilyMember ? "Add Family Member" : "Continue")}
           </motion.button>
-        )}
+        </div>
         
-        {!isMinimalMode && (
-          <button
-            type="button"
-            onClick={onSkip}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
-          >
-            Skip optional fields
-          </button>
+        {/* Back to Sign-In Link - Step 1 Only */}
+        {isMinimalMode && currentStep === 1 && (
+          <div className="text-center mt-3">
+            <button
+              type="button"
+              onClick={onSkip}
+              className="text-sm text-gray-600 hover:text-emerald-600 transition-colors"
+            >
+              ← Back to Sign-In
+            </button>
+          </div>
         )}
-        
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          type="button"
-          onClick={handleNext}
-          className="px-6 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
-        >
-          {isMinimalMode && currentStep === 1 ? "Next →" : (isAddingFamilyMember ? "Add Family Member" : "Continue")}
-        </motion.button>
       </div>
 
       {/* Consent Modal */}

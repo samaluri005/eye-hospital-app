@@ -27,7 +27,7 @@ The project utilizes a monorepo structure with pnpm workspaces and Turbo for dep
 - **Modern Registration Form**: Offers a clean, essential signup experience with a 3-step progress indicator (Profile → Verification → Complete). Includes modern date pickers, real-time validation, consent checkboxes, guardian fields for minors, and professional tooltips.
 - **MFA Setup**: Supports Authenticator App (TOTP), SMS OTP, and Email OTP, with progressive setup flows and method-specific UI.
 - **Welcome Screen**: A professional post-registration welcome screen displaying patient name and Health ID, along with onboarding information and security assurance.
-- **UI Simplification**: Streamlined header, clear button alignments, and improved spacing for a professional healthcare portal design.
+- **UI Simplification**: Sequential top-to-bottom field layout (Title → First Name → Last Name → DOB → Gender), compact spacing, fixed double calendar icon issue, and "Back to Sign-In" link for easy navigation.
 
 **Technical Implementations:**
 - **Identity Schema**: UPI-first approach with dedicated tables for users, credentials, and verification evidence, using Argon2id for password hashing.
