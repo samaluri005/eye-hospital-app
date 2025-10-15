@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import PersistentAuthLayout from "./PersistentAuthLayout";
 import AuthMethodSelector from "./AuthMethodSelector";
 import UpiSignInStep from "./UpiSignInStep";
@@ -25,6 +26,8 @@ type AuthMethod = "selector" | "phone" | "email" | "upi" | "social" | "signup";
 type FlowStep = "method" | "input" | "otp" | "accountSelection" | "verification" | "profile" | "password" | "upiDisplay" | "extendedProfile" | "mfaSetup" | "hipaaConsent" | "welcome" | "duplicateBlocked" | "done";
 
 export default function EnhancedAuthFlow() {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [authMethod, setAuthMethod] = useState<AuthMethod>("selector");
   const [step, setStep] = useState<FlowStep>("method");
   const [contactInfo, setContactInfo] = useState<string>(""); // phone or email
@@ -244,7 +247,7 @@ export default function EnhancedAuthFlow() {
 
           if (sessionResponse.data.success) {
             sessionStorage.removeItem('signup_isNewUser');
-            window.location.href = "/dashboard";
+            startTransition(() => router.push("/dashboard"));
             return;
           }
         }
@@ -363,11 +366,11 @@ export default function EnhancedAuthFlow() {
           consent: consentData,
         });
       } catch (error) {
-        console.error("Failed to save consent:", error);
+        console.error("Failed to create session:", error);
       }
     }
     sessionStorage.removeItem('signup_isNewUser');
-    window.location.href = "/dashboard";
+    startTransition(() => router.push("/dashboard"));
   };
 
   const handleWelcomeContinue = async () => {
@@ -381,29 +384,29 @@ export default function EnhancedAuthFlow() {
 
         if (response.data.success) {
           sessionStorage.removeItem('signup_isNewUser');
-          window.location.href = "/dashboard";
+          startTransition(() => router.push("/dashboard"));
         } else {
           console.error("Failed to create session:", response.data);
           // Still redirect to allow user to sign in manually
           sessionStorage.removeItem('signup_isNewUser');
-          window.location.href = "/dashboard";
+          startTransition(() => router.push("/dashboard"));
         }
       } catch (error) {
         console.error("Failed to create session:", error);
         // Still redirect to allow user to sign in manually
         sessionStorage.removeItem('signup_isNewUser');
-        window.location.href = "/dashboard";
+        startTransition(() => router.push("/dashboard"));
       }
     } else {
       // No patientId/linkToken, redirect anyway
       sessionStorage.removeItem('signup_isNewUser');
-      window.location.href = "/dashboard";
+      startTransition(() => router.push("/dashboard"));
     }
   };
 
   const handleUpiSignInSuccess = (sessionToken: string) => {
     // UPI sign-in bypasses most steps and goes directly to dashboard
-    window.location.href = "/dashboard";
+    startTransition(() => router.push("/dashboard"));
   };
 
   const handleBackToMethod = () => {

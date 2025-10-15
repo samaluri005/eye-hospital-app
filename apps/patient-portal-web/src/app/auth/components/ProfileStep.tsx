@@ -1081,6 +1081,234 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               <input type="email" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="your.email@example.com" />
             </div>
           </div>
+
+          {/* Additional Personal Details */}
+          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+            <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+              <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Additional Details
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Blood Group</label>
+                <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={bloodGroup} onChange={(e)=>setBloodGroup(e.target.value)}>
+                  <option value="">Select Blood Group</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Occupation</label>
+                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={occupation} onChange={(e)=>setOccupation(e.target.value)} placeholder="Your occupation" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Government ID Type</label>
+                <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={govtIdType} onChange={(e)=>setGovtIdType(e.target.value)}>
+                  <option value="">Select ID Type</option>
+                  <option value="Aadhaar">Aadhaar Card</option>
+                  <option value="PAN">PAN Card</option>
+                  <option value="Passport">Passport</option>
+                  <option value="Driving License">Driving License</option>
+                  <option value="Voter ID">Voter ID</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Government ID Number</label>
+                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={govtIdNumber} onChange={(e)=>setGovtIdNumber(e.target.value)} placeholder="ID number" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Marital Status</label>
+                <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={maritalStatus} onChange={(e)=>setMaritalStatus(e.target.value)}>
+                  <option value="">Select Status</option>
+                  <option value="Single">Single</option>
+                  <option value="Married">Married</option>
+                  <option value="Divorced">Divorced</option>
+                  <option value="Widowed">Widowed</option>
+                </select>
+              </div>
+
+              {maritalStatus === "Married" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Spouse Name</label>
+                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={spouseName} onChange={(e)=>setSpouseName(e.target.value)} placeholder="Enter spouse name" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Present Address */}
+          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+            <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+              <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Present Address
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 1</label>
+                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={addressLine1} onChange={(e)=>setAddressLine1(e.target.value)} placeholder="House/Flat No., Street" />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 2</label>
+                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={addressLine2} onChange={(e)=>setAddressLine2(e.target.value)} placeholder="Area, Landmark" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={city} onChange={(e)=>setCity(e.target.value)} placeholder="City" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
+                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={state} onChange={(e)=>setState(e.target.value)} placeholder="State" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Postal Code</label>
+                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={postalCode} onChange={(e)=>setPostalCode(e.target.value)} placeholder="Postal code" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
+                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={country} onChange={(e)=>setCountry(e.target.value)} placeholder="Country" />
+              </div>
+            </div>
+          </div>
+
+          {/* Permanent Address */}
+          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+                <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                Permanent Address
+              </h4>
+              <label className="flex items-center text-sm text-gray-600 cursor-pointer">
+                <input type="checkbox" className="mr-2 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" checked={sameAsPresentAddress} onChange={(e)=>{
+                  setSameAsPresentAddress(e.target.checked);
+                  if (e.target.checked) {
+                    setPermanentAddressLine1(addressLine1);
+                    setPermanentAddressLine2(addressLine2);
+                    setPermanentCity(city);
+                    setPermanentState(state);
+                    setPermanentPostalCode(postalCode);
+                    setPermanentCountry(country);
+                  }
+                }} />
+                Same as Present Address
+              </label>
+            </div>
+
+            {!sameAsPresentAddress && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 1</label>
+                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentAddressLine1} onChange={(e)=>setPermanentAddressLine1(e.target.value)} placeholder="House/Flat No., Street" />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 2</label>
+                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentAddressLine2} onChange={(e)=>setPermanentAddressLine2(e.target.value)} placeholder="Area, Landmark" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentCity} onChange={(e)=>setPermanentCity(e.target.value)} placeholder="City" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
+                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentState} onChange={(e)=>setPermanentState(e.target.value)} placeholder="State" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Postal Code</label>
+                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentPostalCode} onChange={(e)=>setPermanentPostalCode(e.target.value)} placeholder="Postal code" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
+                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={permanentCountry} onChange={(e)=>setPermanentCountry(e.target.value)} placeholder="Country" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Emergency Contact */}
+          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+            <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+              <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Emergency Contact
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Name</label>
+                <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={emergencyContact} onChange={(e)=>setEmergencyContact(e.target.value)} placeholder="Emergency contact name" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Phone</label>
+                <InternationalPhoneInput value={emergencyPhone} onChange={setEmergencyPhone} />
+              </div>
+            </div>
+          </div>
+
+          {/* Source of Patient */}
+          <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+            <h4 className="font-semibold text-gray-900 flex items-center text-sm">
+              <svg className="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              How did you hear about us?
+            </h4>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Source</label>
+              <select className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={sourceOfPatient} onChange={(e)=>setSourceOfPatient(e.target.value)}>
+                <option value="">Select Source</option>
+                <option value="Walk-in">Walk-in</option>
+                <option value="Referral">Referral</option>
+                <option value="Doctor">Doctor Referral</option>
+                <option value="Insurance">Insurance</option>
+                <option value="Online">Online Search</option>
+                <option value="Advertisement">Advertisement</option>
+              </select>
+            </div>
+
+            {sourceOfPatient === "Referral" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Referral Name</label>
+                  <input type="text" className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value={referralName} onChange={(e)=>setReferralName(e.target.value)} placeholder="Name of person who referred" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Referral Phone</label>
+                  <InternationalPhoneInput value={referralPhone} onChange={setReferralPhone} />
+                </div>
+              </div>
+            )}
+          </div>
           </>
         )}
       </div>
