@@ -56,6 +56,44 @@ The project utilizes a monorepo structure with pnpm workspaces and Turbo for dep
 - InfoTooltip component for accessibility.
 - MFA Setup step includes informative tooltips.
 
+**Recent Updates (Oct 15, 2025 - Patient Registration Enhancement):**
+- **Health ID Terminology**: Renamed "Hospital ID/UPI" to "Health ID" across all frontend components (YourIdStep, UpiSignInStep, AuthMethodSelector) for clearer patient communication
+- **Enhanced Registration with Consents (ProfileStep)**:
+  * Added 4 required consent checkboxes in Step 2: Terms of Service, Privacy Policy, HIPAA Notice, Health Information Authorization
+  * Created ConsentModal component for full consent text display
+  * Guardian name + relationship dropdown for minors (age < 18) with GUARDIAN_RELATIONSHIPS options (Father, Mother, Caregiver, etc.)
+  * Made mobile number optional (removed asterisk, updated validation)
+  * Professional InfoTooltip components explain Health ID, phone benefits, email benefits, and MFA protection
+  * Consent data flows through ProfileData type to registration API
+- **EMPI Duplicate Detection**:
+  * Added EMPI check after Step 1 (Personal Info) before allowing progression to Step 2
+  * Created /api/auth/empi-check endpoint for early duplicate detection with firstName, lastName, DOB, gender, title
+  * If duplicate found, shows error message and blocks progression with clear user guidance
+  * Prevents duplicate patient records while maintaining PHI security
+- **MFA Enhancement (MfaSetupStep)**:
+  * Added Email OTP as third MFA option alongside Authenticator App (TOTP) and SMS OTP
+  * Updated MfaMethod type to include "email" with email address capture
+  * Progressive setup flows: select method → configure → verify for all three options
+  * Professional UI with method-specific colors (purple=TOTP, blue=SMS, green=Email)
+  * Skip option available for optional MFA setup
+- **MFA Sign-In Update (AuthMethodSelector)**:
+  * Removed 4-digit PIN MFA (deprecated)
+  * Updated to 6-digit verification codes compatible with TOTP/SMS/Email
+  * Dynamic UI labels based on mfaMethod (shows "from authenticator app", "sent to phone", or "sent to email")
+  * Frontend sends {code, method} to /api/auth/verify-mfa (requires backend update - see Pending Work)
+
+**Pending Work (Backend API Updates Required):**
+1. **Recovery Flows**: Forgot Health ID and Forgot Password flows (deferred - requires backend APIs)
+2. **Backend API Updates**:
+   - Update /api/auth/verify-mfa to accept {code, method} instead of {pin}
+   - Update /api/auth/upi-signin to return mfaMethod in response
+   - Create forgot-health-id and forgot-password endpoints
+   - Add consent storage in registration flow
+   - Update TOTP setup/verification endpoints
+3. **Welcome Step**: Create WelcomeStep component for post-registration flow
+4. **Cleanup**: Remove deprecated Phone/Email/Social sign-in methods from routing
+5. **End-to-End Testing**: Test complete flow with all scenarios (minor, adult, MFA options)
+
 **Technical Implementations:**
 - **Identity Schema**: UPI-first approach with dedicated tables for users, credentials, external identities, proxy access, and verification evidence. Argon2id password hashing is used.
 - **Auth Service API**: A set of REST endpoints for UPI validation, token exchange, EMPI matching, step-up authentication, and staff operations (patient creation, invite sending). All endpoints include HIPAA audit logging and security controls.

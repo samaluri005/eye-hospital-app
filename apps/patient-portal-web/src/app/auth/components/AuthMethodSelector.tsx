@@ -16,7 +16,8 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mfaRequired, setMfaRequired] = useState(false);
-  const [mfaPin, setMfaPin] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaMethod, setMfaMethod] = useState<string>(""); // totp, sms, or email
   const [tempToken, setTempToken] = useState<string | null>(null);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -44,6 +45,7 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
 
       if (response.data.mfaRequired) {
         setMfaRequired(true);
+        setMfaMethod(response.data.mfaMethod || "totp"); // Backend should return the MFA method
         setTempToken(response.data.tempToken);
       } else if (response.data.sessionToken || response.data.accessToken) {
         window.location.href = "/dashboard";
@@ -70,8 +72,8 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
     e.preventDefault();
     setError(null);
 
-    if (!mfaPin || mfaPin.length !== 4) {
-      setError("Please enter your 4-digit PIN");
+    if (!mfaCode || mfaCode.length !== 6) {
+      setError("Please enter your 6-digit verification code");
       return;
     }
 
@@ -80,7 +82,8 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
     try {
       const response = await axios.post("/api/auth/verify-mfa", {
         tempToken,
-        pin: mfaPin,
+        code: mfaCode,
+        method: mfaMethod,
       });
 
       if (response.data.sessionToken || response.data.accessToken) {
@@ -97,30 +100,40 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
   };
 
   if (mfaRequired) {
+    const getMethodLabel = () => {
+      switch (mfaMethod) {
+        case "sms": return "Enter the 6-digit code sent to your phone";
+        case "email": return "Enter the 6-digit code sent to your email";
+        case "totp":
+        default: return "Enter the 6-digit code from your authenticator app";
+      }
+    };
+
     return (
       <div className="space-y-8">
         {/* Header */}
         <div className="space-y-2">
           <h2 className="text-2xl font-bold text-gray-900">Two-Factor Authentication</h2>
-          <p className="text-gray-600">Enter your 4-digit security PIN to continue</p>
+          <p className="text-gray-600">{getMethodLabel()}</p>
         </div>
 
         {/* MFA Form */}
         <form onSubmit={handleMfaVerify} className="space-y-5">
           <div>
-            <label htmlFor="mfaPin" className="block text-sm font-semibold text-gray-700 mb-2">
-              Security PIN
+            <label htmlFor="mfaCode" className="block text-sm font-semibold text-gray-700 mb-2">
+              Verification Code
             </label>
             <motion.input
               whileFocus={{ scale: 1.01, borderColor: "#10b981" }}
               transition={{ duration: 0.2 }}
-              type="password"
-              id="mfaPin"
-              value={mfaPin}
-              onChange={(e) => setMfaPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="Enter 4-digit PIN"
-              maxLength={4}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 transition-colors text-center text-2xl tracking-widest"
+              type="text"
+              inputMode="numeric"
+              id="mfaCode"
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="000000"
+              maxLength={6}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 transition-colors text-center text-2xl tracking-widest font-mono"
               required
             />
           </div>
@@ -136,17 +149,18 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
             whileTap={{ scale: loading ? 1 : 0.98 }}
             transition={{ duration: 0.15 }}
             type="submit"
-            disabled={loading}
+            disabled={loading || mfaCode.length !== 6}
             className="w-full py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Verifying..." : "Verify PIN"}
+            {loading ? "Verifying..." : "Verify Code"}
           </motion.button>
 
           <button
             type="button"
             onClick={() => {
               setMfaRequired(false);
-              setMfaPin("");
+              setMfaCode("");
+              setMfaMethod("");
               setTempToken(null);
               setError(null);
             }}
