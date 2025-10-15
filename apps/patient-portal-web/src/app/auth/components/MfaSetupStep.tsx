@@ -3,11 +3,12 @@ import React, { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import InfoTooltip from "./InfoTooltip";
 
-export type MfaMethod = "totp" | "sms";
+export type MfaMethod = "totp" | "sms" | "email";
 
 export type MfaSetupData = {
   method: MfaMethod;
   phoneNumber?: string;
+  email?: string;
   totpVerified?: boolean;
   totpSecret?: string;
 };
@@ -16,14 +17,16 @@ type Props = {
   onNext: (data: MfaSetupData) => void;
   onSkip: () => void;
   userPhone?: string;
+  userEmail?: string;
 };
 
-export default function MfaSetupStep({ onNext, onSkip, userPhone }: Props) {
+export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: Props) {
   const [selectedMethod, setSelectedMethod] = useState<MfaMethod | null>(null);
   const [totpSecret, setTotpSecret] = useState("");
   const [totpUri, setTotpUri] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [smsPhone, setSmsPhone] = useState(userPhone || "");
+  const [emailAddress, setEmailAddress] = useState(userEmail || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,6 +113,33 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone }: Props) {
     }
   };
 
+  const handleSetupEmail = async () => {
+    if (!emailAddress) {
+      setError("Please enter an email address");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailAddress)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      onNext({
+        method: "email",
+        email: emailAddress,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Email setup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!selectedMethod) {
     return (
       <div className="space-y-6">
@@ -190,6 +220,31 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone }: Props) {
                 </h4>
                 <p className="text-sm text-gray-600">
                   Get one-time passwords sent to your mobile phone
+                </p>
+              </div>
+              <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setSelectedMethod("email")}
+            className="w-full border-2 border-gray-200 hover:border-purple-500 rounded-lg p-4 text-left transition-colors group"
+          >
+            <div className="flex items-start space-x-4">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-green-200 transition-colors">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-gray-900 mb-1 inline-flex items-center">
+                  Email OTP
+                  <InfoTooltip text="Receive verification codes via email to your registered email address" />
+                </h4>
+                <p className="text-sm text-gray-600">
+                  Get one-time passwords sent to your email
                 </p>
               </div>
               <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,6 +410,79 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone }: Props) {
             onClick={handleSetupSms}
             disabled={loading || !smsPhone}
             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Setting up..." : "Continue"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedMethod === "email") {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <button
+            onClick={() => setSelectedMethod(null)}
+            className="mb-4 text-gray-600 hover:text-gray-900 flex items-center mx-auto"
+          >
+            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">
+            Set Up Email Verification
+          </h3>
+          <p className="text-gray-600">
+            Enter your email address to receive verification codes
+          </p>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Email Input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Email Address
+          </label>
+          {userEmail ? (
+            <>
+              <div className="bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 mb-2">
+                <p className="text-gray-900 font-medium">{emailAddress}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Codes will be sent to this registered email
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <input
+                type="email"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                value={emailAddress}
+                onChange={(e) => setEmailAddress(e.target.value)}
+                placeholder="your.email@example.com"
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                Enter the email address to receive verification codes
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          <button
+            onClick={handleSetupEmail}
+            disabled={loading || !emailAddress}
+            className="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Setting up..." : "Continue"}
           </button>
