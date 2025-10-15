@@ -35,6 +35,17 @@ The project utilizes a monorepo structure with pnpm workspaces and Turbo for dep
   * Responsive: stacked mobile, side-by-side desktop (50/50)
   * Accessibility: prefers-reduced-motion support, ARIA labels
   * Branding: "Eye Care" (clean, spaced logo without "Hospital")
+- **Modern Registration Form (Oct 15, 2025)**: Clean, essential signup experience with dual-mode support (minimal vs extended):
+  * Minimal Mode (Signup): Clean header without branding, 3-step progress indicator (Profile → Verification → Complete)
+  * Compact title dropdown matching input field sizes
+  * Modern date picker with calendar icon overlay (DD/MM/YYYY format)
+  * Essential auth fields: Email (validated), Password (5-level strength indicator + show/hide), Confirm Password
+  * Real-time validation: green checkmarks on valid fields, animated error messages on invalid
+  * Terms & Privacy checkbox with clickable links to Terms of Service and Privacy Policy
+  * Guardian fields auto-shown for minors (under 18) with relationship dropdown
+  * Improved spacing: compact inputs (py-2.5), better typography, clear visual hierarchy
+  * Framer Motion animations: error messages slide in, button hover/tap interactions
+  * Extended Mode (Profile Completion): Full patient data collection with government ID, address, emergency contacts, medical info
 - Modern OTP input design with individual digit boxes, auto-advance, and keyboard navigation.
 - Visual states for input fields using Tailwind CSS.
 - Gradient header icons and verify buttons.
