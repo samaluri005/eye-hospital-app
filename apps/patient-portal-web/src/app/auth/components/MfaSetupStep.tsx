@@ -35,28 +35,28 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   const ProgressIndicator = () => (
     <div className="flex items-center justify-center space-x-1.5 mb-8">
       <div className="flex items-center">
-        <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-semibold">
+        <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#2ecc71' }}>
           1
         </div>
         <div className="ml-1.5 text-xs font-medium text-gray-900">Profile</div>
       </div>
-      <div className="w-10 h-0.5 bg-emerald-500"></div>
+      <div className="w-10 h-0.5" style={{ backgroundColor: '#2ecc71' }}></div>
       <div className="flex items-center">
-        <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-semibold">
+        <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#2ecc71' }}>
           2
         </div>
         <div className="ml-1.5 text-xs font-medium text-gray-900">Verification</div>
       </div>
-      <div className="w-10 h-0.5 bg-emerald-500"></div>
+      <div className="w-10 h-0.5" style={{ backgroundColor: '#2ecc71' }}></div>
       <div className="flex items-center">
-        <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-semibold">
+        <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#2ecc71' }}>
           3
         </div>
         <div className="ml-1.5 text-xs font-medium text-gray-900">Complete Profile</div>
       </div>
-      <div className="w-10 h-0.5 bg-emerald-500"></div>
+      <div className="w-10 h-0.5" style={{ backgroundColor: '#2ecc71' }}></div>
       <div className="flex items-center">
-        <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-semibold">
+        <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#0066cc' }}>
           4
         </div>
         <div className="ml-1.5 text-xs font-medium text-gray-900">MFA Setup</div>

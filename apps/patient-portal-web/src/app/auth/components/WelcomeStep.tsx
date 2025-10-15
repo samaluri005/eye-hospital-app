@@ -35,9 +35,10 @@ export default function WelcomeStep({ patientName, healthId, onContinue }: Props
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ duration: 0.5, type: "spring" }}
-        className="w-20 h-20 bg-emerald-100 rounded-full mx-auto flex items-center justify-center"
+        className="w-20 h-20 rounded-full mx-auto flex items-center justify-center"
+        style={{ backgroundColor: 'rgba(46, 204, 113, 0.1)' }}
       >
-        <svg className="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-10 h-10" style={{ color: '#2ecc71' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       </motion.div>
@@ -67,7 +68,8 @@ export default function WelcomeStep({ patientName, healthId, onContinue }: Props
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-6 text-white shadow-lg"
+        className="rounded-xl p-6 text-white shadow-lg"
+        style={{ background: 'linear-gradient(135deg, #2ecc71 0%, #17a2b8 100%)' }}
       >
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
@@ -125,7 +127,10 @@ export default function WelcomeStep({ patientName, healthId, onContinue }: Props
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onContinue}
-          className="w-full py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+          className="w-full py-3 px-6 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+          style={{ background: 'linear-gradient(90deg, #2ecc71 0%, #17a2b8 100%)' }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'linear-gradient(90deg, #27ae60 0%, #138496 100%)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'linear-gradient(90deg, #2ecc71 0%, #17a2b8 100%)'}
         >
           Go to Dashboard
         </motion.button>
@@ -140,7 +145,10 @@ export default function WelcomeStep({ patientName, healthId, onContinue }: Props
           <button
             onClick={handleSignOut}
             disabled={isLoggingOut}
-            className="text-sm text-gray-600 hover:text-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ color: isLoggingOut ? '#6b7280' : undefined }}
+            onMouseEnter={(e) => !isLoggingOut && (e.currentTarget.style.color = '#2ecc71')}
+            onMouseLeave={(e) => !isLoggingOut && (e.currentTarget.style.color = '#4b5563')}
           >
             {isLoggingOut ? "Signing out..." : "Sign Out"}
           </button>

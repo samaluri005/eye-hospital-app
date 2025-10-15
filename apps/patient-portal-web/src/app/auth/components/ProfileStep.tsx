@@ -482,24 +482,33 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
       {isMinimalMode && (
         <div className="flex items-center justify-center space-x-2 mb-8">
           <div className="flex items-center">
-            <div className={`w-8 h-8 ${currentStep >= 1 ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'} rounded-full flex items-center justify-center text-sm font-semibold`}>
+            <div 
+              className="w-8 h-8 text-white rounded-full flex items-center justify-center text-sm font-semibold"
+              style={{ backgroundColor: currentStep === 1 ? '#0066cc' : currentStep > 1 ? '#2ecc71' : '#d1d5db' }}
+            >
               1
             </div>
             <div className={`ml-2 text-sm font-medium ${currentStep >= 1 ? 'text-gray-900' : 'text-gray-500'}`}>Profile</div>
           </div>
-          <div className={`w-16 h-0.5 ${currentStep >= 2 ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
+          <div className="w-16 h-0.5" style={{ backgroundColor: currentStep >= 2 ? '#2ecc71' : '#d1d5db' }}></div>
           <div className="flex items-center">
-            <div className={`w-8 h-8 ${currentStep >= 2 ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'} rounded-full flex items-center justify-center text-sm font-semibold`}>
+            <div 
+              className="w-8 h-8 text-white rounded-full flex items-center justify-center text-sm font-semibold"
+              style={{ backgroundColor: currentStep === 2 ? '#0066cc' : currentStep > 2 ? '#2ecc71' : '#d1d5db' }}
+            >
               2
             </div>
             <div className={`ml-2 text-sm font-medium ${currentStep >= 2 ? 'text-gray-900' : 'text-gray-500'}`}>Verification</div>
           </div>
-          <div className="w-16 h-0.5 bg-gray-300"></div>
+          <div className="w-16 h-0.5" style={{ backgroundColor: currentStep >= 3 ? '#2ecc71' : '#d1d5db' }}></div>
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
+            <div 
+              className="w-8 h-8 text-white rounded-full flex items-center justify-center text-sm font-semibold"
+              style={{ backgroundColor: currentStep === 3 ? '#0066cc' : currentStep > 3 ? '#2ecc71' : '#d1d5db' }}
+            >
               3
             </div>
-            <div className="ml-2 text-sm font-medium text-gray-500">Complete</div>
+            <div className={`ml-2 text-sm font-medium ${currentStep >= 3 ? 'text-gray-900' : 'text-gray-500'}`}>Complete</div>
           </div>
         </div>
       )}
@@ -511,21 +520,21 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
           {!isAddingFamilyMember && (
             <div className="flex items-center justify-center space-x-1.5 mb-8">
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-semibold">
+                <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#2ecc71' }}>
                   1
                 </div>
                 <div className="ml-1.5 text-xs font-medium text-gray-900">Profile</div>
               </div>
-              <div className="w-10 h-0.5 bg-emerald-500"></div>
+              <div className="w-10 h-0.5" style={{ backgroundColor: '#2ecc71' }}></div>
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-semibold">
+                <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#2ecc71' }}>
                   2
                 </div>
                 <div className="ml-1.5 text-xs font-medium text-gray-900">Verification</div>
               </div>
-              <div className="w-10 h-0.5 bg-emerald-500"></div>
+              <div className="w-10 h-0.5" style={{ backgroundColor: '#2ecc71' }}></div>
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-semibold">
+                <div className="w-8 h-8 text-white rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: '#0066cc' }}>
                   3
                 </div>
                 <div className="ml-1.5 text-xs font-medium text-gray-900">Complete Profile</div>
