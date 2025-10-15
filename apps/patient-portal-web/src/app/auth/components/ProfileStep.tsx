@@ -18,6 +18,7 @@ export type ProfileData = {
   password?: string;
   patientType?: string;
   guardianName?: string;
+  guardianRelationship?: string; // Guardian relationship for minors
   govtIdType?: string; // Government ID type
   govtIdNumber?: string; // Government ID number
   bloodGroup?: string;
@@ -42,6 +43,11 @@ export type ProfileData = {
   emergencyContact?: string;
   emergencyPhone?: string;
   relationship?: string; // For family members
+  // Consent fields (only in minimal mode during signup)
+  acceptTerms?: boolean;
+  acceptPrivacy?: boolean;
+  acceptHipaa?: boolean;
+  acceptAuthorization?: boolean;
 };
 
 type Props = {
@@ -107,6 +113,7 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
   const [consentModalType, setConsentModalType] = useState<"terms" | "privacy" | "hipaa" | "authorization">("terms");
   const [patientType, setPatientType] = useState(initialData?.patientType || "");
   const [guardianName, setGuardianName] = useState(initialData?.guardianName || "");
+  const [guardianRelationship, setGuardianRelationship] = useState(initialData?.guardianRelationship || "");
   const [relationship, setRelationship] = useState(initialData?.relationship || "");
   const [govtIdType, setGovtIdType] = useState(initialData?.govtIdType || "");
   const [govtIdNumber, setGovtIdNumber] = useState(initialData?.govtIdNumber || "");
@@ -266,6 +273,11 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
       return false;
     }
     
+    if (isMinimalMode && isMinor && !guardianRelationship) {
+      setError("Guardian relationship is required for patients under 18 years");
+      return false;
+    }
+    
     return true;
   };
 
@@ -326,10 +338,39 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (isMinimalMode && currentStep === 1) {
       if (validateStep1()) {
-        setCurrentStep(2);
+        // EMPI duplicate check after Step 1
+        setLoading(true);
+        setError(null);
+        
+        try {
+          const response = await axios.post("/api/auth/empi-check", {
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            dateOfBirth,
+            gender: gender || undefined,
+            title: title || undefined,
+          });
+          
+          if (response.data.isDuplicate) {
+            // Show duplicate warning
+            setError(
+              `A patient with similar information already exists. If this is you, please sign in instead. If you believe this is an error, please contact hospital administration.`
+            );
+            setLoading(false);
+            return;
+          }
+          
+          // No duplicates, proceed to Step 2
+          setCurrentStep(2);
+        } catch (err: any) {
+          console.error("EMPI check failed:", err);
+          setError(err?.response?.data?.message || "Unable to verify patient information. Please try again.");
+        } finally {
+          setLoading(false);
+        }
       }
     } else {
       handleSubmit();
@@ -386,6 +427,7 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
       password: password || undefined,
       patientType: patientType || undefined,
       guardianName: guardianName.trim() || undefined,
+      guardianRelationship: guardianRelationship || undefined,
       govtIdType: govtIdType || undefined,
       govtIdNumber: govtIdNumber.trim() || undefined,
       bloodGroup: bloodGroup || undefined,
@@ -410,6 +452,11 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
       emergencyContact: emergencyContact.trim() || undefined,
       emergencyPhone: emergencyPhone.trim() || undefined,
       relationship: isAddingFamilyMember ? relationship : undefined,
+      // Include consents only in minimal mode
+      acceptTerms: isMinimalMode ? acceptTerms : undefined,
+      acceptPrivacy: isMinimalMode ? acceptPrivacy : undefined,
+      acceptHipaa: isMinimalMode ? acceptHipaa : undefined,
+      acceptAuthorization: isMinimalMode ? acceptAuthorization : undefined,
     };
 
     onNext(profileData);
@@ -645,8 +692,8 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
                   </label>
                   <select 
                     className="w-full px-3 py-2.5 text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500" 
-                    value={relationship} 
-                    onChange={(e)=>setRelationship(e.target.value)}
+                    value={guardianRelationship} 
+                    onChange={(e)=>setGuardianRelationship(e.target.value)}
                     required
                   >
                     <option value="">Select Relationship</option>
