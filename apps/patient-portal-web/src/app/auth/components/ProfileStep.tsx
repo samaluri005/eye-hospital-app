@@ -506,17 +506,45 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
 
       {/* Header - Extended Mode Only */}
       {!isMinimalMode && (
-        <div className="text-center">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            {isAddingFamilyMember ? "Add Family Member" : "Complete Your Profile"}
-          </h3>
-          <p className="text-gray-600 text-sm">
-            {isAddingFamilyMember 
-              ? "Please provide information for the family member you're adding"
-              : "Help us serve you better with additional details (optional)"
-            }
-          </p>
-        </div>
+        <>
+          {/* Progress Indicator for Extended Profile */}
+          {!isAddingFamilyMember && (
+            <div className="flex items-center justify-center space-x-2 mb-6">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                  1
+                </div>
+                <div className="ml-2 text-sm font-medium text-gray-900">Profile</div>
+              </div>
+              <div className="w-16 h-0.5 bg-emerald-500"></div>
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                  2
+                </div>
+                <div className="ml-2 text-sm font-medium text-gray-900">Verification</div>
+              </div>
+              <div className="w-16 h-0.5 bg-gray-300"></div>
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                  3
+                </div>
+                <div className="ml-2 text-sm font-medium text-gray-500">Complete</div>
+              </div>
+            </div>
+          )}
+
+          <div className="text-center">
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              {isAddingFamilyMember ? "Add Family Member" : "Complete Your Profile"}
+            </h3>
+            <p className="text-gray-600 text-sm">
+              {isAddingFamilyMember 
+                ? "Please provide information for the family member you're adding"
+                : "Help us serve you better with additional details (optional)"
+              }
+            </p>
+          </div>
+        </>
       )}
 
       {/* Error Message */}

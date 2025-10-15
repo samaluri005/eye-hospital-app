@@ -30,6 +30,32 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Progress Indicator Component - shown on all MFA screens
+  const ProgressIndicator = () => (
+    <div className="flex items-center justify-center space-x-2 mb-6">
+      <div className="flex items-center">
+        <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+          1
+        </div>
+        <div className="ml-2 text-sm font-medium text-gray-900">Profile</div>
+      </div>
+      <div className="w-16 h-0.5 bg-emerald-500"></div>
+      <div className="flex items-center">
+        <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+          2
+        </div>
+        <div className="ml-2 text-sm font-medium text-gray-900">Verification</div>
+      </div>
+      <div className="w-16 h-0.5 bg-gray-300"></div>
+      <div className="flex items-center">
+        <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
+          3
+        </div>
+        <div className="ml-2 text-sm font-medium text-gray-500">Complete</div>
+      </div>
+    </div>
+  );
+
   useEffect(() => {
     if (selectedMethod === "totp") {
       generateTotpSecret();
@@ -143,6 +169,8 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   if (!selectedMethod) {
     return (
       <div className="space-y-6">
+        <ProgressIndicator />
+
         {/* Header */}
         <div className="text-center">
           <div className="w-16 h-16 bg-purple-100 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -274,6 +302,8 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   if (selectedMethod === "totp") {
     return (
       <div className="space-y-6">
+        <ProgressIndicator />
+
         {/* Header */}
         <div className="text-center">
           <button
@@ -348,6 +378,8 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   if (selectedMethod === "sms") {
     return (
       <div className="space-y-6">
+        <ProgressIndicator />
+
         {/* Header */}
         <div className="text-center">
           <button
@@ -421,6 +453,8 @@ export default function MfaSetupStep({ onNext, onSkip, userPhone, userEmail }: P
   if (selectedMethod === "email") {
     return (
       <div className="space-y-6">
+        <ProgressIndicator />
+
         {/* Header */}
         <div className="text-center">
           <button
