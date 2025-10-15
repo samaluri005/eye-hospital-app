@@ -1,6 +1,7 @@
 "use client";
 
 import { IdCard, ArrowRight, UserPlus } from "lucide-react";
+import InfoTooltip from "./InfoTooltip";
 
 interface YourIdStepProps {
   upi: string;
@@ -16,19 +17,22 @@ export default function YourIdStep({ upi, onCompleteProfile, onSkip }: YourIdSte
         <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-3xl mb-6 shadow-2xl shadow-emerald-200">
           <IdCard className="w-10 h-10 text-white" />
         </div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-3">Welcome to Eye Hospital!</h2>
+        <h2 className="text-3xl font-bold text-gray-900 mb-3">Welcome to Eye Care!</h2>
         <p className="text-gray-600 text-lg">Your account has been created successfully</p>
       </div>
 
-      {/* UPI Display Card */}
+      {/* Health ID Display Card */}
       <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-2xl p-8">
         <div className="text-center">
-          <p className="text-sm font-medium text-emerald-700 mb-2">Your Hospital ID</p>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <p className="text-sm font-medium text-emerald-700">Your Health ID</p>
+            <InfoTooltip text="Your secure identifier for accessing medical records and health portal. You'll need this ID and your password to sign in." />
+          </div>
           <div className="bg-white rounded-xl px-6 py-4 mb-4 inline-block">
             <p className="text-3xl font-bold text-emerald-600 tracking-wide font-mono">{upi}</p>
           </div>
           <p className="text-sm text-gray-600">
-            Save this ID for future sign-ins. You can use it with your password to access your account anytime.
+            Save this ID for future sign-ins. You'll need it with your password to access your account anytime.
           </p>
         </div>
       </div>

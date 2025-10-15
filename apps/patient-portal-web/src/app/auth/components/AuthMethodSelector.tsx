@@ -24,7 +24,7 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
     setError(null);
 
     if (!hospitalId.trim()) {
-      setError("Please enter your Hospital ID");
+      setError("Please enter your Health ID");
       return;
     }
 
@@ -57,7 +57,7 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
       if (errorCode === "incomplete_signup") {
         setError(errorMessage || "Your account setup is incomplete. Please complete signup.");
       } else if (errorCode === "invalid_credentials") {
-        setError(errorMessage || "Invalid Hospital ID or password");
+        setError(errorMessage || "Invalid Health ID or password");
       } else {
         setError(errorMessage || e.message || "Sign in failed");
       }
@@ -169,10 +169,10 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
 
       {/* Login Form */}
       <form onSubmit={handleSignIn} className="space-y-5">
-        {/* Hospital ID Field */}
+        {/* Health ID Field */}
         <div>
           <label htmlFor="hospitalId" className="block text-sm font-semibold text-gray-700 mb-2">
-            Hospital ID
+            Your Health ID
           </label>
           <motion.input
             whileFocus={{ scale: 1.01, borderColor: "#10b981" }}
@@ -181,13 +181,13 @@ export default function AuthMethodSelector({ onMethodSelected }: Props) {
             id="hospitalId"
             value={hospitalId}
             onChange={(e) => setHospitalId(e.target.value)}
-            placeholder="Enter your unique patient ID"
+            placeholder="Enter your Health ID (e.g., EH-2025-A1234)"
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 transition-colors"
             required
           />
           <div className="text-right">
             <a href="#" className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline mt-1 inline-block">
-              Forgot ID?
+              Forgot Your Health ID?
             </a>
           </div>
         </div>

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { validatePassword } from "../../../../lib/utils";
+import InfoTooltip from "./InfoTooltip";
 
 type Props = {
   onSuccess: (sessionToken: string) => void;
@@ -24,7 +25,7 @@ export default function UpiSignInStep({ onSuccess, onBack }: Props) {
     setError(null);
 
     if (!upi.trim()) {
-      setError("Please enter your UPI");
+      setError("Please enter your Health ID");
       return;
     }
 
@@ -57,7 +58,7 @@ export default function UpiSignInStep({ onSuccess, onBack }: Props) {
       if (errorCode === "incomplete_signup") {
         setError(errorMessage || "Your account setup is incomplete. Please complete signup.");
       } else if (errorCode === "invalid_credentials") {
-        setError(errorMessage || "Invalid UPI or password");
+        setError(errorMessage || "Invalid Health ID or password");
       } else {
         setError(errorMessage || e.message || "Sign in failed");
       }
@@ -152,21 +153,22 @@ export default function UpiSignInStep({ onSuccess, onBack }: Props) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-xl font-bold text-gray-900 mb-2">Sign In with UPI</h3>
-        <p className="text-gray-600">Enter your Unique Patient ID and password</p>
+        <h3 className="text-xl font-bold text-gray-900 mb-2">Sign In with Your Health ID</h3>
+        <p className="text-gray-600">Enter your Health ID and password</p>
       </div>
 
       <form onSubmit={handleSignIn} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            UPI (Unique Patient ID)
+          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+            Your Health ID
+            <InfoTooltip text="The ID provided during registration (e.g., EH-2025-A1234)" />
           </label>
           <input
             type="text"
             value={upi}
             onChange={(e) => setUpi(e.target.value.toUpperCase())}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono"
-            placeholder="UPI123456"
+            placeholder="EH-2025-A1234"
             disabled={loading}
             autoFocus
           />

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import InternationalPhoneInput from "./InternationalPhoneInput";
 import InfoTooltip from "./InfoTooltip";
+import ConsentModal from "./ConsentModal";
 
 export type ProfileData = {
   title?: string;
@@ -63,6 +64,20 @@ const FAMILY_RELATIONSHIPS = [
   { value: 'other', label: 'Other Family Member' },
 ];
 
+const GUARDIAN_RELATIONSHIPS = [
+  { value: 'father', label: 'Father' },
+  { value: 'mother', label: 'Mother' },
+  { value: 'caregiver', label: 'Caregiver' },
+  { value: 'sibling', label: 'Sibling' },
+  { value: 'grandfather', label: 'Grandfather' },
+  { value: 'grandmother', label: 'Grandmother' },
+  { value: 'uncle', label: 'Uncle' },
+  { value: 'aunt', label: 'Aunt' },
+  { value: 'guardian', label: 'Legal Guardian' },
+  { value: 'relative', label: 'Relative' },
+  { value: 'other', label: 'Other' },
+];
+
 export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = false, mode = "extended", initialData }: Props) {
   const isMinimalMode = mode === "minimal";
   
@@ -80,7 +95,16 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
   const [email, setEmail] = useState(initialData?.email || "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // Consent checkboxes (4 required)
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [acceptHipaa, setAcceptHipaa] = useState(false);
+  const [acceptAuthorization, setAcceptAuthorization] = useState(false);
+  
+  // Modal state
+  const [consentModalOpen, setConsentModalOpen] = useState(false);
+  const [consentModalType, setConsentModalType] = useState<"terms" | "privacy" | "hipaa" | "authorization">("terms");
   const [patientType, setPatientType] = useState(initialData?.patientType || "");
   const [guardianName, setGuardianName] = useState(initialData?.guardianName || "");
   const [relationship, setRelationship] = useState(initialData?.relationship || "");
@@ -278,9 +302,24 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
       return false;
     }
 
-    // Validate terms acceptance
+    // Validate all 4 consent checkboxes
     if (isMinimalMode && !acceptTerms) {
-      setError("You must accept the terms and privacy policy");
+      setError("You must accept the Terms of Service");
+      return false;
+    }
+    
+    if (isMinimalMode && !acceptPrivacy) {
+      setError("You must accept the Privacy Policy");
+      return false;
+    }
+    
+    if (isMinimalMode && !acceptHipaa) {
+      setError("You must consent to HIPAA Notice of Privacy Practices");
+      return false;
+    }
+    
+    if (isMinimalMode && !acceptAuthorization) {
+      setError("You must authorize use of your health information");
       return false;
     }
     
@@ -578,25 +617,45 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               </div>
             </div>
 
-            {/* Guardian Name - Only for minors */}
+            {/* Guardian Name & Relationship - Only for minors */}
             {isMinor && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="bg-amber-50 border border-amber-200 rounded-lg p-4"
+                className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-4"
               >
-                <label className="block text-sm font-medium text-amber-900 mb-1.5">
-                  Guardian Name <span className="text-red-500">*</span>
-                  <span className="text-xs text-amber-700 block mt-1">Required for patients under 18 years</span>
-                </label>
-                <input 
-                  type="text"
-                  className="w-full px-3 py-2.5 text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500" 
-                  value={guardianName} 
-                  onChange={(e)=>setGuardianName(e.target.value)}
-                  placeholder="Full name of parent or legal guardian"
-                  required
-                />
+                <div>
+                  <label className="block text-sm font-medium text-amber-900 mb-1.5">
+                    Guardian Name <span className="text-red-500">*</span>
+                    <InfoTooltip text="Full name of parent or legal guardian responsible for the patient" />
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full px-3 py-2.5 text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500" 
+                    value={guardianName} 
+                    onChange={(e)=>setGuardianName(e.target.value)}
+                    placeholder="Full name of parent or legal guardian"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-amber-900 mb-1.5">
+                    Relationship with Patient <span className="text-red-500">*</span>
+                    <InfoTooltip text="Guardian's relationship to the patient" />
+                  </label>
+                  <select 
+                    className="w-full px-3 py-2.5 text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500" 
+                    value={relationship} 
+                    onChange={(e)=>setRelationship(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Relationship</option>
+                    {GUARDIAN_RELATIONSHIPS.map(rel => (
+                      <option key={rel.value} value={rel.value}>{rel.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-xs text-amber-700">Required for patients under 18 years</p>
               </motion.div>
             )}
           </motion.div>
@@ -617,11 +676,11 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               Contact & Security
             </h4>
 
-            {/* Mobile Number with Tooltip */}
+            {/* Mobile Number - OPTIONAL with Tooltip */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Mobile Number (Recommended for appointment reminders)
-                <InfoTooltip text="Enter your phone number in your country's format. This helps us send you appointment reminders and important updates." />
+                Mobile Number
+                <InfoTooltip text="Optional but recommended for appointment reminders, OTP verification, and emergency contact" />
               </label>
               <InternationalPhoneInput
                 value={mobile}
@@ -799,26 +858,98 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
               )}
             </div>
 
-            {/* Terms and Privacy */}
-            <div className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
-              <input
-                type="checkbox"
-                id="terms"
-                checked={acceptTerms}
-                onChange={(e) => setAcceptTerms(e.target.checked)}
-                className="mt-1 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
-              />
-              <label htmlFor="terms" className="text-sm text-gray-700">
-                I accept the{' '}
-                <a href="#" className="text-emerald-600 hover:text-emerald-700 font-medium hover:underline">
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="text-emerald-600 hover:text-emerald-700 font-medium hover:underline">
-                  Privacy Policy
-                </a>
-                <span className="text-red-500 ml-1">*</span>
-              </label>
+            {/* Consent & Agreements - 4 Required Checkboxes */}
+            <div className="border-t border-gray-200 pt-4 space-y-3">
+              <h5 className="text-sm font-semibold text-gray-900 mb-3">
+                Consent & Agreements <span className="text-red-500">*</span>
+              </h5>
+              
+              {/* 1. Terms of Service */}
+              <div className="flex items-start space-x-3">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                />
+                <label htmlFor="terms" className="text-sm text-gray-700">
+                  I accept the{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setConsentModalType("terms"); setConsentModalOpen(true); }}
+                    className="text-emerald-600 hover:text-emerald-700 font-medium hover:underline"
+                  >
+                    Terms of Service
+                  </button>
+                </label>
+              </div>
+              
+              {/* 2. Privacy Policy */}
+              <div className="flex items-start space-x-3">
+                <input
+                  type="checkbox"
+                  id="privacy"
+                  checked={acceptPrivacy}
+                  onChange={(e) => setAcceptPrivacy(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                />
+                <label htmlFor="privacy" className="text-sm text-gray-700">
+                  I accept the{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setConsentModalType("privacy"); setConsentModalOpen(true); }}
+                    className="text-emerald-600 hover:text-emerald-700 font-medium hover:underline"
+                  >
+                    Privacy Policy
+                  </button>
+                </label>
+              </div>
+              
+              {/* 3. HIPAA Notice */}
+              <div className="flex items-start space-x-3">
+                <input
+                  type="checkbox"
+                  id="hipaa"
+                  checked={acceptHipaa}
+                  onChange={(e) => setAcceptHipaa(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                />
+                <label htmlFor="hipaa" className="text-sm text-gray-700 flex items-center">
+                  I consent to{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setConsentModalType("hipaa"); setConsentModalOpen(true); }}
+                    className="text-emerald-600 hover:text-emerald-700 font-medium hover:underline mx-1"
+                  >
+                    HIPAA Notice of Privacy Practices
+                  </button>
+                  <InfoTooltip text="Federal law protecting your health information" />
+                </label>
+              </div>
+              
+              {/* 4. Health Information Authorization */}
+              <div className="flex items-start space-x-3">
+                <input
+                  type="checkbox"
+                  id="authorization"
+                  checked={acceptAuthorization}
+                  onChange={(e) => setAcceptAuthorization(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                />
+                <label htmlFor="authorization" className="text-sm text-gray-700 flex items-center">
+                  I authorize{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setConsentModalType("authorization"); setConsentModalOpen(true); }}
+                    className="text-emerald-600 hover:text-emerald-700 font-medium hover:underline mx-1"
+                  >
+                    use of my health information
+                  </button>
+                  for treatment, payment, and healthcare operations
+                  <InfoTooltip text="Standard authorization for medical care coordination and billing as per HIPAA regulations" />
+                </label>
+              </div>
             </div>
           </motion.div>
         )}
@@ -962,6 +1093,13 @@ export default function ProfileStep({ onNext, onSkip, isAddingFamilyMember = fal
           {isMinimalMode && currentStep === 1 ? "Next →" : (isAddingFamilyMember ? "Add Family Member" : "Continue")}
         </motion.button>
       </div>
+
+      {/* Consent Modal */}
+      <ConsentModal
+        isOpen={consentModalOpen}
+        onClose={() => setConsentModalOpen(false)}
+        type={consentModalType}
+      />
     </div>
   );
 }
