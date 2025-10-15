@@ -9,14 +9,19 @@ export default function ProgressBar({ currentStep, totalSteps }: ProgressBarProp
   const progress = (currentStep / totalSteps) * 100;
 
   return (
-    <div className="w-full bg-gray-200 rounded-full h-1.5 mb-8">
-      <div
-        className="h-1.5 rounded-full transition-all duration-300 ease-out"
-        style={{ 
-          width: `${progress}%`,
-          backgroundColor: '#2ecc71' 
-        }}
-      />
+    <div className="flex items-center gap-4 mb-8">
+      <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+        <div
+          className="h-1.5 rounded-full transition-all duration-300 ease-out"
+          style={{ 
+            width: `${progress}%`,
+            backgroundColor: '#2ecc71' 
+          }}
+        />
+      </div>
+      <p className="text-sm text-muted-foreground whitespace-nowrap">
+        {currentStep}/{totalSteps}
+      </p>
     </div>
   );
 }
